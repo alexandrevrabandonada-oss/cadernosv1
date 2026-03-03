@@ -1,0 +1,20 @@
+:root {
+  --header-height: 64px;
+  --bg-0: #f4f2ef;
+  --bg-1: #e9e4de;
+  --bg-accent: rgba(167, 182, 166, 0.24);
+  --surface-0: #ffffff;
+  --surface-1: #f2eee7;
+  --text-0: #2f302d;
+  --text-1: #646660;
+  --line-0: #d3cec5;
+  --brand-0: #5d6f5e;
+  --brand-1: #768c77;
+  --shadow-0: 0 10px 24px rgba(32, 34, 30, 0.08);
+}
+
+@media (max-width: 720px) {
+  :root {
+    --header-height: 56px;
+  }
+}
