@@ -1,16 +1,40 @@
 :root {
   --header-height: 64px;
-  --bg-0: #f4f2ef;
-  --bg-1: #e9e4de;
-  --bg-accent: rgba(167, 182, 166, 0.24);
-  --surface-0: #ffffff;
-  --surface-1: #f2eee7;
-  --text-0: #2f302d;
-  --text-1: #646660;
-  --line-0: #d3cec5;
-  --brand-0: #5d6f5e;
-  --brand-1: #768c77;
-  --shadow-0: 0 10px 24px rgba(32, 34, 30, 0.08);
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.5rem;
+  --space-6: 2rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 18px;
+  --font-sans: 'Bahnschrift', 'Arial Narrow', 'Segoe UI', Tahoma, sans-serif;
+  --font-mono: 'Consolas', 'Cascadia Mono', 'Courier New', monospace;
+  --bg-0: #d7d8d3;
+  --bg-1: #c6c5be;
+  --bg-accent: rgba(56, 103, 87, 0.2);
+  --surface-0: #f2f2ef;
+  --surface-1: #e5e4de;
+  --surface-2: #cdccc5;
+  --text-0: #171b1a;
+  --text-1: #3b423f;
+  --line-0: #464c49;
+  --line-soft: #8f938e;
+  --brand-0: #0f7a59;
+  --brand-1: #055f45;
+  --alert-0: #9d2a1a;
+  --focus: #1e8876;
+  --shadow-0: 0 8px 26px rgba(0, 0, 0, 0.15);
+  --shadow-1: 0 2px 0 rgba(0, 0, 0, 0.55);
+  --texture-grid:
+    repeating-linear-gradient(
+      90deg,
+      transparent 0,
+      transparent 29px,
+      rgba(0, 0, 0, 0.03) 30px
+    ),
+    repeating-linear-gradient(0deg, transparent 0, transparent 29px, rgba(0, 0, 0, 0.02) 30px);
 }
 
 @media (max-width: 720px) {

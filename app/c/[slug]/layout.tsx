@@ -9,13 +9,7 @@ export default async function UniversoLayout({ children, params }: UniversoLayou
   const { slug } = await params;
 
   return (
-    <main
-      style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(200px, 240px) minmax(0, 1fr)',
-        gap: '1rem',
-      }}
-    >
+    <main className='split-layout'>
       <QuickNav slug={slug} />
       <div className='stack'>{children}</div>
     </main>

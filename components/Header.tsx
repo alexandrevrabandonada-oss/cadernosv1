@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { Button } from '@/components/ui/Button';
 
 export function Header() {
   return (
@@ -12,27 +13,26 @@ export function Header() {
         zIndex: 20,
         borderBottom: '1px solid var(--line-0)',
         backdropFilter: 'blur(10px)',
-        background: 'color-mix(in srgb, var(--surface-0), transparent 20%)',
+        background: 'color-mix(in srgb, var(--surface-0), transparent 12%)',
       }}
     >
-      <div
-        style={{
-          width: 'min(1100px, 92vw)',
-          margin: '0 auto',
-          height: '100%',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: '1rem',
-        }}
-      >
-        <Link href='/' style={{ fontWeight: 700, letterSpacing: '0.03em' }}>
-          Cadernos Vivos
+      <div className='header-wrap'>
+        <Link href='/' style={{ fontWeight: 800, letterSpacing: '0.05em' }} aria-label='Voltar para Home'>
+          Cadernos Vivos // Urbano
         </Link>
-        <nav style={{ display: 'flex', gap: '0.8rem', color: 'var(--text-1)' }}>
-          <Link href='/'>Home</Link>
-          <Link href='/c/exemplo'>Universo Exemplo</Link>
-          <Link href='/admin'>Admin</Link>
+        <nav className='top-nav' aria-label='Navegacao principal'>
+          <Button href='/' variant='ghost'>
+            Home
+          </Button>
+          <Button href='/c/exemplo' variant='ghost'>
+            Universo
+          </Button>
+          <Button href='/admin' variant='ghost'>
+            Admin
+          </Button>
+          <Button href='/status' variant='ghost'>
+            Status
+          </Button>
         </nav>
       </div>
     </header>
