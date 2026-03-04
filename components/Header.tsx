@@ -30,6 +30,9 @@ export function Header() {
           <Button href='/admin' variant='ghost'>
             Admin
           </Button>
+          <Button href='/login' variant='ghost'>
+            Login
+          </Button>
           <Button href='/status' variant='ghost'>
             Status
           </Button>

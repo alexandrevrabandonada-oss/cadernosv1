@@ -1,12 +1,20 @@
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { getAdminDb, listUniverses, slugify } from '@/lib/admin/db';
+import { getAdminDb, hasAdminWriteAccess, listUniverses, slugify } from '@/lib/admin/db';
+import { requireEditorOrAdmin } from '@/lib/auth/requireRole';
+import { enforceAdminWriteLimit } from '@/lib/ratelimit/enforce';
 
 async function createUniverseAction(formData: FormData) {
   'use server';
+  const session = await requireEditorOrAdmin();
+  const rl = await enforceAdminWriteLimit(session.userId, 'admin/universes/create');
+  if (!rl.ok) {
+    redirect(`/admin/universes?rl=${rl.retryAfterSec}`);
+  }
 
   const db = getAdminDb();
   if (!db) return;
@@ -14,7 +22,7 @@ async function createUniverseAction(formData: FormData) {
   const title = String(formData.get('title') ?? '').trim();
   const slugRaw = String(formData.get('slug') ?? '').trim();
   const summary = String(formData.get('summary') ?? '').trim();
-  const published = formData.get('published') === 'on';
+  const publishNow = formData.get('publish_now') === 'on';
 
   if (!title) return;
 
@@ -25,15 +33,23 @@ async function createUniverseAction(formData: FormData) {
     title,
     slug,
     summary: summary || 'Resumo inicial do universo.',
-    published,
+    published_at: publishNow ? new Date().toISOString() : null,
+    published: publishNow,
   });
 
   revalidatePath('/admin/universes');
 }
 
-export default async function AdminUniversesPage() {
+type AdminUniversesPageProps = {
+  searchParams: Promise<{ rl?: string }>;
+};
+
+export default async function AdminUniversesPage({ searchParams }: AdminUniversesPageProps) {
+  const sp = await searchParams;
   const universes = await listUniverses();
+  const canWrite = await hasAdminWriteAccess();
   const configured = Boolean(getAdminDb());
+  const retrySec = Number(sp.rl ?? 0);
 
   return (
     <main className='stack'>
@@ -50,6 +66,16 @@ export default async function AdminUniversesPage() {
         {!configured ? (
           <p className='muted' style={{ margin: 0 }}>
             Configure <code>SUPABASE_SERVICE_ROLE_KEY</code> para habilitar escrita no admin.
+          </p>
+        ) : null}
+        {!canWrite ? (
+          <p className='muted' style={{ margin: 0 }}>
+            Seu perfil e somente leitura nesta area.
+          </p>
+        ) : null}
+        {retrySec > 0 ? (
+          <p className='muted' role='alert' style={{ margin: 0, color: 'var(--alert-0)' }}>
+            Muitas acoes em pouco tempo. Tente novamente em {retrySec}s.
           </p>
         ) : null}
       </Card>
@@ -70,10 +96,10 @@ export default async function AdminUniversesPage() {
             <textarea name='summary' rows={3} style={{ width: '100%' }} />
           </label>
           <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-            <input type='checkbox' name='published' />
-            Publicado
+            <input type='checkbox' name='publish_now' />
+            Publicar imediatamente
           </label>
-          <button className='ui-button' type='submit' disabled={!configured}>
+          <button className='ui-button' type='submit' disabled={!configured || !canWrite}>
             Criar universo
           </button>
         </form>
@@ -86,17 +112,26 @@ export default async function AdminUniversesPage() {
             <article key={universe.id} className='core-node'>
               <strong>{universe.title}</strong>
               <p className='muted' style={{ margin: 0 }}>
-                {universe.slug} {universe.published ? '(publicado)' : '(rascunho)'}
+                {universe.slug}{' '}
+                {universe.published_at
+                  ? `(publicado em ${new Date(universe.published_at).toLocaleString('pt-BR')})`
+                  : '(nao publicado)'}
               </p>
               <div className='toolbar-row'>
                 <Link className='ui-button' href={`/admin/universes/${universe.id}`}>
                   Editar meta
+                </Link>
+                <Link className='ui-button' href={`/admin/universes/${universe.id}/checklist`}>
+                  Checklist
                 </Link>
                 <Link className='ui-button' href={`/admin/universes/${universe.id}/nodes`}>
                   Gerenciar nos
                 </Link>
                 <Link className='ui-button' href={`/admin/universes/${universe.id}/docs`}>
                   Gerenciar docs
+                </Link>
+                <Link className='ui-button' href={`/admin/universes/${universe.id}/links`}>
+                  Curadoria links
                 </Link>
               </div>
             </article>

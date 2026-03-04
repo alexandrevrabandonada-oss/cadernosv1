@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
+import { FilterRail } from '@/components/workspace/FilterRail';
+import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -13,6 +15,8 @@ type LinhaPageProps = {
     from?: string;
     to?: string;
     node?: string;
+    selected?: string;
+    panel?: string;
   }>;
 };
 
@@ -23,7 +27,7 @@ function dateLabel(value: string | null) {
 
 export default async function LinhaPage({ params, searchParams }: LinhaPageProps) {
   const { slug } = await params;
-  const { from, to, node } = await searchParams;
+  const { from, to, node, selected } = await searchParams;
   const currentPath = buildUniverseHref(slug, 'linha');
   const data = await getTimelineData(slug, {
     from,
@@ -31,11 +35,25 @@ export default async function LinhaPage({ params, searchParams }: LinhaPageProps
     nodeId: node,
   });
 
+  const selectedEventId = selected ?? '';
+  const selectedEvent = data.events.find((event) => event.id === selectedEventId) ?? null;
+
   const makeFilterLink = () => {
     const qs = new URLSearchParams();
     if (from) qs.set('from', from);
     if (to) qs.set('to', to);
     if (node) qs.set('node', node);
+    if (selectedEventId) qs.set('selected', selectedEventId);
+    return `${currentPath}?${qs.toString()}`;
+  };
+
+  const makeSelectedLink = (eventId: string) => {
+    const qs = new URLSearchParams();
+    if (from) qs.set('from', from);
+    if (to) qs.set('to', to);
+    if (node) qs.set('node', node);
+    qs.set('selected', eventId);
+    qs.set('panel', 'detail');
     return `${currentPath}?${qs.toString()}`;
   };
 
@@ -43,101 +61,116 @@ export default async function LinhaPage({ params, searchParams }: LinhaPageProps
     <div className='stack'>
       <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Linha' />
 
-      <Card className='stack'>
-        <SectionHeader
-          title={`Linha do tempo de ${data.universeTitle}`}
-          description='Timeline de eventos com links para evidencias e documentos associados.'
-          tag='Linha'
-        />
-        <div className='toolbar-row'>
-          <Carimbo>{data.source === 'db' ? 'dados:db' : 'dados:mock'}</Carimbo>
-          <Carimbo>{`eventos:${data.events.length}`}</Carimbo>
-        </div>
-      </Card>
-
-      <Card className='stack'>
-        <SectionHeader title='Filtros' />
-        <form method='get' className='layout-shell' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-          <label>
-            <span>De (periodo inicial)</span>
-            <input type='date' name='from' defaultValue={from ?? ''} style={{ width: '100%', minHeight: 42 }} />
-          </label>
-          <label>
-            <span>Ate (periodo final)</span>
-            <input type='date' name='to' defaultValue={to ?? ''} style={{ width: '100%', minHeight: 42 }} />
-          </label>
-          <label>
-            <span>No</span>
-            <select name='node' defaultValue={node ?? ''} style={{ width: '100%', minHeight: 42 }}>
-              <option value=''>Todos</option>
-              {data.nodes.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <div className='toolbar-row' style={{ alignItems: 'end' }}>
-            <button className='ui-button' type='submit'>
-              Aplicar filtros
-            </button>
-            <Link className='ui-button' href={currentPath} data-variant='ghost'>
-              Limpar
-            </Link>
-            {(from || to || node) ? (
-              <Link className='ui-button' href={makeFilterLink()} data-variant='ghost'>
-                Link dos filtros
-              </Link>
-            ) : null}
-          </div>
-        </form>
-      </Card>
-
-      <Card className='stack'>
-        <SectionHeader title='Timeline' description='Eventos ordenados por data com conexoes para provas e documentos.' />
-        <div className='timeline-list'>
-          {data.events.map((event) => (
-            <article key={event.id} className='timeline-item'>
-              <div className='timeline-dot' aria-hidden='true' />
-              <div className='timeline-card'>
-                <strong>{event.title}</strong>
+      <WorkspaceShell
+        slug={slug}
+        section='linha'
+        title={`Linha do tempo de ${data.universeTitle}`}
+        subtitle='Eventos ordenados com conexoes para provas e documentos.'
+        selectedId={selectedEventId}
+        detailTitle='Detalhe do evento'
+        filter={
+          <FilterRail>
+            <form method='get' className='stack'>
+              <label>
+                <span>De</span>
+                <input type='date' name='from' defaultValue={from ?? ''} style={{ width: '100%', minHeight: 42 }} />
+              </label>
+              <label>
+                <span>Ate</span>
+                <input type='date' name='to' defaultValue={to ?? ''} style={{ width: '100%', minHeight: 42 }} />
+              </label>
+              <label>
+                <span>No</span>
+                <select name='node' defaultValue={node ?? ''} style={{ width: '100%', minHeight: 42 }}>
+                  <option value=''>Todos</option>
+                  {data.nodes.map((item) => (
+                    <option key={item.id} value={item.id}>
+                      {item.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <div className='toolbar-row'>
+                <button className='ui-button' type='submit'>
+                  Aplicar
+                </button>
+                <Link className='ui-button' href={currentPath} data-variant='ghost'>
+                  Limpar
+                </Link>
+                {(from || to || node) ? (
+                  <Link className='ui-button' href={makeFilterLink()} data-variant='ghost'>
+                    Link filtros
+                  </Link>
+                ) : null}
+              </div>
+            </form>
+          </FilterRail>
+        }
+        detail={
+          selectedEvent ? (
+            <div className='stack'>
+              <article className='core-node'>
+                <strong>{selectedEvent.title}</strong>
                 <p className='muted' style={{ margin: 0 }}>
-                  {dateLabel(event.eventDate)}
-                  {event.periodLabel ? ` | ${event.periodLabel}` : ''}
-                  {event.nodeTitle ? ` | No: ${event.nodeTitle}` : ''}
+                  {dateLabel(selectedEvent.eventDate)}
+                  {selectedEvent.periodLabel ? ` | ${selectedEvent.periodLabel}` : ''}
                 </p>
-                <p style={{ margin: 0 }}>{event.summary}</p>
-                <div className='toolbar-row'>
-                  {event.evidenceId ? (
-                    <Link
-                      className='ui-button'
-                      href={`${buildUniverseHref(slug, 'provas')}?node=${encodeURIComponent(event.nodeId ?? '')}`}
-                    >
-                      Evidencia relacionada
-                    </Link>
-                  ) : null}
-                  {event.documentId ? (
-                    <Link className='ui-button' href={`/c/${slug}/doc/${event.documentId}`}>
-                      Documento {event.documentYear ? `(${event.documentYear})` : ''}
-                    </Link>
-                  ) : null}
+                <p style={{ margin: 0 }}>{selectedEvent.summary}</p>
+              </article>
+              <div className='toolbar-row'>
+                {selectedEvent.evidenceId ? (
                   <Link
                     className='ui-button'
-                    href={`${buildUniverseHref(slug, 'debate')}?q=${encodeURIComponent(`Como o evento "${event.title}" se conecta com as evidencias?`)}`}
+                    href={`${buildUniverseHref(slug, 'provas')}?node=${encodeURIComponent(selectedEvent.nodeId ?? '')}`}
                   >
-                    Debater evento
+                    Ver provas
                   </Link>
-                </div>
+                ) : null}
+                {selectedEvent.documentId ? (
+                  <Link className='ui-button' href={`/c/${slug}/doc/${selectedEvent.documentId}`}>
+                    Documento
+                  </Link>
+                ) : null}
               </div>
-            </article>
-          ))}
-          {data.events.length === 0 ? (
-            <p className='muted' style={{ margin: 0 }}>
-              Nenhum evento encontrado para os filtros atuais.
-            </p>
-          ) : null}
-        </div>
-      </Card>
+            </div>
+          ) : null
+        }
+      >
+        <Card className='stack'>
+          <div className='toolbar-row'>
+            <Carimbo>{data.source === 'db' ? 'dados:db' : 'dados:mock'}</Carimbo>
+            <Carimbo>{`eventos:${data.events.length}`}</Carimbo>
+          </div>
+          <SectionHeader title='Timeline' description='Clique em um evento para abrir o painel de detalhe.' />
+          <div className='timeline-list'>
+            {data.events.map((event) => (
+              <article key={event.id} className='timeline-item'>
+                <div className='timeline-dot' aria-hidden='true' />
+                <div className='timeline-card'>
+                  <strong>{event.title}</strong>
+                  <p className='muted' style={{ margin: 0 }}>
+                    {dateLabel(event.eventDate)}
+                    {event.periodLabel ? ` | ${event.periodLabel}` : ''}
+                    {event.nodeTitle ? ` | No: ${event.nodeTitle}` : ''}
+                  </p>
+                  <p style={{ margin: 0 }}>{event.summary}</p>
+                  <div className='toolbar-row'>
+                    <Link className='ui-button' data-variant='ghost' href={makeSelectedLink(event.id)}>
+                      Ver detalhe
+                    </Link>
+                    <Link
+                      className='ui-button'
+                      href={`${buildUniverseHref(slug, 'debate')}?q=${encodeURIComponent(`Como o evento "${event.title}" se conecta com as evidencias?`)}`}
+                    >
+                      Debater
+                    </Link>
+                  </div>
+                </div>
+              </article>
+            ))}
+          </div>
+        </Card>
+      </WorkspaceShell>
 
       <Card className='stack'>
         <Portais slug={slug} currentPath='linha' title='Proximas portas' />

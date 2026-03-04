@@ -1,12 +1,25 @@
 import { getUniverseMock, type UniverseNode } from '@/lib/mock/universe';
+import { listNodeLinkCounts } from '@/lib/data/nodeLinks';
+import { getQuickQuestions, type QuickQuestion } from '@/lib/onboarding/questions';
+import { ensureQuickStartTrail } from '@/lib/onboarding/quickstart';
 import { getSupabaseServerClient, isSupabaseServerEnvConfigured } from '@/lib/supabase/server';
 
 export type HubData = {
   source: 'db' | 'mock';
+  universeId: string | null;
   slug: string;
   title: string;
   summary: string;
-  coreNodes: UniverseNode[];
+  quickStart: {
+    docsProcessed: number;
+    nodesTotal: number;
+    evidencesTotal: number;
+    trailSlug: string;
+    questions: QuickQuestion[];
+  };
+  coreNodes: Array<UniverseNode & { docsCount?: number; evidencesCount?: number }>;
+  featuredTrails: Array<{ id: string; title: string; summary: string }>;
+  featuredEvidences: Array<{ id: string; title: string; summary: string }>;
 };
 
 export type MapEdge = {
@@ -19,6 +32,7 @@ export type MapEdge = {
 
 export type MapData = {
   source: 'db' | 'mock';
+  universeId: string | null;
   slug: string;
   title: string;
   nodes: UniverseNode[];
@@ -29,7 +43,7 @@ export type NodeRelatedDocument = {
   id: string;
   title: string;
   year: number | null;
-  status: 'uploaded' | 'processed';
+  status: 'uploaded' | 'processed' | 'link_only' | 'error';
 };
 
 function mapNodeKind(kind: string): UniverseNode['type'] {
@@ -60,15 +74,58 @@ function buildMockEdges(slug: string, nodes: UniverseNode[]): MapEdge[] {
   return edges;
 }
 
+function mockFeaturedTrails(nodes: UniverseNode[]) {
+  return nodes.slice(0, 3).map((node, index) => ({
+    id: `mock-trail-${index + 1}`,
+    title: `Trilha ${index + 1}: ${node.label}`,
+    summary: `Percurso inicial para explorar ${node.label}.`,
+  }));
+}
+
+function mockFeaturedEvidences(nodes: UniverseNode[]) {
+  return nodes.slice(0, 3).map((node, index) => ({
+    id: `mock-evidence-${index + 1}`,
+    title: `Evidencia ${index + 1}: ${node.label}`,
+    summary: `Resumo curado de exemplo associado ao no ${node.label}.`,
+  }));
+}
+
+function mockQuickQuestions(slug: string): QuickQuestion[] {
+  const mock = getUniverseMock(slug);
+  const base: QuickQuestion[] = [
+    { question: 'Quais sao os principais achados deste universo?', nodeSlug: null, label: 'ACHADOS' },
+    { question: 'Quais evidencias mais fortes aparecem na base?', nodeSlug: null, label: 'EVIDENCIAS' },
+    { question: 'Quais sao as principais limitacoes/lacunas dos estudos?', nodeSlug: null, label: 'LACUNAS' },
+  ];
+  const perNode = mock.coreNodes.slice(0, 3).map((node) => ({
+    question: `O que os estudos mostram sobre ${node.label}?`,
+    nodeSlug: node.slug ?? null,
+    label: node.label.toUpperCase().slice(0, 10),
+  }));
+  return [...base, ...perNode].slice(0, 8);
+}
+
 export async function getHubData(slug: string): Promise<HubData> {
   const mock = getUniverseMock(slug);
+  const mockQuickStart = {
+    docsProcessed: 0,
+    nodesTotal: mock.coreNodes.length,
+    evidencesTotal: 0,
+    trailSlug: 'comece-aqui',
+    questions: mockQuickQuestions(slug),
+  };
+
   if (!isSupabaseServerEnvConfigured()) {
     return {
       source: 'mock',
+      universeId: null,
       slug: mock.slug,
       title: mock.title,
       summary: mock.summary,
+      quickStart: mockQuickStart,
       coreNodes: mock.coreNodes,
+      featuredTrails: mockFeaturedTrails(mock.coreNodes),
+      featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
     };
   }
 
@@ -76,10 +133,14 @@ export async function getHubData(slug: string): Promise<HubData> {
   if (!client) {
     return {
       source: 'mock',
+      universeId: null,
       slug: mock.slug,
       title: mock.title,
       summary: mock.summary,
+      quickStart: mockQuickStart,
       coreNodes: mock.coreNodes,
+      featuredTrails: mockFeaturedTrails(mock.coreNodes),
+      featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
     };
   }
 
@@ -93,10 +154,14 @@ export async function getHubData(slug: string): Promise<HubData> {
     if (universeQuery.error || !universeQuery.data) {
       return {
         source: 'mock',
+        universeId: null,
         slug: mock.slug,
         title: mock.title,
         summary: mock.summary,
+        quickStart: mockQuickStart,
         coreNodes: mock.coreNodes,
+        featuredTrails: mockFeaturedTrails(mock.coreNodes),
+        featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
       };
     }
 
@@ -110,10 +175,14 @@ export async function getHubData(slug: string): Promise<HubData> {
     if (nodesQuery.error || !nodesQuery.data?.length) {
       return {
         source: 'db',
+        universeId: universeQuery.data.id,
         slug,
         title: universeQuery.data.title,
         summary: universeQuery.data.summary,
+        quickStart: mockQuickStart,
         coreNodes: mock.coreNodes.slice(0, 5),
+        featuredTrails: mockFeaturedTrails(mock.coreNodes),
+        featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
       };
     }
 
@@ -122,21 +191,73 @@ export async function getHubData(slug: string): Promise<HubData> {
       label: node.title,
       type: mapNodeKind(node.kind),
     }));
+    const linkCounts = await listNodeLinkCounts(
+      universeQuery.data.id,
+      coreNodes.map((node) => node.id),
+    );
+    const coreNodesWithCounts = coreNodes.map((node) => ({
+      ...node,
+      docsCount: linkCounts[node.id]?.docs ?? 0,
+      evidencesCount: linkCounts[node.id]?.evidences ?? 0,
+    }));
+
+    const [, trailsQuery, evidencesQuery, docsQuery, nodesCountQuery, evidencesCountQuery, quickQuestions] = await Promise.all([
+      ensureQuickStartTrail(universeQuery.data.id, slug),
+      client
+        .from('trails')
+        .select('id, title, summary')
+        .eq('universe_id', universeQuery.data.id)
+        .order('created_at', { ascending: false })
+        .limit(3),
+      client
+        .from('evidences')
+        .select('id, title, summary')
+        .eq('universe_id', universeQuery.data.id)
+        .eq('curated', true)
+        .order('created_at', { ascending: false })
+        .limit(3),
+      client
+        .from('documents')
+        .select('id, status, is_deleted')
+        .eq('universe_id', universeQuery.data.id)
+        .eq('is_deleted', false),
+      client.from('nodes').select('id', { count: 'exact', head: true }).eq('universe_id', universeQuery.data.id),
+      client.from('evidences').select('id', { count: 'exact', head: true }).eq('universe_id', universeQuery.data.id),
+      getQuickQuestions(universeQuery.data.id),
+    ]);
+
+    const docsProcessed = (docsQuery.data ?? []).filter((doc) => doc.status === 'processed').length;
+    const nodesTotal = Number(nodesCountQuery.count ?? 0);
+    const evidencesTotal = Number(evidencesCountQuery.count ?? 0);
 
     return {
       source: 'db',
+      universeId: universeQuery.data.id,
       slug,
       title: universeQuery.data.title,
       summary: universeQuery.data.summary,
-      coreNodes,
+      quickStart: {
+        docsProcessed,
+        nodesTotal,
+        evidencesTotal,
+        trailSlug: 'comece-aqui',
+        questions: quickQuestions.length > 0 ? quickQuestions : mockQuickQuestions(slug),
+      },
+      coreNodes: coreNodesWithCounts,
+      featuredTrails: trailsQuery.data ?? [],
+      featuredEvidences: evidencesQuery.data ?? [],
     };
   } catch {
     return {
       source: 'mock',
+      universeId: null,
       slug: mock.slug,
       title: mock.title,
       summary: mock.summary,
+      quickStart: mockQuickStart,
       coreNodes: mock.coreNodes,
+      featuredTrails: mockFeaturedTrails(mock.coreNodes),
+      featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
     };
   }
 }
@@ -146,6 +267,7 @@ export async function getMapData(slug: string): Promise<MapData> {
   if (!isSupabaseServerEnvConfigured()) {
     return {
       source: 'mock',
+      universeId: null,
       slug,
       title: mock.title,
       nodes: mock.coreNodes.map((node) => ({
@@ -161,6 +283,7 @@ export async function getMapData(slug: string): Promise<MapData> {
   if (!client) {
     return {
       source: 'mock',
+      universeId: null,
       slug,
       title: mock.title,
       nodes: mock.coreNodes.map((node) => ({
@@ -182,6 +305,7 @@ export async function getMapData(slug: string): Promise<MapData> {
     if (universeQuery.error || !universeQuery.data) {
       return {
         source: 'mock',
+        universeId: null,
         slug,
         title: mock.title,
         nodes: mock.coreNodes.map((node) => ({
@@ -208,6 +332,7 @@ export async function getMapData(slug: string): Promise<MapData> {
     if (nodesQuery.error || edgesQuery.error || !nodesQuery.data?.length) {
       return {
         source: 'mock',
+        universeId: null,
         slug,
         title: mock.title,
         nodes: mock.coreNodes.map((node) => ({
@@ -238,6 +363,7 @@ export async function getMapData(slug: string): Promise<MapData> {
 
     return {
       source: 'db',
+      universeId: universeQuery.data.id,
       slug,
       title: universeQuery.data.title,
       nodes,
@@ -246,6 +372,7 @@ export async function getMapData(slug: string): Promise<MapData> {
   } catch {
     return {
       source: 'mock',
+      universeId: null,
       slug,
       title: mock.title,
       nodes: mock.coreNodes.map((node) => ({
@@ -286,6 +413,7 @@ export async function getNodeRelatedDocuments(
       .from('chunks')
       .select('document_id')
       .eq('universe_id', universe.data.id)
+      .eq('archived', false)
       .ilike('text', `%${query}%`)
       .limit(20);
 
@@ -308,7 +436,7 @@ export async function getNodeRelatedDocuments(
       id: doc.id,
       title: doc.title,
       year: doc.year,
-      status: doc.status as 'uploaded' | 'processed',
+      status: doc.status as 'uploaded' | 'processed' | 'link_only' | 'error',
     }));
 
     const unique = new Map<string, NodeRelatedDocument>();

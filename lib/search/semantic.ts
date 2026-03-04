@@ -60,6 +60,7 @@ export async function semanticSearchChunks({
     .from('chunks')
     .select('id, document_id, page_start, page_end, text')
     .eq('universe_id', universeId)
+    .eq('archived', false)
     .ilike('text', ilike)
     .limit(topK);
 

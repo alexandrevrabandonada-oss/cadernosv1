@@ -8,6 +8,9 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:ci": "vitest run --reporter=dot",
+    "secrets:check": "node tools/secrets-check.mjs",
     "verify": "npm run lint && npm run typecheck && npm run build",
     "supabase:check": "node tools/check-supabase.mjs",
     "db:login": "node tools/supabase-cli.mjs login",
@@ -17,9 +20,12 @@
     "db:status": "node tools/supabase-cli.mjs status"
   },
   "dependencies": {
+    "@sentry/nextjs": "^10.42.0",
+    "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.98.0",
     "@types/pdf-parse": "^1.1.5",
     "next": "^15.0.0",
+    "pdf-lib": "^1.17.1",
     "pdf-parse": "^2.4.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
@@ -31,6 +37,7 @@
     "eslint": "^9.16.0",
     "eslint-config-next": "^15.0.0",
     "prettier": "^3.4.2",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^3.2.4"
   }
 }

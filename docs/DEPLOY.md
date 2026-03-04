@@ -28,8 +28,10 @@ Sem esses valores o workflow de CD falha no passo de validacao inicial com mensa
 
 1. Garanta que o projeto Vercel esteja vinculado ao repositório.
 2. Garanta que as env vars da aplicacao estejam configuradas no Vercel.
+   - inclua `NEXT_PUBLIC_SITE_URL` com a URL publica da aplicacao.
 3. Garanta que o projeto Supabase existe e aceita o token informado.
 4. Confirme que as migrations em `supabase/migrations/` estao em ordem.
+5. Configure Supabase Auth (Email/Password) e crie pelo menos um usuario admin em `public.profiles`.
 
 ## Rotina diaria
 
@@ -39,6 +41,16 @@ Sem esses valores o workflow de CD falha no passo de validacao inicial com mensa
    - CD roda validacao completa.
    - CD aplica migrations (`npm run db:deploy`).
    - CD publica no Vercel (`vercel deploy --prod`).
+
+## Setup de Auth e papeis (1x)
+
+1. No Supabase Dashboard, habilite provider de Email/Password.
+2. Crie usuario(s) para o painel admin.
+3. Atribua papel em `public.profiles`:
+   - `admin`: gestao total.
+   - `editor`: escrita operacional.
+   - `viewer`: somente leitura.
+4. Nunca habilite `DEV_ADMIN_BYPASS` em preview/producao.
 
 ## Falhas e diagnostico
 

@@ -31,7 +31,7 @@ export async function extractPdfPages(buffer: Buffer): Promise<PdfPageText[]> {
         const text = normalizeText(part.slice(endMarker + 3));
         return { page: pageNumber, text };
       })
-      .filter((page: PdfPageText) => Number.isFinite(page.page) && page.text.length > 0);
+      .filter((page: PdfPageText) => Number.isFinite(page.page));
 
     if (pages.length > 0) {
       return pages;

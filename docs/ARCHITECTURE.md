@@ -18,10 +18,12 @@ Projeto Next.js com App Router e TypeScript, focado em uma base minima para evol
 
 - Header global fixo no `app/layout.tsx`.
 - QuickNav injetado em `app/c/[slug]/layout.tsx`, visivel em todas as subrotas do universo.
+- Home (`/`) funciona como catalogo publico de universos publicados.
+- Enforcement de visibilidade de universo ocorre no layout de `/c/[slug]`.
 
 ## Rotas
 
-- `/` Home.
+- `/` Catalogo publico.
 - `/c/[slug]` Hub do Universo.
 - `/c/[slug]/mapa`
 - `/c/[slug]/provas`
@@ -29,7 +31,16 @@ Projeto Next.js com App Router e TypeScript, focado em uma base minima para evol
 - `/c/[slug]/trilhas`
 - `/c/[slug]/debate`
 - `/c/[slug]/tutoria`
-- `/admin` placeholder controlado por feature flag (`NEXT_PUBLIC_ADMIN_ENABLED` ou `ADMIN_ENABLED`).
+- `/admin` painel autenticado via Supabase Auth + RBAC.
+
+## Governanca de visibilidade
+
+- Campo canonico: `universes.published_at`.
+- Regras:
+  - `published_at is not null`: universo publico.
+  - `published_at is null`: universo em rascunho.
+- Publico anonimo so acessa universos publicados (RLS + guard de rota).
+- `editor/admin` pode acessar rascunhos em modo preview para revisao.
 
 ## Estilo inicial
 

@@ -19,8 +19,24 @@ export type DocViewData = {
   year: number | null;
   sourceUrl: string | null;
   storagePath: string | null;
-  status: 'uploaded' | 'processed';
+  status: 'uploaded' | 'processed' | 'link_only' | 'error';
   signedUrl: string | null;
+};
+
+export type DocThreadCitation = {
+  citationId: string;
+  threadId: string;
+  chunkId: string;
+  docId: string;
+  docTitle: string;
+  year: number | null;
+  pageStart: number | null;
+  pageEnd: number | null;
+  quote: string;
+  quoteStart: number | null;
+  quoteEnd: number | null;
+  highlightToken: string | null;
+  chunkText: string;
 };
 
 export async function getUniverseContextBySlug(slug: string): Promise<UniverseContext | null> {
@@ -83,4 +99,74 @@ export async function getDocumentViewData(slug: string, docId: string): Promise<
     status: doc.status,
     signedUrl,
   };
+}
+
+export async function getThreadCitationsForDocument(
+  slug: string,
+  docId: string,
+  threadId: string,
+): Promise<DocThreadCitation[]> {
+  const universe = await getUniverseContextBySlug(slug);
+  if (!universe) return [];
+
+  const db = getSupabaseServerClient();
+  if (!db) return [];
+
+  const { data: thread } = await db
+    .from('qa_threads')
+    .select('id, universe_id')
+    .eq('id', threadId)
+    .eq('universe_id', universe.id)
+    .maybeSingle();
+  if (!thread) return [];
+
+  const [{ data: doc }, { data: rows }] = await Promise.all([
+    db
+      .from('documents')
+      .select('id, title, year, is_deleted')
+      .eq('id', docId)
+      .eq('universe_id', universe.id)
+      .maybeSingle(),
+    db
+      .from('citations')
+      .select('id, qa_thread_id, chunk_id, quote, page_start, page_end, quote_start, quote_end, highlight_token')
+      .eq('qa_thread_id', threadId)
+      .order('id', { ascending: true }),
+  ]);
+
+  if (!doc || doc.is_deleted) return [];
+
+  const chunkIds = Array.from(new Set((rows ?? []).map((row) => row.chunk_id)));
+  if (chunkIds.length === 0) return [];
+
+  const { data: chunks } = await db
+    .from('chunks')
+    .select('id, document_id, text')
+    .eq('universe_id', universe.id)
+    .eq('document_id', docId)
+    .in('id', chunkIds);
+
+  const chunkById = new Map((chunks ?? []).map((chunk) => [chunk.id, chunk]));
+
+  return (rows ?? [])
+    .map((row) => {
+      const chunk = chunkById.get(row.chunk_id);
+      if (!chunk) return null;
+      return {
+        citationId: row.id,
+        threadId: row.qa_thread_id,
+        chunkId: row.chunk_id,
+        docId: doc.id,
+        docTitle: doc.title,
+        year: doc.year,
+        pageStart: row.page_start,
+        pageEnd: row.page_end,
+        quote: row.quote,
+        quoteStart: row.quote_start,
+        quoteEnd: row.quote_end,
+        highlightToken: row.highlight_token,
+        chunkText: chunk.text,
+      } satisfies DocThreadCitation;
+    })
+    .filter((item): item is DocThreadCitation => Boolean(item));
 }

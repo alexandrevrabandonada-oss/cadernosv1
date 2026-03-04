@@ -5,6 +5,7 @@ export const universeSections = [
   { path: 'linha', label: 'Linha' },
   { path: 'trilhas', label: 'Trilhas' },
   { path: 'debate', label: 'Debate' },
+  { path: 'tutor', label: 'Tutor' },
   { path: 'tutoria', label: 'Tutoria' },
 ];
 

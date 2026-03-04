@@ -30,6 +30,9 @@ export default async function TutoriaPage({ params }: TutoriaPageProps) {
           <Carimbo>{data.source === 'db' ? 'dados:db' : 'dados:mock'}</Carimbo>
           <Carimbo>{`licoes:${data.readingLessons.length}`}</Carimbo>
           <Carimbo>{`passos:${data.pathSteps.length}`}</Carimbo>
+          <a className='ui-button' href={buildUniverseHref(slug, 'tutor')}>
+            Abrir Tutor Mode
+          </a>
         </div>
       </Card>
 

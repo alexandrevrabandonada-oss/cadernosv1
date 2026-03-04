@@ -45,6 +45,10 @@ const portalDescriptions: Record<string, { description: string; cta: string }> =
     description: 'Contraponha argumentos e registre contrapontos.',
     cta: 'Entrar no debate',
   },
+  tutor: {
+    description: 'Inicie sessao guiada com pontos de conhecimento progressivos.',
+    cta: 'Abrir tutor',
+  },
   tutoria: {
     description: 'Defina acompanhamentos e proximos passos.',
     cta: 'Ir para tutoria',

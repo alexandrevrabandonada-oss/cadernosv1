@@ -8,7 +8,23 @@ type RelatedDoc = {
   id: string;
   title: string;
   year: number | null;
-  status: 'uploaded' | 'processed';
+  status: 'uploaded' | 'processed' | 'link_only' | 'error';
+  sourceUrl?: string | null;
+  weight?: number;
+  note?: string | null;
+};
+
+type LinkedEvidence = {
+  id: string;
+  title: string;
+  summary: string;
+  quote: string;
+  docId: string | null;
+  docTitle: string | null;
+  year: number | null;
+  pageStart: number | null;
+  pageEnd: number | null;
+  pinRank: number;
 };
 
 type MapNode = {
@@ -19,6 +35,8 @@ type MapNode = {
   summary?: string;
   tags?: string[];
   relatedDocuments?: RelatedDoc[];
+  linkedEvidences?: LinkedEvidence[];
+  suggestedQuestions?: string[];
 };
 
 type MapEdge = {
@@ -198,6 +216,11 @@ export function MapExplorer({ slug, source, nodes, edges }: MapExplorerProps) {
                     <p className='muted' style={{ margin: 0 }}>
                       {doc.year ? `Ano ${doc.year}` : 'Ano n/d'} | {doc.status}
                     </p>
+                    {doc.note ? (
+                      <p className='muted' style={{ margin: 0 }}>
+                        {doc.note}
+                      </p>
+                    ) : null}
                     <Link className='ui-button' href={`/c/${slug}/doc/${doc.id}`}>
                       Ver no documento
                     </Link>
@@ -211,12 +234,52 @@ export function MapExplorer({ slug, source, nodes, edges }: MapExplorerProps) {
               </section>
 
               <section className='stack' style={{ gap: 8 }}>
+                <strong>Evidencias do no</strong>
+                {(selected.linkedEvidences ?? []).map((evidence) => (
+                  <article key={evidence.id} className='core-node'>
+                    <strong>{evidence.title}</strong>
+                    <p className='muted' style={{ margin: 0 }}>
+                      {evidence.docTitle ?? 'Sem doc'} {evidence.year ? `(${evidence.year})` : ''} | rank {evidence.pinRank}
+                    </p>
+                    <p style={{ margin: 0 }}>{evidence.quote}</p>
+                    <Link
+                      className='ui-button'
+                      href={`/c/${slug}/provas?node=${encodeURIComponent(selected.id)}`}
+                    >
+                      Ver Provas filtrado
+                    </Link>
+                  </article>
+                ))}
+                {(selected.linkedEvidences ?? []).length === 0 ? (
+                  <p className='muted' style={{ margin: 0 }}>
+                    Nenhuma evidencia explicitamente vinculada a este no.
+                  </p>
+                ) : null}
+              </section>
+
+              <section className='stack' style={{ gap: 8 }}>
+                <strong>Perguntas sugeridas</strong>
+                {(selected.suggestedQuestions ?? []).slice(0, 3).map((question) => (
+                  <Link
+                    key={question}
+                    className='ui-button'
+                    href={`/c/${slug}/debate?node=${encodeURIComponent(selected.slug ?? '')}&q=${encodeURIComponent(question)}`}
+                    data-variant='ghost'
+                  >
+                    {question}
+                  </Link>
+                ))}
+                {(selected.suggestedQuestions ?? []).length === 0 ? (
+                  <p className='muted' style={{ margin: 0 }}>
+                    Sem perguntas sugeridas para este no.
+                  </p>
+                ) : null}
+              </section>
+
+              <section className='stack' style={{ gap: 8 }}>
                 <strong>Portais</strong>
                 <div className='toolbar-row'>
-                  <Link
-                    className='ui-button'
-                    href={`/c/${slug}/provas?node=${encodeURIComponent(selected.slug ?? selected.id)}`}
-                  >
+                  <Link className='ui-button' href={`/c/${slug}/provas?node=${encodeURIComponent(selected.id)}`}>
                     Provas filtrado
                   </Link>
                   <Link className='ui-button' href={`/c/${slug}/linha?kind=event`}>
@@ -224,7 +287,9 @@ export function MapExplorer({ slug, source, nodes, edges }: MapExplorerProps) {
                   </Link>
                   <Link
                     className='ui-button'
-                    href={`/c/${slug}/debate?q=${encodeURIComponent(`Quais evidencias sustentam ${selected.label}?`)}`}
+                    href={`/c/${slug}/debate?node=${encodeURIComponent(selected.slug ?? '')}&q=${encodeURIComponent(
+                      `Quais evidencias sustentam ${selected.label}?`,
+                    )}`}
                   >
                     Debate sugerido
                   </Link>

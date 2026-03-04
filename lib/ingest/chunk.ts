@@ -1,4 +1,5 @@
 import { ingestConfig } from '@/lib/ingest/config';
+import type { IngestChunkConfig } from '@/lib/ingest/config';
 import type { PdfPageText } from '@/lib/ingest/pdf';
 
 export type PreparedChunk = {
@@ -30,10 +31,10 @@ function splitText(text: string, chunkSize: number, overlap: number) {
   return chunks;
 }
 
-export function buildChunksFromPages(pages: PdfPageText[]) {
+export function buildChunksFromPages(pages: PdfPageText[], config: IngestChunkConfig = ingestConfig) {
   const out: PreparedChunk[] = [];
   for (const page of pages) {
-    const parts = splitText(page.text, ingestConfig.chunk_size, ingestConfig.overlap);
+    const parts = splitText(page.text, config.chunk_size, config.overlap);
     for (const text of parts) {
       out.push({
         page_start: page.page,

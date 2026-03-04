@@ -2,10 +2,15 @@ import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
+import { FilterRail } from '@/components/workspace/FilterRail';
+import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
 import { CopyCitationButton } from '@/components/provas/CopyCitationButton';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { canWriteAdminContent, requireEditorOrAdmin } from '@/lib/auth/requireRole';
+import { addNodeEvidence } from '@/lib/data/nodeLinks';
+import { enforceAdminWriteLimit } from '@/lib/ratelimit/enforce';
 import { getSupabaseServerClient, getSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { buildUniverseHref } from '@/lib/universeNav';
 
@@ -16,6 +21,8 @@ type ProvasPageProps = {
     doc?: string;
     node?: string;
     year?: string;
+    selected?: string;
+    panel?: string;
   }>;
 };
 
@@ -50,6 +57,7 @@ function citationFormat(
 
 async function saveEvidenceAction(formData: FormData) {
   'use server';
+  const session = await requireEditorOrAdmin();
 
   const service = getSupabaseServiceRoleClient();
   if (!service) return;
@@ -65,6 +73,8 @@ async function saveEvidenceAction(formData: FormData) {
   const pageStart = Number(formData.get('page_start') ?? 0) || null;
 
   if (!slug || !universeId || !chunkId || !documentId || !excerpt) return;
+  const rl = await enforceAdminWriteLimit(session.userId, `c/${slug}/provas/save_evidence`);
+  if (!rl.ok) return;
 
   const title = `Evidencia: ${docTitle || 'Documento'} ${pageStart ? `(p.${pageStart})` : ''}`.trim();
   const summary = clip(excerpt, 420);
@@ -88,8 +98,18 @@ async function saveEvidenceAction(formData: FormData) {
         curated: true,
       })
       .eq('id', existing.id);
+    if (nodeId) {
+      await addNodeEvidence({
+        universeId,
+        nodeId,
+        evidenceId: existing.id,
+        pinRank: 100,
+      });
+    }
   } else {
-    await service.from('evidences').insert({
+    const insertResult = await service
+      .from('evidences')
+      .insert({
       universe_id: universeId,
       node_id: nodeId || null,
       document_id: documentId,
@@ -99,7 +119,17 @@ async function saveEvidenceAction(formData: FormData) {
       source_url: sourceUrl || null,
       curated: true,
       confidence: 0.6,
-    });
+      })
+      .select('id')
+      .maybeSingle();
+    if (nodeId && insertResult.data?.id) {
+      await addNodeEvidence({
+        universeId,
+        nodeId,
+        evidenceId: insertResult.data.id,
+        pinRank: 100,
+      });
+    }
   }
 
   revalidatePath(buildUniverseHref(slug, 'provas'));
@@ -116,6 +146,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
   const selectedDoc = sp.doc ?? '';
   const selectedNode = sp.node ?? '';
   const selectedYear = sp.year ?? '';
+  const selectedChunkId = sp.selected ?? '';
 
   if (!db) {
     return (
@@ -174,23 +205,49 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
   const hasDocFilterResult = allowedDocIds.length > 0;
 
   let nodeChunkIds: string[] | null = null;
+  let linkedEvidenceIds: string[] | null = null;
   if (selectedNode) {
-    const { data: linked } = await db
-      .from('evidences')
-      .select('chunk_id')
+    const { data: nodeLinks } = await db
+      .from('node_evidences')
+      .select('evidence_id')
       .eq('universe_id', universe.id)
-      .eq('node_id', selectedNode)
-      .not('chunk_id', 'is', null);
-    nodeChunkIds = Array.from(new Set((linked ?? []).map((row) => row.chunk_id).filter(Boolean)));
+      .eq('node_id', selectedNode);
+    linkedEvidenceIds = Array.from(
+      new Set((nodeLinks ?? []).map((row) => row.evidence_id).filter(Boolean)),
+    );
+
+    if (linkedEvidenceIds.length > 0) {
+      const { data: linkedEvidenceRows } = await db
+        .from('evidences')
+        .select('chunk_id')
+        .in('id', linkedEvidenceIds)
+        .eq('universe_id', universe.id)
+        .not('chunk_id', 'is', null);
+      nodeChunkIds = Array.from(
+        new Set((linkedEvidenceRows ?? []).map((row) => row.chunk_id).filter(Boolean)),
+      );
+    } else {
+      const { data: fallbackLinked } = await db
+        .from('evidences')
+        .select('chunk_id')
+        .eq('universe_id', universe.id)
+        .eq('node_id', selectedNode)
+        .not('chunk_id', 'is', null);
+      nodeChunkIds = Array.from(new Set((fallbackLinked ?? []).map((row) => row.chunk_id).filter(Boolean)));
+    }
   }
 
   let chunks: ChunkRow[] = [];
   let totalCount = 0;
 
-  if (hasDocFilterResult && (selectedNode ? (nodeChunkIds?.length ?? 0) > 0 : true)) {
-    let countQuery = db.from('chunks').select('*', { count: 'exact', head: true }).eq('universe_id', universe.id);
+  if (hasDocFilterResult && (selectedNode ? (nodeChunkIds?.length ?? 0) > 0 || (linkedEvidenceIds?.length ?? 0) > 0 : true)) {
+    let countQuery = db
+      .from('chunks')
+      .select('*', { count: 'exact', head: true })
+      .eq('universe_id', universe.id)
+      .eq('archived', false);
     countQuery = countQuery.in('document_id', allowedDocIds);
-    if (selectedNode && nodeChunkIds) countQuery = countQuery.in('id', nodeChunkIds);
+    if (selectedNode && nodeChunkIds && nodeChunkIds.length > 0) countQuery = countQuery.in('id', nodeChunkIds);
 
     const { count } = await countQuery;
     totalCount = count ?? 0;
@@ -199,10 +256,11 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
       .from('chunks')
       .select('id, document_id, page_start, page_end, text, created_at')
       .eq('universe_id', universe.id)
+      .eq('archived', false)
       .order('created_at', { ascending: false })
       .range(offset, offset + pageSize - 1);
     dataQuery = dataQuery.in('document_id', allowedDocIds);
-    if (selectedNode && nodeChunkIds) dataQuery = dataQuery.in('id', nodeChunkIds);
+    if (selectedNode && nodeChunkIds && nodeChunkIds.length > 0) dataQuery = dataQuery.in('id', nodeChunkIds);
 
     const { data } = await dataQuery;
     chunks = (data ?? []) as ChunkRow[];
@@ -216,7 +274,13 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
     .order('created_at', { ascending: false })
     .limit(40);
 
-  if (selectedNode) evidencesQuery = evidencesQuery.eq('node_id', selectedNode);
+  if (selectedNode) {
+    if (linkedEvidenceIds && linkedEvidenceIds.length > 0) {
+      evidencesQuery = evidencesQuery.in('id', linkedEvidenceIds);
+    } else {
+      evidencesQuery = evidencesQuery.eq('node_id', selectedNode);
+    }
+  }
   if (selectedDoc) evidencesQuery = evidencesQuery.eq('document_id', selectedDoc);
   if (selectedYear && hasDocFilterResult) evidencesQuery = evidencesQuery.in('document_id', allowedDocIds);
 
@@ -226,164 +290,218 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
   const docById = new Map(documents.map((doc) => [doc.id, doc]));
   const nodeById = new Map(nodes.map((node) => [node.id, node]));
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
-  const adminCanWrite = Boolean(process.env.ADMIN_MODE === '1' && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  const adminCanWrite = Boolean((await canWriteAdminContent()) && process.env.SUPABASE_SERVICE_ROLE_KEY);
+  let selectedChunk: ChunkRow | null = chunks.find((item) => item.id === selectedChunkId) ?? null;
+  if (!selectedChunk && selectedChunkId) {
+    const { data } = await db
+      .from('chunks')
+      .select('id, document_id, page_start, page_end, text, created_at')
+      .eq('id', selectedChunkId)
+      .eq('universe_id', universe.id)
+      .maybeSingle();
+    selectedChunk = (data as ChunkRow | null) ?? null;
+  }
 
   const makeLink = (nextPage: number) => {
     const q = new URLSearchParams();
     if (selectedDoc) q.set('doc', selectedDoc);
     if (selectedNode) q.set('node', selectedNode);
     if (selectedYear) q.set('year', selectedYear);
+    if (selectedChunkId) q.set('selected', selectedChunkId);
     q.set('page', String(nextPage));
     return `${currentPath}?${q.toString()}`;
   };
 
+  const makeSelectedLink = (chunkId: string) => {
+    const q = new URLSearchParams();
+    if (selectedDoc) q.set('doc', selectedDoc);
+    if (selectedNode) q.set('node', selectedNode);
+    if (selectedYear) q.set('year', selectedYear);
+    q.set('page', String(page));
+    q.set('selected', chunkId);
+    q.set('panel', 'detail');
+    return `${currentPath}?${q.toString()}`;
+  };
+
+  const selectedDocMeta = selectedChunk ? docById.get(selectedChunk.document_id) : null;
+  const selectedRelatedEvidences = selectedChunk
+    ? evidenceList.filter((item) => item.document_id === selectedChunk.document_id).slice(0, 3)
+    : [];
+
   return (
     <div className='stack'>
       <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Provas' />
-
-      <Card className='stack'>
-        <SectionHeader
-          title={`Provas de ${universe.title}`}
-          description='Chunks paginados e evidencias curadas com filtros por documento, no e ano.'
-          tag='Provas'
-        />
-      </Card>
-
-      <Card className='stack'>
-        <SectionHeader title='Filtros' />
-        <form method='get' className='layout-shell' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-          <label>
-            <span>Documento</span>
-            <select name='doc' defaultValue={selectedDoc} style={{ width: '100%', minHeight: 42 }}>
-              <option value=''>Todos</option>
-              {documents.map((doc) => (
-                <option key={doc.id} value={doc.id}>
-                  {doc.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>No</span>
-            <select name='node' defaultValue={selectedNode} style={{ width: '100%', minHeight: 42 }}>
-              <option value=''>Todos</option>
-              {nodes.map((node) => (
-                <option key={node.id} value={node.id}>
-                  {node.title}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Ano</span>
-            <select name='year' defaultValue={selectedYear} style={{ width: '100%', minHeight: 42 }}>
-              <option value=''>Todos</option>
-              {years.map((year) => (
-                <option key={year} value={year}>
-                  {year}
-                </option>
-              ))}
-            </select>
-          </label>
-          <input type='hidden' name='page' value='1' />
-          <div className='toolbar-row' style={{ alignItems: 'end' }}>
-            <button className='ui-button' type='submit'>
-              Aplicar filtros
-            </button>
-            <Link className='ui-button' href={currentPath} data-variant='ghost'>
-              Limpar
-            </Link>
-          </div>
-        </form>
-      </Card>
-
-      <Card className='stack'>
-        <SectionHeader title='Chunks' description='Trechos processados da base documental (paginado).' />
-        <div className='stack'>
-          {chunks.map((chunk) => {
-            const doc = docById.get(chunk.document_id);
-            const citation = citationFormat(
-              doc?.title ?? 'Documento',
-              doc?.year ?? null,
-              chunk.page_start,
-              chunk.page_end,
-              chunk.text,
-            );
-            return (
-              <article key={chunk.id} className='core-node'>
-                <strong>{doc?.title ?? 'Documento nao encontrado'}</strong>
+      <WorkspaceShell
+        slug={slug}
+        section='provas'
+        title={`Provas de ${universe.title}`}
+        subtitle='Chunks paginados e evidencias curadas.'
+        selectedId={selectedChunkId}
+        detailTitle='Detalhe da prova'
+        filter={
+          <FilterRail>
+            <form method='get' className='stack'>
+              <label>
+                <span>Documento</span>
+                <select name='doc' defaultValue={selectedDoc} style={{ width: '100%', minHeight: 42 }}>
+                  <option value=''>Todos</option>
+                  {documents.map((doc) => (
+                    <option key={doc.id} value={doc.id}>
+                      {doc.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>No</span>
+                <select name='node' defaultValue={selectedNode} style={{ width: '100%', minHeight: 42 }}>
+                  <option value=''>Todos</option>
+                  {nodes.map((node) => (
+                    <option key={node.id} value={node.id}>
+                      {node.title}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                <span>Ano</span>
+                <select name='year' defaultValue={selectedYear} style={{ width: '100%', minHeight: 42 }}>
+                  <option value=''>Todos</option>
+                  {years.map((year) => (
+                    <option key={year} value={year}>
+                      {year}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <input type='hidden' name='page' value='1' />
+              <div className='toolbar-row'>
+                <button className='ui-button' type='submit'>
+                  Aplicar
+                </button>
+                <Link className='ui-button' href={currentPath} data-variant='ghost'>
+                  Limpar
+                </Link>
+              </div>
+            </form>
+          </FilterRail>
+        }
+        detail={
+          selectedChunk ? (
+            <div className='stack'>
+              <article className='core-node'>
+                <strong>{selectedDocMeta?.title ?? 'Documento'}</strong>
                 <p className='muted' style={{ margin: 0 }}>
-                  {doc?.year ? `Ano ${doc.year}` : 'Ano n/d'} | {chunk.page_start ? `p.${chunk.page_start}` : 's/p'}
-                  {chunk.page_end && chunk.page_end !== chunk.page_start ? `-${chunk.page_end}` : ''}
+                  {selectedDocMeta?.year ? `Ano ${selectedDocMeta.year}` : 'Ano n/d'} |{' '}
+                  {selectedChunk.page_start ? `p.${selectedChunk.page_start}` : 's/p'}
+                  {selectedChunk.page_end && selectedChunk.page_end !== selectedChunk.page_start
+                    ? `-${selectedChunk.page_end}`
+                    : ''}
                 </p>
-                <p style={{ margin: 0 }}>{clip(chunk.text, 360)}</p>
-                <div className='toolbar-row'>
-                  <CopyCitationButton citation={citation} />
-                  <form action={saveEvidenceAction}>
-                    <input type='hidden' name='slug' value={slug} />
-                    <input type='hidden' name='universe_id' value={universe.id} />
-                    <input type='hidden' name='chunk_id' value={chunk.id} />
-                    <input type='hidden' name='document_id' value={chunk.document_id} />
-                    <input type='hidden' name='node_id' value={selectedNode} />
-                    <input type='hidden' name='doc_title' value={doc?.title ?? ''} />
-                    <input type='hidden' name='source_url' value={doc?.source_url ?? ''} />
-                    <input type='hidden' name='page_start' value={chunk.page_start ?? ''} />
-                    <input type='hidden' name='page_end' value={chunk.page_end ?? ''} />
-                    <input type='hidden' name='excerpt' value={chunk.text} />
-                    <button className='ui-button' type='submit' disabled={!adminCanWrite}>
-                      Salvar como Evidencia
-                    </button>
-                  </form>
-                </div>
+                <p style={{ margin: 0 }}>{clip(selectedChunk.text, 460)}</p>
               </article>
-            );
-          })}
-          {chunks.length === 0 ? (
-            <p className='muted' style={{ margin: 0 }}>
-              Nenhum chunk encontrado para os filtros atuais.
-            </p>
-          ) : null}
-        </div>
-
-        <div className='toolbar-row'>
-          <Link className='ui-button' href={makeLink(Math.max(1, page - 1))} data-variant='ghost'>
-            Anterior
-          </Link>
-          <Carimbo>
-            Pagina {page} de {totalPages}
-          </Carimbo>
-          <Link className='ui-button' href={makeLink(Math.min(totalPages, page + 1))} data-variant='ghost'>
-            Proxima
-          </Link>
-        </div>
-      </Card>
-
-      <Card className='stack'>
-        <SectionHeader title='Evidencias curadas' description='Itens salvos a partir dos chunks.' />
+              {selectedRelatedEvidences.map((evidence) => (
+                <article key={evidence.id} className='core-node'>
+                  <strong>{evidence.title}</strong>
+                  <p style={{ margin: 0 }}>{clip(evidence.summary, 240)}</p>
+                </article>
+              ))}
+              {selectedDocMeta?.id ? (
+                <Link className='ui-button' href={`/c/${slug}/doc/${selectedDocMeta.id}`}>
+                  Abrir documento
+                </Link>
+              ) : null}
+            </div>
+          ) : null
+        }
+      >
         <div className='stack'>
-          {evidenceList.map((evidence) => {
-            const doc = evidence.document_id ? docById.get(evidence.document_id) : null;
-            const node = evidence.node_id ? nodeById.get(evidence.node_id) : null;
-            return (
-              <article key={evidence.id} className='core-node'>
-                <strong>{evidence.title}</strong>
+          <Card className='stack'>
+            <SectionHeader title='Chunks' description='Clique em um item para abrir detalhes.' />
+            <div className='stack'>
+              {chunks.map((chunk) => {
+                const doc = docById.get(chunk.document_id);
+                const citation = citationFormat(
+                  doc?.title ?? 'Documento',
+                  doc?.year ?? null,
+                  chunk.page_start,
+                  chunk.page_end,
+                  chunk.text,
+                );
+                return (
+                  <article key={chunk.id} className='core-node'>
+                    <strong>{doc?.title ?? 'Documento nao encontrado'}</strong>
+                    <p className='muted' style={{ margin: 0 }}>
+                      {doc?.year ? `Ano ${doc.year}` : 'Ano n/d'} | {chunk.page_start ? `p.${chunk.page_start}` : 's/p'}
+                      {chunk.page_end && chunk.page_end !== chunk.page_start ? `-${chunk.page_end}` : ''}
+                    </p>
+                    <p style={{ margin: 0 }}>{clip(chunk.text, 300)}</p>
+                    <div className='toolbar-row'>
+                      <Link className='ui-button' data-variant='ghost' href={makeSelectedLink(chunk.id)}>
+                        Ver detalhe
+                      </Link>
+                      <CopyCitationButton citation={citation} />
+                      <form action={saveEvidenceAction}>
+                        <input type='hidden' name='slug' value={slug} />
+                        <input type='hidden' name='universe_id' value={universe.id} />
+                        <input type='hidden' name='chunk_id' value={chunk.id} />
+                        <input type='hidden' name='document_id' value={chunk.document_id} />
+                        <input type='hidden' name='node_id' value={selectedNode} />
+                        <input type='hidden' name='doc_title' value={doc?.title ?? ''} />
+                        <input type='hidden' name='source_url' value={doc?.source_url ?? ''} />
+                        <input type='hidden' name='page_start' value={chunk.page_start ?? ''} />
+                        <input type='hidden' name='page_end' value={chunk.page_end ?? ''} />
+                        <input type='hidden' name='excerpt' value={chunk.text} />
+                        <button className='ui-button' type='submit' disabled={!adminCanWrite}>
+                          Salvar evid.
+                        </button>
+                      </form>
+                    </div>
+                  </article>
+                );
+              })}
+              {chunks.length === 0 ? (
                 <p className='muted' style={{ margin: 0 }}>
-                  {doc?.title ?? 'Sem documento'} {doc?.year ? `(${doc.year})` : ''} | confianca {evidence.confidence}
+                  Nenhum chunk encontrado para os filtros atuais.
                 </p>
-                <p className='muted' style={{ margin: 0 }}>
-                  {node ? `No: ${node.title}` : 'Sem ligacao com no'}
-                </p>
-                <p style={{ margin: 0 }}>{clip(evidence.summary, 360)}</p>
-              </article>
-            );
-          })}
-          {evidenceList.length === 0 ? (
-            <p className='muted' style={{ margin: 0 }}>
-              Nenhuma evidencia curada encontrada.
-            </p>
-          ) : null}
+              ) : null}
+            </div>
+            <div className='toolbar-row'>
+              <Link className='ui-button' href={makeLink(Math.max(1, page - 1))} data-variant='ghost'>
+                Anterior
+              </Link>
+              <Carimbo>
+                Pagina {page} de {totalPages}
+              </Carimbo>
+              <Link className='ui-button' href={makeLink(Math.min(totalPages, page + 1))} data-variant='ghost'>
+                Proxima
+              </Link>
+            </div>
+          </Card>
+
+          <Card className='stack'>
+            <SectionHeader title='Evidencias curadas' />
+            <div className='stack'>
+              {evidenceList.map((evidence) => {
+                const doc = evidence.document_id ? docById.get(evidence.document_id) : null;
+                const node = evidence.node_id ? nodeById.get(evidence.node_id) : null;
+                return (
+                  <article key={evidence.id} className='core-node'>
+                    <strong>{evidence.title}</strong>
+                    <p className='muted' style={{ margin: 0 }}>
+                      {doc?.title ?? 'Sem documento'} {doc?.year ? `(${doc.year})` : ''} | confianca {evidence.confidence}
+                    </p>
+                    <p className='muted' style={{ margin: 0 }}>
+                      {node ? `No: ${node.title}` : 'Sem ligacao com no'}
+                    </p>
+                    <p style={{ margin: 0 }}>{clip(evidence.summary, 280)}</p>
+                  </article>
+                );
+              })}
+            </div>
+          </Card>
         </div>
-      </Card>
+      </WorkspaceShell>
 
       <Card className='stack'>
         <Portais slug={slug} currentPath='provas' title='Proximas portas' />

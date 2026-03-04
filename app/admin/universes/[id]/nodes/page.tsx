@@ -1,18 +1,25 @@
 import { notFound } from 'next/navigation';
+import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { getAdminDb, getUniverseById, listNodes, parseTags, slugify } from '@/lib/admin/db';
+import { getAdminDb, getUniverseById, hasAdminWriteAccess, listNodes, parseTags, slugify } from '@/lib/admin/db';
+import { requireEditorOrAdmin } from '@/lib/auth/requireRole';
+import { enforceAdminWriteLimit } from '@/lib/ratelimit/enforce';
 
 type AdminUniverseNodesPageProps = {
   params: Promise<{
     id: string;
   }>;
+  searchParams: Promise<{
+    rl?: string;
+  }>;
 };
 
 async function createNodeAction(formData: FormData) {
   'use server';
+  const session = await requireEditorOrAdmin();
   const db = getAdminDb();
   if (!db) return;
 
@@ -24,6 +31,10 @@ async function createNodeAction(formData: FormData) {
   const tagsRaw = String(formData.get('tags') ?? '').trim();
 
   if (!universeId || !title) return;
+  const rl = await enforceAdminWriteLimit(session.userId, `admin/universes/${universeId}/nodes/create`);
+  if (!rl.ok) {
+    redirect(`/admin/universes/${universeId}/nodes?rl=${rl.retryAfterSec}`);
+  }
   const slug = slugify(slugRaw || title);
   if (!slug) return;
 
@@ -41,6 +52,7 @@ async function createNodeAction(formData: FormData) {
 
 async function updateNodeAction(formData: FormData) {
   'use server';
+  const session = await requireEditorOrAdmin();
   const db = getAdminDb();
   if (!db) return;
 
@@ -53,6 +65,10 @@ async function updateNodeAction(formData: FormData) {
   const tagsRaw = String(formData.get('tags') ?? '').trim();
 
   if (!nodeId || !universeId || !title) return;
+  const rl = await enforceAdminWriteLimit(session.userId, `admin/universes/${universeId}/nodes/update`);
+  if (!rl.ok) {
+    redirect(`/admin/universes/${universeId}/nodes?rl=${rl.retryAfterSec}`);
+  }
   const slug = slugify(slugRaw || title);
   if (!slug) return;
 
@@ -73,21 +89,29 @@ async function updateNodeAction(formData: FormData) {
 
 async function deleteNodeAction(formData: FormData) {
   'use server';
+  const session = await requireEditorOrAdmin();
   const db = getAdminDb();
   if (!db) return;
 
   const nodeId = String(formData.get('node_id') ?? '').trim();
   const universeId = String(formData.get('universe_id') ?? '').trim();
   if (!nodeId || !universeId) return;
+  const rl = await enforceAdminWriteLimit(session.userId, `admin/universes/${universeId}/nodes/delete`);
+  if (!rl.ok) {
+    redirect(`/admin/universes/${universeId}/nodes?rl=${rl.retryAfterSec}`);
+  }
 
   await db.from('nodes').delete().eq('id', nodeId).eq('universe_id', universeId);
   revalidatePath(`/admin/universes/${universeId}/nodes`);
 }
 
-export default async function AdminUniverseNodesPage({ params }: AdminUniverseNodesPageProps) {
+export default async function AdminUniverseNodesPage({ params, searchParams }: AdminUniverseNodesPageProps) {
   const { id } = await params;
+  const sp = await searchParams;
   const universe = await getUniverseById(id);
+  const canWrite = await hasAdminWriteAccess();
   const configured = Boolean(getAdminDb());
+  const retrySec = Number(sp.rl ?? 0);
 
   if (!universe) {
     notFound();
@@ -117,6 +141,11 @@ export default async function AdminUniverseNodesPage({ params }: AdminUniverseNo
       </Card>
 
       <Card className='stack'>
+        {retrySec > 0 ? (
+          <p className='muted' role='alert' style={{ margin: 0, color: 'var(--alert-0)' }}>
+            Muitas acoes em pouco tempo. Tente novamente em {retrySec}s.
+          </p>
+        ) : null}
         <SectionHeader title='Criar no' />
         <form action={createNodeAction} className='stack'>
           <input type='hidden' name='universe_id' value={universe.id} />
@@ -146,7 +175,7 @@ export default async function AdminUniverseNodesPage({ params }: AdminUniverseNo
             <span>Tags (separadas por virgula)</span>
             <input name='tags' placeholder='mvp, base, contexto' style={{ width: '100%', minHeight: 40 }} />
           </label>
-          <button className='ui-button' type='submit' disabled={!configured}>
+          <button className='ui-button' type='submit' disabled={!configured || !canWrite}>
             Criar no
           </button>
         </form>
@@ -190,14 +219,17 @@ export default async function AdminUniverseNodesPage({ params }: AdminUniverseNo
                 />
               </label>
               <div className='toolbar-row'>
-                <button className='ui-button' type='submit' disabled={!configured}>
+                <button className='ui-button' type='submit' disabled={!configured || !canWrite}>
                   Salvar no
                 </button>
+                <a className='ui-button' href={`/admin/universes/${universe.id}/nodes/${node.id}/links`} data-variant='ghost'>
+                  Vinculos do no
+                </a>
                 <button
                   className='ui-button'
                   type='submit'
                   formAction={deleteNodeAction}
-                  disabled={!configured}
+                  disabled={!configured || !canWrite}
                   data-variant='ghost'
                 >
                   Excluir

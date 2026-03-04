@@ -1,0 +1,214 @@
+.workspace-shell {
+  position: relative;
+  padding-bottom: calc(72px + env(safe-area-inset-bottom));
+}
+
+.workspace-head {
+  border: 1px solid var(--line-0);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-0), white 22%);
+  box-shadow: var(--shadow-1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-3);
+}
+
+.workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 300px) minmax(0, 1fr) minmax(340px, 420px);
+  gap: var(--space-3);
+  min-height: 58vh;
+}
+
+.workspace-filter,
+.workspace-content,
+.workspace-detail {
+  border: 1px solid var(--line-0);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--surface-0), white 20%);
+  box-shadow: var(--shadow-1);
+}
+
+.workspace-filter,
+.workspace-detail {
+  max-height: calc(100dvh - var(--header-height) - 160px);
+  overflow: auto;
+}
+
+.workspace-content {
+  overflow: auto;
+  padding: var(--space-3);
+}
+
+.workspace-rail {
+  min-height: 100%;
+  padding: var(--space-3);
+}
+
+.workspace-rail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.workspace-rail-body {
+  overflow: auto;
+}
+
+.workspace-rail-foot {
+  margin-top: auto;
+  padding-top: var(--space-2);
+}
+
+.workspace-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--line-0);
+}
+
+.workspace-detail-body {
+  padding: var(--space-3);
+}
+
+.workspace-sheet-overlay,
+.workspace-drawer-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg-0), black 25%);
+  backdrop-filter: blur(2px);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+  z-index: 45;
+}
+
+.workspace-sheet-overlay.is-open,
+.workspace-drawer-overlay.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.workspace-sheet {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  max-height: 75vh;
+  transform: translateY(105%);
+  transition: transform 0.25s ease;
+  background: color-mix(in srgb, var(--surface-0), white 18%);
+  border-top-left-radius: var(--radius-lg);
+  border-top-right-radius: var(--radius-lg);
+  border: 1px solid var(--line-0);
+  box-shadow: var(--shadow-0);
+  z-index: 50;
+}
+
+.workspace-sheet.is-open {
+  transform: translateY(0);
+}
+
+.workspace-sheet-handle {
+  width: 52px;
+  height: 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--line-0), var(--text-1) 20%);
+  margin: 10px auto 0;
+}
+
+.workspace-drawer {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: min(82vw, 340px);
+  transform: translateX(-105%);
+  transition: transform 0.25s ease;
+  z-index: 50;
+  border-right: 1px solid var(--line-0);
+  background: color-mix(in srgb, var(--surface-0), white 16%);
+  box-shadow: var(--shadow-0);
+}
+
+.workspace-drawer.is-open {
+  transform: translateX(0);
+}
+
+.workspace-drawer-body {
+  height: calc(100dvh - 66px);
+  overflow: auto;
+  padding: var(--space-3);
+}
+
+.workspace-dock {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 35;
+  min-height: 58px;
+  padding: 6px var(--space-2) calc(6px + env(safe-area-inset-bottom));
+  background: color-mix(in srgb, var(--surface-0), white 15%);
+  border-top: 1px solid var(--line-0);
+  box-shadow: var(--shadow-1);
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.workspace-dock-item {
+  min-height: 44px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.78rem;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.workspace-dock-item[aria-current='page'] {
+  border-color: var(--line-0);
+  background: var(--surface-1);
+  font-weight: 700;
+}
+
+.desktop-only {
+  display: block;
+}
+
+.mobile-only {
+  display: none;
+}
+
+@media (min-width: 1024px) {
+  .workspace-sheet,
+  .workspace-sheet-overlay,
+  .workspace-drawer,
+  .workspace-drawer-overlay,
+  .workspace-dock {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .workspace-grid {
+    grid-template-columns: 1fr;
+    min-height: auto;
+  }
+
+  .desktop-only {
+    display: none;
+  }
+
+  .mobile-only {
+    display: inline-flex;
+  }
+
+  .workspace-content {
+    border-radius: var(--radius-md);
+  }
+}

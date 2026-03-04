@@ -23,5 +23,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Secrets check
+        run: npm run secrets:check
+
+      - name: Run tests (CI)
+        run: npm run test:ci
+
       - name: Run verify
         run: npm run verify
