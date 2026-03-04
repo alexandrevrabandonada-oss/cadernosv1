@@ -3,78 +3,91 @@ Data: 2026-03-04
 Commit (se possível): n/a
 
 ## 1) O que mudou neste tijolo
-- Implementado **Workspace 3-painéis** reutilizável:
-  - `WorkspaceShell`
-  - `DockNav`
-  - `FilterRail`
-  - `DetailPanel`
-  - `useWorkspacePanels`
-- Estilos novos de layout responsivo em `styles/workspace.css`.
-- Aplicado o shell em:
-  - `/c/[slug]/provas`
-  - `/c/[slug]/linha`
-  - `/c/[slug]/debate`
-- Deep link por query params padronizado:
-  - `selected=<id>`
-  - `panel=detail|filters`
-- Acessibilidade:
-  - foco visível herdado do DS
-  - `ESC` fecha painel de detalhe (bottom-sheet) e drawer de filtros no mobile
-  - trap de foco simples no detail mobile.
+- Share pack expandido para **conceitos do universo**:
+  - compartilhamento de **nó** (mapa)
+  - compartilhamento de **termo** (glossário)
+- `/api/og` agora suporta:
+  - `type=node`
+  - `type=term`
+- Novas páginas públicas de share:
+  - `/c/[slug]/s/node/[id]`
+  - `/c/[slug]/s/term/[id]`
+- `lib/share/content.ts` evoluído com:
+  - `getShareNode(slug, id)`
+  - `getShareTerm(slug, id)`
+  - preview curto + evidências + perguntas + fallback `TEST_SEED=1`
+- Botões de share adicionados em:
+  - detalhe do Mapa (`Compartilhar no`)
+  - detalhe do Glossário (`Compartilhar termo`)
+- Documentação de share atualizada.
 
 ## 2) Rotas
-- `/c/[slug]/provas`
-  - agora com trilho de filtros, lista central e detalhe de chunk no painel.
-- `/c/[slug]/linha`
-  - timeline no centro + detalhe de evento no painel.
-- `/c/[slug]/debate`
-  - formulário/resultado no centro + detalhe de pergunta recente no painel.
-- Navegação mobile:
-  - `DockNav` fixo com atalhos para Provas, Linha, Trilhas, Tutoria, Debate e Mapa.
+- OG:
+  - `/api/og?type=node&u=<slug>&id=<nodeId>`
+  - `/api/og?type=term&u=<slug>&id=<termId>`
+- Share pages:
+  - `/c/[slug]/s/node/[id]`
+  - `/c/[slug]/s/term/[id]`
 
 ## 3) Dados e DB (Supabase)
-- Nenhuma migration nova neste tijolo.
-- Mudança focada em UI/UX e organização de layout.
+- Sem migration nova neste tijolo.
+- Reuso de tabelas existentes:
+  - `nodes`, `node_evidences`, `node_questions`
+  - `glossary_terms`
+  - `evidences`
+  - `universes` (gating por publicado)
+- Gating:
+  - share/OG de node/term só responde para universo publicado.
 
 ## 4) APIs / Jobs
-- Nenhum endpoint novo obrigatório.
-- Reuso de APIs existentes (`/api/ask` etc.) sem alteração de contrato.
+- API alterada:
+  - [app/api/og/route.tsx](c:/Projetos/Cadernos%20Vivos%20V1/app/api/og/route.tsx)
+- Data layer de share:
+  - [lib/share/content.ts](c:/Projetos/Cadernos%20Vivos%20V1/lib/share/content.ts)
+- Sem novos jobs/workers.
 
 ## 5) UI/UX
-- Desktop (`>= lg`):
-  - grid 3 colunas: filtro / conteúdo / detalhe.
-- Mobile (`< lg`):
-  - filtros em drawer lateral
-  - detalhe em bottom-sheet
-  - dock inferior fixo.
-- O shell inclui header compacto:
-  - título/subtítulo da seção
-  - botão “Filtros” no mobile
-  - botão “Voltar ao Hub”.
+- Página de share de nó:
+  - headline + snippet
+  - 2–3 evidências em destaque
+  - 2 perguntas sugeridas
+  - CTAs: Abrir no app, Provas, Debate, Linha, Tutor, Compartilhar
+- Página de share de termo:
+  - headline + snippet
+  - evidências e perguntas sugeridas
+  - CTAs equivalentes
+- Integrações de botão:
+  - [app/c/[slug]/mapa/page.tsx](c:/Projetos/Cadernos%20Vivos%20V1/app/c/%5Bslug%5D/mapa/page.tsx)
+  - [app/c/[slug]/glossario/page.tsx](c:/Projetos/Cadernos%20Vivos%20V1/app/c/%5Bslug%5D/glossario/page.tsx)
 
 ## 6) Segurança
-- Sem mudanças de auth/RLS.
-- Navegação por query params não expõe dados novos; só controla estado de interface.
+- Sem fetch externo para OG.
+- Snippets curtos para não vazar conteúdo longo.
+- Share canônico em `/c/[slug]/s/node/[id]` e `/c/[slug]/s/term/[id]`.
 
 ## 7) Como testar (passo a passo)
-1. Abrir `/c/[slug]/provas` no desktop:
-   - validar 3 painéis visíveis.
-2. Abrir `/c/[slug]/provas` no mobile:
-   - validar dock inferior;
-   - abrir filtros no drawer;
-   - clicar em item e confirmar `?selected=...&panel=detail` com detalhe no bottom-sheet.
-3. Repetir o fluxo em `/c/[slug]/linha`:
-   - clique em evento -> detalhe abre com `selected`.
-4. Repetir em `/c/[slug]/debate`:
-   - selecionar pergunta recente -> painel de detalhe.
-5. Em mobile:
-   - pressionar `ESC` com painel aberto (detalhe/filtros) e validar fechamento.
+1. Abrir `/c/demo/mapa`, selecionar um nó e clicar `Compartilhar no`.
+2. Abrir `/c/demo/glossario`, selecionar um termo e clicar `Compartilhar termo`.
+3. Abrir share pages:
+   - `/c/demo/s/node/demo-n1`
+   - `/c/demo/s/term/mock-demo-demo-n1`
+4. Validar CTAs e preview.
+5. Testar OG:
+   - `/api/og?type=node&u=demo&id=demo-n1`
+   - `/api/og?type=term&u=demo&id=mock-demo-demo-n1`
 
 ## 8) Pendências e próximos passos
-1. Evoluir `filter=` em query param para filtros serializados (hoje foco em `selected/panel`).
-2. Adicionar animação de transição suave entre itens selecionados no detalhe.
-3. Expandir detalhes do debate para mostrar resposta/citações persistidas da pergunta selecionada.
+1. Opcional: criar índices curtos `/c/[slug]/s/node` e `/c/[slug]/s/term`.
+2. Opcional: adicionar `metadataBase` global para remover warning de OG em ambiente local/CI.
+3. Opcional: ampliar share de term para múltiplos termos relacionados.
 
 ✅ Verify passou
-- Comandos executados:
-  - `npm run verify`
+- Comando: `npm run verify`
+
+✅ E2E passou
+- Comando: `npm run test:e2e:ci`
+- Resultado: `21 passed`
+
+✅ Visual passou
+- Comando: `npm run test:ui:ci`
+- Resultado: `4 passed`

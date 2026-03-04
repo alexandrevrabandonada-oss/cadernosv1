@@ -1,11 +1,14 @@
 'use client';
 
 import { useEffect, useRef, type ReactNode } from 'react';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { SkeletonDetail } from '@/components/ui/Skeleton';
 
 type DetailPanelProps = {
   title?: string;
   children?: ReactNode;
   empty?: ReactNode;
+  showSkeleton?: boolean;
   mobileOpen: boolean;
   onCloseMobile: () => void;
 };
@@ -19,8 +22,17 @@ function focusables(root: HTMLElement | null) {
   );
 }
 
-export function DetailPanel({ title = 'Detalhes', children, empty, mobileOpen, onCloseMobile }: DetailPanelProps) {
+export function DetailPanel({ title = 'Detalhes', children, empty, showSkeleton = false, mobileOpen, onCloseMobile }: DetailPanelProps) {
   const mobileRef = useRef<HTMLDivElement | null>(null);
+  const content =
+    showSkeleton ? (
+      <SkeletonDetail />
+    ) : children ?? empty ?? (
+      <EmptyState
+        title='Nada selecionado'
+        description='Selecione um item no painel central para ver detalhes.'
+      />
+    );
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -55,11 +67,11 @@ export function DetailPanel({ title = 'Detalhes', children, empty, mobileOpen, o
 
   return (
     <>
-      <aside className='workspace-detail desktop-only' aria-label='Painel de detalhe'>
+      <aside className='workspace-detail desktop-only' aria-label='Painel de detalhe' data-testid='detail-panel'>
         <header className='workspace-detail-head'>
           <strong>{title}</strong>
         </header>
-        <div className='workspace-detail-body stack'>{children ?? empty}</div>
+        <div className='workspace-detail-body stack'>{content}</div>
       </aside>
 
       <div className={`workspace-sheet-overlay ${mobileOpen ? 'is-open' : ''}`} onClick={onCloseMobile} aria-hidden='true' />
@@ -69,6 +81,7 @@ export function DetailPanel({ title = 'Detalhes', children, empty, mobileOpen, o
         role='dialog'
         aria-modal='true'
         aria-label={title}
+        data-testid='detail-panel'
       >
         <div className='workspace-sheet-handle' aria-hidden='true' />
         <header className='workspace-detail-head'>
@@ -77,7 +90,7 @@ export function DetailPanel({ title = 'Detalhes', children, empty, mobileOpen, o
             Fechar
           </button>
         </header>
-        <div className='workspace-detail-body stack'>{children ?? empty}</div>
+        <div className='workspace-detail-body stack'>{content}</div>
       </aside>
     </>
   );

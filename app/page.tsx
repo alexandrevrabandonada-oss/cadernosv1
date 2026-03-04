@@ -55,12 +55,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               </p>
               <div className='toolbar-row'>
                 <Carimbo>{new Date(universe.published_at ?? '').toLocaleDateString('pt-BR')}</Carimbo>
+                {universe.hasHighlights ? <Carimbo>Vitrine</Carimbo> : null}
                 {universe.tags.slice(0, 3).map((tag) => (
                   <Carimbo key={`${universe.id}-${tag}`}>{tag}</Carimbo>
                 ))}
               </div>
               <Link className='ui-button' href={`/c/${universe.slug}`} data-variant='primary'>
-                Explorar universo
+                {universe.hasHighlights ? 'Comecar aqui' : 'Explorar universo'}
               </Link>
             </article>
           ))}

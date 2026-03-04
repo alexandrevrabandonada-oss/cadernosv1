@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ShareButton } from '@/components/share/ShareButton';
+import { useToast } from '@/components/ui/Toast';
 
 type ExportAsset = {
   id: string;
@@ -19,12 +21,14 @@ type Props = {
   label: string;
   payload: Record<string, unknown>;
   disabled?: boolean;
+  shareSlug?: string;
 };
 
-export function GenerateExportButton({ endpoint, label, payload, disabled = false }: Props) {
+export function GenerateExportButton({ endpoint, label, payload, disabled = false, shareSlug = '' }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ExportResponse | null>(null);
+  const toast = useToast();
 
   async function onGenerate() {
     setLoading(true);
@@ -47,8 +51,11 @@ export function GenerateExportButton({ endpoint, label, payload, disabled = fals
         throw new Error(json.error ?? 'Falha ao gerar export.');
       }
       setResult(json);
+      toast.success('Export gerado');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro inesperado.');
+      const message = err instanceof Error ? err.message : 'Erro inesperado.';
+      setError(message);
+      toast.error(message);
     } finally {
       setLoading(false);
     }
@@ -79,6 +86,20 @@ export function GenerateExportButton({ endpoint, label, payload, disabled = fals
                 </span>
               ),
             )}
+            {shareSlug ? (
+              (() => {
+                const shareAsset = result.assets.find((asset) => asset.format === 'pdf') ?? result.assets[0];
+                if (!shareAsset) return null;
+                return (
+                  <ShareButton
+                    url={`/c/${shareSlug}/s/export/${shareAsset.id}`}
+                    title={result.title}
+                    text='Dossie compartilhavel do Cadernos Vivos.'
+                    label='Compartilhar dossie'
+                  />
+                );
+              })()
+            ) : null}
           </div>
         </div>
       ) : null}

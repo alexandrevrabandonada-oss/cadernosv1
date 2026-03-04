@@ -1,5 +1,6 @@
 import { EnvConfigNotice } from '@/components/EnvConfigNotice';
 import { Header } from '@/components/Header';
+import { ToastProvider } from '@/components/ui/Toast';
 import type { Metadata } from 'next';
 import './globals.css';
 
@@ -12,9 +13,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang='pt-BR'>
       <body>
-        <Header />
-        <EnvConfigNotice />
-        {children}
+        <ToastProvider>
+          <Header />
+          <EnvConfigNotice />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   );

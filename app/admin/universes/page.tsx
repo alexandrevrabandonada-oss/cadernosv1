@@ -1,3 +1,4 @@
+import { spawnSync } from 'node:child_process';
 import { revalidatePath } from 'next/cache';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
@@ -40,8 +41,32 @@ async function createUniverseAction(formData: FormData) {
   revalidatePath('/admin/universes');
 }
 
+async function seedDemoUniverseAction() {
+  'use server';
+  const session = await requireEditorOrAdmin();
+  const rl = await enforceAdminWriteLimit(session.userId, 'admin/universes/seed_demo');
+  if (!rl.ok) {
+    redirect(`/admin/universes?rl=${rl.retryAfterSec}`);
+  }
+
+  const result = spawnSync(process.execPath, ['tools/seed-demo.mjs'], {
+    cwd: process.cwd(),
+    env: {
+      ...process.env,
+      DEMO_PUBLISH: '1',
+    },
+    encoding: 'utf8',
+  });
+
+  revalidatePath('/admin/universes');
+  if (result.status !== 0) {
+    redirect('/admin/universes?demo=error');
+  }
+  redirect('/admin/universes?demo=ok');
+}
+
 type AdminUniversesPageProps = {
-  searchParams: Promise<{ rl?: string }>;
+  searchParams: Promise<{ rl?: string; demo?: string }>;
 };
 
 export default async function AdminUniversesPage({ searchParams }: AdminUniversesPageProps) {
@@ -50,6 +75,7 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
   const canWrite = await hasAdminWriteAccess();
   const configured = Boolean(getAdminDb());
   const retrySec = Number(sp.rl ?? 0);
+  const demoStatus = String(sp.demo ?? '');
 
   return (
     <main className='stack'>
@@ -103,6 +129,26 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
             Criar universo
           </button>
         </form>
+        <hr style={{ width: '100%', borderColor: 'var(--line-1)' }} />
+        <SectionHeader
+          title='Atalho demo'
+          description='Cria/atualiza o universo vitrine "Poluicao em Volta Redonda" com seed idempotente.'
+        />
+        {demoStatus === 'ok' ? (
+          <p className='muted' role='status' style={{ margin: 0 }}>
+            Universo demo criado/atualizado com sucesso.
+          </p>
+        ) : null}
+        {demoStatus === 'error' ? (
+          <p className='muted' role='alert' style={{ margin: 0, color: 'var(--alert-0)' }}>
+            Falha ao executar seed demo. Rode `npm run demo:seed` no terminal para diagnostico.
+          </p>
+        ) : null}
+        <form action={seedDemoUniverseAction}>
+          <button className='ui-button' type='submit' disabled={!configured || !canWrite}>
+            Criar/Atualizar DEMO Poluicao VR
+          </button>
+        </form>
       </Card>
 
       <Card className='stack'>
@@ -124,6 +170,9 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
                 <Link className='ui-button' href={`/admin/universes/${universe.id}/checklist`}>
                   Checklist
                 </Link>
+                <Link className='ui-button' href={`/admin/universes/${universe.id}/highlights`}>
+                  Highlights
+                </Link>
                 <Link className='ui-button' href={`/admin/universes/${universe.id}/nodes`}>
                   Gerenciar nos
                 </Link>
@@ -132,6 +181,12 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
                 </Link>
                 <Link className='ui-button' href={`/admin/universes/${universe.id}/links`}>
                   Curadoria links
+                </Link>
+                <Link className='ui-button' href={`/admin/universes/${universe.id}/sprint`}>
+                  Sprint
+                </Link>
+                <Link className='ui-button' href={`/admin/universes/${universe.id}/demo`}>
+                  Console demo
                 </Link>
               </div>
             </article>

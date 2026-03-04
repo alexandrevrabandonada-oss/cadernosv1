@@ -14,12 +14,14 @@ type WorkerResult = {
 export async function runIngestWorker({
   limit = 5,
   workerId = `worker-${Date.now()}`,
+  universeId,
 }: {
   limit?: number;
   workerId?: string;
+  universeId?: string;
 }): Promise<WorkerResult> {
   const db = getAdminDb();
-  const jobs = await claimNextJobs({ limit, workerId });
+  const jobs = await claimNextJobs({ limit, workerId, universeId });
   let done = 0;
   let failed = 0;
   const errors: string[] = [];

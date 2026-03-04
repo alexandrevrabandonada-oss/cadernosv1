@@ -27,6 +27,7 @@ body::before {
   position: fixed;
   inset: 0;
   background: var(--texture-grid);
+  opacity: var(--texture-opacity);
   pointer-events: none;
   z-index: -1;
 }
@@ -43,7 +44,7 @@ a:hover {
 a:focus-visible,
 button:focus-visible,
 [role='tab']:focus-visible {
-  outline: 3px solid var(--focus);
+  outline: 3px solid var(--focus-strong);
   outline-offset: 2px;
 }
 
@@ -89,11 +90,15 @@ main {
   border: 1px solid var(--line-0);
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--surface-0), white 25%);
-  padding: var(--space-3);
+  padding: var(--cv-card-pad);
   min-height: 96px;
   display: grid;
   align-content: space-between;
-  gap: var(--space-2);
+  gap: var(--cv-card-gap);
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    box-shadow var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
 }
 
 .core-node small {
@@ -101,6 +106,33 @@ main {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
+}
+
+.core-node:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--line-0), var(--brand-0) 30%);
+}
+
+.core-node[data-selected='true'],
+.timeline-card[data-selected='true'],
+.map-node[data-selected='true'] {
+  border-color: var(--focus-strong);
+  box-shadow: inset 0 0 0 1px var(--focus-strong);
+  background: color-mix(in srgb, var(--surface-1), var(--focus-strong) 8%);
+  position: relative;
+}
+
+.core-node[data-selected='true']::before,
+.timeline-card[data-selected='true']::before,
+.map-node[data-selected='true']::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: 10px;
+  bottom: 10px;
+  width: 4px;
+  border-radius: 6px;
+  background: var(--focus-strong);
 }
 
 .split-layout {
@@ -113,6 +145,14 @@ main {
   display: flex;
   gap: var(--space-3);
   flex-wrap: wrap;
+}
+
+.ui-prefs {
+  gap: var(--space-1);
+  padding: 0.2rem 0.3rem;
+  border: 1px solid var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-0), white 18%);
 }
 
 .header-wrap {
@@ -160,11 +200,16 @@ main {
   justify-content: center;
   gap: var(--space-2);
   box-shadow: var(--shadow-1);
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) var(--ease-standard);
 }
 
 .ui-button:hover {
   background: var(--surface-2);
   text-decoration: none;
+  transform: translateY(-1px);
 }
 
 .ui-button[data-variant='primary'] {
@@ -345,7 +390,7 @@ main {
 }
 
 .map-node .muted {
-  font-size: 0.9rem;
+  font-size: var(--cv-font-sm);
 }
 
 .map-node-tags {
@@ -378,10 +423,10 @@ main {
 .timeline-card {
   border: 1px solid var(--line-0);
   border-radius: var(--radius-sm);
-  padding: var(--space-3);
+  padding: var(--cv-card-pad);
   background: color-mix(in srgb, var(--surface-0), white 18%);
   display: grid;
-  gap: 0.55rem;
+  gap: var(--cv-card-gap);
 }
 
 .status-grid {
@@ -399,6 +444,143 @@ main {
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-2) var(--space-3);
+}
+
+.empty-state {
+  border: 1px dashed var(--line-soft);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-0), white 24%);
+  padding: var(--space-3);
+}
+
+.toast-stack {
+  position: fixed;
+  right: var(--space-3);
+  bottom: calc(70px + env(safe-area-inset-bottom));
+  z-index: 90;
+  display: grid;
+  gap: var(--space-2);
+  width: min(360px, calc(100vw - 1.5rem));
+}
+
+.toast-item {
+  border: 1px solid var(--line-0);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-0);
+  background: color-mix(in srgb, var(--surface-0), white 12%);
+  padding: 0.55rem 0.75rem;
+}
+
+.toast-item[data-variant='success'] {
+  border-color: color-mix(in srgb, var(--brand-0), var(--line-0) 45%);
+}
+
+.toast-item[data-variant='error'] {
+  border-color: var(--alert-0);
+}
+
+.motion-safe-transition {
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    opacity var(--motion-base) var(--ease-standard);
+}
+
+.motion-reduce-noanim {
+  animation: none !important;
+  transition: none !important;
+}
+
+:root[data-density='compact'] {
+  --cv-card-pad: var(--space-2);
+  --cv-card-gap: var(--space-1);
+  --cv-font-sm: 0.82rem;
+}
+
+:root[data-texture='low'] {
+  --texture-opacity: 0.22;
+  --shadow-0: 0 4px 14px rgba(0, 0, 0, 0.1);
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    scroll-behavior: auto !important;
+  }
+
+  .ui-skeleton,
+  .motion-safe-transition,
+  .ui-button,
+  .core-node,
+  .map-node {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+.command-overlay {
+  position: fixed;
+  inset: 0;
+  background: color-mix(in srgb, var(--bg-0), black 35%);
+  backdrop-filter: blur(2px);
+  z-index: 70;
+}
+
+.command-modal {
+  position: fixed;
+  top: 12vh;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(760px, 92vw);
+  max-height: 76vh;
+  border: 1px solid var(--line-0);
+  border-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface-0), white 20%);
+  box-shadow: var(--shadow-0);
+  z-index: 75;
+  overflow: hidden;
+}
+
+.command-body {
+  padding: var(--space-3);
+}
+
+.command-input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line-0);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-0);
+  padding: 0.6rem 0.8rem;
+  font: inherit;
+}
+
+.command-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: var(--space-2);
+  max-height: calc(72vh - 126px);
+  overflow: auto;
+}
+
+.command-item {
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--line-0);
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--surface-0), white 14%);
+  color: var(--text-0);
+  padding: var(--space-2) var(--space-3);
+  display: grid;
+  gap: 0.2rem;
+  cursor: pointer;
+}
+
+.command-item[data-active='1'] {
+  border-color: var(--brand-0);
+  box-shadow: inset 0 0 0 1px var(--brand-0);
 }
 
 @media (max-width: 900px) {

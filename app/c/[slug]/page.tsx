@@ -1,12 +1,14 @@
 import { Card } from '@/components/ui/Card';
 import { OrientationBar } from '@/components/universe/OrientationBar';
-import { Portais } from '@/components/universe/Portais';
+import { PortalsRail } from '@/components/portals/PortalsRail';
+import { ShareButton } from '@/components/share/ShareButton';
 import { Carimbo } from '@/components/ui/Badge';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { getHubData } from '@/lib/data/universe';
 import { getUniverseAccessBySlug } from '@/lib/data/universes';
 import { buildUniverseHref } from '@/lib/universeNav';
 import { UniverseVisibilityBadge } from '@/components/universe/UniverseVisibilityBadge';
+import { getUserUiSettings } from '@/lib/user/settings';
 
 type UniversoPageProps = {
   params: Promise<{
@@ -19,6 +21,18 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
   const currentPath = buildUniverseHref(slug, '');
   const access = await getUniverseAccessBySlug(slug);
   const universe = await getHubData(slug);
+  const uiPrefs = await getUserUiSettings();
+
+  const sectionLabels: Record<string, string> = {
+    mapa: 'Mapa',
+    provas: 'Provas',
+    linha: 'Linha',
+    debate: 'Debate',
+    glossario: 'Glossario',
+    trilhas: 'Trilhas',
+    tutor: 'Tutor',
+  };
+  const lastSection = uiPrefs.settings.last_section;
 
   return (
     <div className='stack'>
@@ -45,6 +59,11 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'debate')}>
             Abrir Debate
           </a>
+          {uiPrefs.isLoggedIn && lastSection ? (
+            <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, lastSection)}>
+              Continuar de onde parou: {sectionLabels[lastSection] ?? lastSection}
+            </a>
+          ) : null}
         </div>
         <SectionHeader title='Perguntas prontas' description='Clique para abrir o Debate com contexto ja definido.' />
         <div className='toolbar-row' role='list' aria-label='Perguntas prontas de onboarding'>
@@ -63,6 +82,110 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           ))}
         </div>
       </Card>
+
+      {universe.highlights.enabled ? (
+        <Card className='stack' id='destaques'>
+          <SectionHeader
+            title='Destaques'
+            description='Kit de vitrine com evidencias, perguntas e marcos da linha para iniciar a jornada publica.'
+            tag='Vitrine'
+          />
+
+          <section className='stack'>
+            <h3 style={{ margin: 0 }}>Evidencias destacadas</h3>
+            <div className='stack'>
+              {universe.highlights.evidences.map((item) => (
+                <article key={item.id} className='core-node stack'>
+                  <strong>{item.title}</strong>
+                  <p className='muted' style={{ margin: 0 }}>
+                    {item.summary}
+                  </p>
+                  <div className='toolbar-row'>
+                    <a
+                      className='ui-button'
+                      href={buildUniverseHref(
+                        slug,
+                        `provas?selected=${encodeURIComponent(item.id)}&panel=detail${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
+                      )}
+                    >
+                      Abrir evidencia
+                    </a>
+                    <ShareButton
+                      url={`/c/${slug}/s/evidence/${item.id}`}
+                      title={item.title}
+                      text={item.summary}
+                      label='Compartilhar'
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <section className='stack'>
+            <h3 style={{ margin: 0 }}>Perguntas destacadas</h3>
+            <div className='toolbar-row'>
+              {universe.highlights.questions.map((item, index) => (
+                <span key={`${item.question}-${index}`} className='toolbar-row'>
+                  <a
+                    className='ui-button'
+                    data-variant='ghost'
+                    href={buildUniverseHref(
+                      slug,
+                      `debate?q=${encodeURIComponent(item.question)}${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
+                    )}
+                  >
+                    {item.question}
+                  </a>
+                  <ShareButton
+                    url={`/c/${slug}/s`}
+                    title={`Pergunta em destaque - ${slug}`}
+                    text={item.question}
+                    label='Compartilhar'
+                  />
+                </span>
+              ))}
+            </div>
+          </section>
+
+          <section className='stack'>
+            <h3 style={{ margin: 0 }}>Linha em destaque</h3>
+            <div className='stack'>
+              {universe.highlights.events.map((item) => (
+                <article key={item.id} className='core-node stack'>
+                  <strong>{item.title}</strong>
+                  <p className='muted' style={{ margin: 0 }}>
+                    {item.day ? new Date(item.day).toLocaleDateString('pt-BR') : 's/data'} | {item.kind ?? 'evento'}
+                  </p>
+                  <div className='toolbar-row'>
+                    <a className='ui-button' href={buildUniverseHref(slug, `linha?selected=${encodeURIComponent(item.id)}&panel=detail`)}>
+                      Abrir evento
+                    </a>
+                    <ShareButton
+                      url={`/c/${slug}/s/event/${item.id}`}
+                      title={item.title}
+                      text={`${item.kind ?? 'evento'} em ${item.day ?? 's/data'}`}
+                      label='Compartilhar'
+                    />
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+
+          <div className='toolbar-row'>
+            <a className='ui-button' href={buildUniverseHref(slug, 'provas')}>
+              Explorar Provas
+            </a>
+            <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
+              Comecar Tutor
+            </a>
+            <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'linha')}>
+              Ver Linha
+            </a>
+          </div>
+        </Card>
+      ) : null}
 
       <Card className='stack'>
         <SectionHeader title={universe.title} description={universe.summary} tag='Hub do Universo' />
@@ -145,7 +268,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
       </Card>
 
       <Card className='stack'>
-        <Portais slug={slug} title='Portais do universo' />
+        <PortalsRail universeSlug={slug} context={{ type: 'none' }} variant='footer' title='Proximas portas' />
       </Card>
     </div>
   );

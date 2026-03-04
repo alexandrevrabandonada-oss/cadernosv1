@@ -29,5 +29,18 @@ jobs:
       - name: Run tests (CI)
         run: npm run test:ci
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E smoke (CI)
+        env:
+          TEST_SEED: "1"
+        run: npm run test:e2e:ci
+
+      - name: Run visual snapshots (CI)
+        env:
+          TEST_SEED: "1"
+        run: npm run test:ui:ci
+
       - name: Run verify
         run: npm run verify

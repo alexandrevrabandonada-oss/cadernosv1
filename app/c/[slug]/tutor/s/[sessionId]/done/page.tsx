@@ -1,6 +1,7 @@
 import { notFound, redirect } from 'next/navigation';
 import { OrientationBar } from '@/components/universe/OrientationBar';
-import { Portais } from '@/components/universe/Portais';
+import { PortalsRail } from '@/components/portals/PortalsRail';
+import { ShareButton } from '@/components/share/ShareButton';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { TutorDoneSummary } from '@/components/tutor/TutorDoneSummary';
@@ -94,18 +95,33 @@ export default async function TutorDonePage({ params, searchParams }: TutorDoneP
 
       {mode === 'logged' ? (
         <Card className='stack'>
-          <form action={regenerateSummaryAction}>
-            <input type='hidden' name='slug' value={slug} />
-            <input type='hidden' name='sessionId' value={sessionId} />
-            <button className='ui-button' type='submit' data-variant='ghost'>
-              Regenerar resumo
-            </button>
-          </form>
+          <div className='toolbar-row'>
+            <form action={regenerateSummaryAction}>
+              <input type='hidden' name='slug' value={slug} />
+              <input type='hidden' name='sessionId' value={sessionId} />
+              <button className='ui-button' type='submit' data-variant='ghost'>
+                Regenerar resumo
+              </button>
+            </form>
+            <ShareButton
+              url={`/c/${slug}/s`}
+              title={`Resumo de tutor - ${universe.title}`}
+              text='Veja a vitrine e os destaques deste universo no Cadernos Vivos.'
+            />
+          </div>
         </Card>
       ) : null}
 
       <Card className='stack'>
-        <Portais slug={slug} currentPath='tutor' title='Proximas portas' />
+        <PortalsRail
+          universeSlug={slug}
+          variant='footer'
+          title='Proximas portas'
+          context={{
+            type: 'tutor_session',
+            sessionId: sessionId === 'local' ? '' : sessionId,
+          }}
+        />
       </Card>
     </div>
   );

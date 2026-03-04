@@ -8,7 +8,7 @@ type FilterRailProps = {
 
 export function FilterRail({ children, footer, title = 'Filtros' }: FilterRailProps) {
   return (
-    <div className='workspace-rail stack' aria-label='Painel de filtros'>
+    <div className='workspace-rail stack' aria-label='Painel de filtros' data-testid='filter-rail'>
       <header className='workspace-rail-head'>
         <strong>{title}</strong>
       </header>

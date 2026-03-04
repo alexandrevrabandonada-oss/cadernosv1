@@ -34,3 +34,13 @@ Isso reduz dependencia de heuristica e melhora consistencia em Mapa, Provas e As
 - Evite sobrecarregar um no com muitos docs; prefira curadoria enxuta.
 - Priorize evidencias com pagina/trecho claro para rastreabilidade.
 - Revise `weight/pin_rank` periodicamente conforme nova base documental.
+
+## Glossario como porta de entrada
+- O glossario em `/c/[slug]/glossario` conecta termos a no/provas/debate/linha.
+- Curadoria minima por termo:
+1. Definicao curta clara (`short_def`).
+2. Vinculo com `node_id` quando aplicavel.
+3. 1-3 evidencias destacadas (`evidence_ids`).
+4. 2-4 perguntas sugeridas (`question_prompts`) para abrir Debate.
+- Regra editorial:
+  - termo deve facilitar navegacao, nao duplicar paginas de evidencia.

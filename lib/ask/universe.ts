@@ -199,6 +199,7 @@ async function persistQaThread(
   answer: string,
   citations: AskCitation[],
   nodeId: string | null,
+  source: 'guided' | 'default' | 'tutor_chat',
   meta: { mode: 'strict_ok' | 'insufficient'; docsUsed: number; chunksUsed: number; insufficientReason: string | null },
 ) {
   const service = getSupabaseServiceRoleClient();
@@ -208,6 +209,7 @@ async function persistQaThread(
     .insert({
       universe_id: universeId,
       node_id: nodeId,
+      source,
       question,
       answer,
       mode: meta.mode,
@@ -462,7 +464,7 @@ export async function askUniverse(payload: AskPayload, context: AskRunContext): 
     });
     const mode: 'strict_ok' | 'insufficient' = insufficient ? 'insufficient' : 'strict_ok';
 
-    const persisted = await persistQaThread(universe.id, question, answer, citations, nodeId, {
+    const persisted = await persistQaThread(universe.id, question, answer, citations, nodeId, source, {
       mode,
       docsUsed,
       chunksUsed,

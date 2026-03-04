@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { ShareButton } from '@/components/share/ShareButton';
 import { Carimbo } from '@/components/ui/Badge';
 import { useTutorSession } from '@/hooks/useTutorSession';
 import type { TutorSessionSummaryView } from '@/app/actions/tutorSummary';
@@ -50,6 +51,7 @@ export function TutorDoneSummary({
   });
   const [exporting, setExporting] = useState(false);
   const [exportResult, setExportResult] = useState<string | null>(null);
+  const [exportShareId, setExportShareId] = useState<string>('');
 
   const covered = points.filter((point) => tutor.stateByPoint[point.id]?.done || point.status === 'done');
   const coreSuggestions = covered.filter((point) => point.nodeSlug).slice(0, 2);
@@ -70,6 +72,7 @@ export function TutorDoneSummary({
     if (!canExport) return;
     setExporting(true);
     setExportResult(null);
+    setExportShareId('');
     try {
       const response = await fetch('/api/admin/export/session', {
         method: 'POST',
@@ -80,10 +83,15 @@ export function TutorDoneSummary({
           isPublic: false,
         }),
       });
-      const data = (await response.json()) as { error?: string; assets?: Array<{ format: string; signedUrl: string | null }> };
+      const data = (await response.json()) as {
+        error?: string;
+        assets?: Array<{ id: string; format: string; signedUrl: string | null }>;
+      };
       if (!response.ok) throw new Error(data.error ?? 'Falha ao gerar dossie da sessao.');
       const pdf = data.assets?.find((asset) => asset.format === 'pdf')?.signedUrl ?? null;
+      const shareAsset = data.assets?.find((asset) => asset.format === 'pdf') ?? data.assets?.[0] ?? null;
       setExportResult(pdf ?? 'Dossie gerado com sucesso.');
+      setExportShareId(shareAsset?.id ?? '');
     } catch (error) {
       setExportResult(error instanceof Error ? error.message : 'Falha ao gerar dossie da sessao.');
     } finally {
@@ -177,15 +185,25 @@ export function TutorDoneSummary({
           ) : null}
         </div>
         {exportResult ? (
-          exportResult.startsWith('http') ? (
-            <a className='ui-button' href={exportResult} target='_blank' rel='noreferrer'>
-              Baixar PDF da sessao
-            </a>
-          ) : (
-            <p className='muted' style={{ margin: 0 }}>
-              {exportResult}
-            </p>
-          )
+          <div className='toolbar-row'>
+            {exportResult.startsWith('http') ? (
+              <a className='ui-button' href={exportResult} target='_blank' rel='noreferrer'>
+                Baixar PDF da sessao
+              </a>
+            ) : (
+              <p className='muted' style={{ margin: 0 }}>
+                {exportResult}
+              </p>
+            )}
+            {exportShareId ? (
+              <ShareButton
+                url={`/c/${slug}/s/export/${exportShareId}`}
+                title='Dossie da sessao'
+                text='Resumo de tutor compartilhavel no Cadernos Vivos.'
+                label='Compartilhar dossie'
+              />
+            ) : null}
+          </div>
         ) : null}
       </article>
     </div>

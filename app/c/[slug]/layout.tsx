@@ -1,8 +1,12 @@
 import { notFound } from 'next/navigation';
 import { QuickNav } from '@/components/QuickNav';
+import { CommandPalette } from '@/components/command/CommandPalette';
 import { Card } from '@/components/ui/Card';
+import { UiPrefsProvider } from '@/components/ui/UiPrefsProvider';
 import { UniverseVisibilityBadge } from '@/components/universe/UniverseVisibilityBadge';
+import { WorkspaceProvider } from '@/components/workspace/WorkspaceContext';
 import { getUniverseAccessBySlug } from '@/lib/data/universes';
+import { getUserUiSettings } from '@/lib/user/settings';
 
 type UniversoLayoutProps = Readonly<{
   children: React.ReactNode;
@@ -12,6 +16,7 @@ type UniversoLayoutProps = Readonly<{
 export default async function UniversoLayout({ children, params }: UniversoLayoutProps) {
   const { slug } = await params;
   const access = await getUniverseAccessBySlug(slug);
+  const uiPrefs = await getUserUiSettings();
 
   if (!access.universe) {
     notFound();
@@ -22,19 +27,24 @@ export default async function UniversoLayout({ children, params }: UniversoLayou
   }
 
   return (
-    <main className='split-layout'>
-      <QuickNav slug={slug} />
-      <div className='stack'>
-        {!access.published && access.canPreview ? (
-          <Card className='stack'>
-            <UniverseVisibilityBadge published={false} preview />
-            <p className='muted' style={{ margin: 0 }}>
-              Este universo ainda nao esta publicado. Somente editor/admin pode ver este preview.
-            </p>
-          </Card>
-        ) : null}
-        {children}
-      </div>
-    </main>
+    <UiPrefsProvider initialSettings={uiPrefs.settings} isLoggedIn={uiPrefs.isLoggedIn}>
+      <WorkspaceProvider>
+        <main className='split-layout' data-density={uiPrefs.settings.density} data-texture={uiPrefs.settings.texture}>
+          <QuickNav slug={slug} />
+          <div className='stack'>
+            {!access.published && access.canPreview ? (
+              <Card className='stack'>
+                <UniverseVisibilityBadge published={false} preview />
+                <p className='muted' style={{ margin: 0 }}>
+                  Este universo ainda nao esta publicado. Somente editor/admin pode ver este preview.
+                </p>
+              </Card>
+            ) : null}
+            {children}
+          </div>
+        </main>
+        <CommandPalette universeSlug={slug} />
+      </WorkspaceProvider>
+    </UiPrefsProvider>
   );
 }

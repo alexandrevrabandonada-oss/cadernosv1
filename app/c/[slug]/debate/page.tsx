@@ -1,118 +1,352 @@
-import { DebatePanel } from '@/components/debate/DebatePanel';
 import Link from 'next/link';
+import { DebatePanel } from '@/components/debate/DebatePanel';
+import { ThreadDetailActions } from '@/components/debate/ThreadDetailActions';
+import { PortalsRail } from '@/components/portals/PortalsRail';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
-import { FilterRail } from '@/components/workspace/FilterRail';
-import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
+import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { CardHeader } from '@/components/ui/CardHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
-import { getRecentQuestions, getUniverseContextBySlug } from '@/lib/data/debate';
-import { getUniverseMock } from '@/lib/mock/universe';
+import { FilterRail } from '@/components/workspace/FilterRail';
+import { ListKeyboardNavigator } from '@/components/workspace/ListKeyboardNavigator';
+import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
+import { getThreadDetail, listThreads } from '@/lib/data/debate';
+import { parseDebateFilters, serializeDebateFilters } from '@/lib/filters/debateFilters';
+import { parseProvasFilters, serializeProvasFilters } from '@/lib/filters/provasFilters';
+import { applyLens } from '@/lib/lens/applyLens';
 import { buildUniverseHref } from '@/lib/universeNav';
 
 type DebatePageProps = {
-  params: Promise<{
-    slug: string;
-  }>;
-  searchParams: Promise<{
-    q?: string;
-    node?: string;
-    back?: string;
-    selected?: string;
-    panel?: string;
-  }>;
+  params: Promise<{ slug: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
+
+function dateLabel(value: string) {
+  return new Date(value).toLocaleString('pt-BR');
+}
 
 export default async function DebatePage({ params, searchParams }: DebatePageProps) {
   const { slug } = await params;
-  const { q, node, back, selected } = await searchParams;
+  const rawSearch = await searchParams;
+  const filters = parseDebateFilters(rawSearch);
+  const askFromParam = Array.isArray(rawSearch.ask) ? rawSearch.ask[0] ?? '' : (rawSearch.ask ?? '');
   const currentPath = buildUniverseHref(slug, 'debate');
 
-  const universe = await getUniverseContextBySlug(slug);
-  const fallback = getUniverseMock(slug);
-  const title = universe?.title ?? fallback.title;
-  const recent = universe ? await getRecentQuestions(universe.id, 8) : [];
-  const selectedId = selected ?? '';
-  const selectedQuestion = recent.find((item) => item.id === selectedId) ?? null;
+  const list = await listThreads({
+    slug,
+    filters,
+    limit: 14,
+    cursor: filters.cursor,
+  });
 
-  const makeSelectedLink = (id: string, question: string) => {
-    const qs = new URLSearchParams();
-    qs.set('selected', id);
-    qs.set('panel', 'detail');
-    qs.set('q', question);
-    if (node) qs.set('node', node);
-    if (back) qs.set('back', back);
-    return `${currentPath}?${qs.toString()}`;
+  if (!list) {
+    return (
+      <div className='stack'>
+        <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Debate' />
+        <Card className='stack'>
+          <SectionHeader title='Debate' description='Universo indisponivel para debate no momento.' />
+        </Card>
+      </div>
+    );
+  }
+
+  const selectedDetail = filters.selected ? await getThreadDetail(slug, filters.selected) : null;
+  const lensSections = selectedDetail
+    ? applyLens({
+        lens: filters.lens,
+        answer: selectedDetail.thread.answer,
+        citationsCount: selectedDetail.citations.length,
+      })
+    : [];
+
+  const makeUrl = (override: Partial<typeof filters>) => {
+    const next = { ...filters, ...override };
+    const query = serializeDebateFilters(next);
+    return query ? `${currentPath}?${query}` : currentPath;
   };
+
+  const getProvasHref = () => {
+    const provasPath = buildUniverseHref(slug, 'provas');
+    if (!selectedDetail) return provasPath;
+    const provasFilters = parseProvasFilters({});
+    const year = Number(selectedDetail.thread.createdAt.slice(0, 4));
+    const query = serializeProvasFilters({
+      ...provasFilters,
+      type: 'evidence',
+      node: selectedDetail.thread.node?.slug ?? '',
+      relatedTo: selectedDetail.dominantDocumentId ?? '',
+      yearFrom: Number.isFinite(year) ? year : null,
+      yearTo: Number.isFinite(year) ? year : null,
+      selected: '',
+      panel: '',
+      cursor: 0,
+    });
+    return query ? `${provasPath}?${query}` : provasPath;
+  };
+
+  const firstCitation = selectedDetail?.citations[0] ?? null;
+  const firstEvidenceHref =
+    firstCitation && selectedDetail
+      ? `/c/${slug}/doc/${firstCitation.docId}?p=${firstCitation.pageStart ?? firstCitation.pageEnd ?? ''}&thread=${selectedDetail.thread.id}&cite=${firstCitation.citationId}`
+      : null;
+
+  const currentShareUrl = makeUrl({});
+  const legacyQuickAsk =
+    !askFromParam &&
+    !filters.selected &&
+    filters.cursor === 0 &&
+    filters.kind === 'all' &&
+    filters.status === 'all' &&
+    filters.yearFrom === null &&
+    filters.yearTo === null &&
+    filters.q.length >= 8;
+  const initialQuestion = askFromParam || (legacyQuickAsk ? filters.q : '');
+  const threadIds = list.items.map((item) => item.id);
 
   return (
     <div className='stack'>
       <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Debate' />
-
       <WorkspaceShell
         slug={slug}
         section='debate'
-        title={`Debate de ${title}`}
-        subtitle='Pergunte, revise evidencias e navegue pelas fontes.'
-        selectedId={selectedId}
-        detailTitle='Pergunta selecionada'
+        title={`Debate de ${list.universeTitle}`}
+        subtitle='Inbox de perguntas com evidencias rastreaveis e filtros editoriais.'
+        selectedId={filters.selected}
+        detailTitle='Detalhe da thread'
         filter={
           <FilterRail>
-            <div className='stack'>
-              <p className='muted' style={{ margin: 0 }}>
-                Filtro por no ativo:
-              </p>
-              <p style={{ margin: 0 }}>
-                {node ? <strong>{node}</strong> : 'Sem filtro de no no momento.'}
-              </p>
-              <Link className='ui-button' href={currentPath} data-variant='ghost'>
-                Limpar estado
-              </Link>
-            </div>
+            <form method='get' className='stack'>
+              <label>
+                <span>Lente</span>
+                <select name='lens' defaultValue={filters.lens} style={{ width: '100%', minHeight: 42 }} data-testid='lens-toggle'>
+                  <option value='default'>Default</option>
+                  <option value='worker'>Trabalhador</option>
+                  <option value='resident'>Morador</option>
+                  <option value='researcher'>Pesquisa</option>
+                  <option value='policy'>Politica</option>
+                </select>
+              </label>
+              <label>
+                <span>No</span>
+                <select name='node' defaultValue={filters.node} style={{ width: '100%', minHeight: 42 }}>
+                  <option value=''>Todos</option>
+                  {list.nodes
+                    .slice()
+                    .sort((a, b) => {
+                      if (a.kind === 'core' && b.kind !== 'core') return -1;
+                      if (a.kind !== 'core' && b.kind === 'core') return 1;
+                      return a.title.localeCompare(b.title);
+                    })
+                    .map((node) => (
+                      <option key={node.id} value={node.slug}>
+                        {node.title}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label>
+                <span>Status</span>
+                <select name='status' defaultValue={filters.status} style={{ width: '100%', minHeight: 42 }}>
+                  <option value='all'>Todos</option>
+                  <option value='strict_ok'>Conclusivo</option>
+                  <option value='insufficient'>Insuficiente</option>
+                </select>
+              </label>
+              <label>
+                <span>Tipo</span>
+                <select name='kind' defaultValue={filters.kind} style={{ width: '100%', minHeight: 42 }}>
+                  <option value='all'>Todos</option>
+                  <option value='default'>Perguntas</option>
+                  <option value='guided'>Guiadas</option>
+                  <option value='tutor_chat'>Tutor chat</option>
+                </select>
+              </label>
+              <label>
+                <span>Busca</span>
+                <input name='q' defaultValue={filters.q} placeholder='termo da pergunta ou resposta...' style={{ width: '100%', minHeight: 42 }} />
+              </label>
+              <div className='layout-shell' style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <label>
+                  <span>De (ano)</span>
+                  <input name='yearFrom' type='number' min='1900' max='2100' defaultValue={filters.yearFrom ?? ''} style={{ width: '100%', minHeight: 42 }} />
+                </label>
+                <label>
+                  <span>Ate (ano)</span>
+                  <input name='yearTo' type='number' min='1900' max='2100' defaultValue={filters.yearTo ?? ''} style={{ width: '100%', minHeight: 42 }} />
+                </label>
+              </div>
+              <input type='hidden' name='selected' value={filters.selected} />
+              <div className='toolbar-row'>
+                <button className='ui-button' type='submit'>
+                  Aplicar
+                </button>
+                <Link className='ui-button' data-variant='ghost' href={currentPath}>
+                  Limpar
+                </Link>
+              </div>
+            </form>
           </FilterRail>
         }
         detail={
-          selectedQuestion ? (
+          selectedDetail ? (
             <div className='stack'>
-              <article className='core-node'>
-                <strong>Pergunta</strong>
-                <p style={{ margin: 0 }}>{selectedQuestion.question}</p>
+              <article className='core-node stack'>
+                <strong>{selectedDetail.thread.question}</strong>
                 <p className='muted' style={{ margin: 0 }}>
-                  {new Date(selectedQuestion.createdAt).toLocaleString('pt-BR')}
+                  {dateLabel(selectedDetail.thread.createdAt)} | {selectedDetail.thread.source} | {selectedDetail.thread.mode}
                 </p>
+                {selectedDetail.thread.node ? (
+                  <div className='toolbar-row'>
+                    <p className='muted' style={{ margin: 0 }}>
+                      No: {selectedDetail.thread.node.title}
+                    </p>
+                    <Link
+                      className='ui-button'
+                      data-variant='ghost'
+                      href={`${buildUniverseHref(slug, 'mapa')}?node=${encodeURIComponent(selectedDetail.thread.node.slug)}&panel=detail`}
+                    >
+                      Ver no mapa
+                    </Link>
+                  </div>
+                ) : null}
               </article>
-              <Link className='ui-button' href={makeSelectedLink(selectedQuestion.id, selectedQuestion.question)}>
-                Reabrir no debate
-              </Link>
+
+              <article className='core-node stack'>
+                <strong>Resposta ({filters.lens})</strong>
+                {lensSections.map((section) => (
+                  <div key={section.title} className='stack'>
+                    <strong>{section.title}</strong>
+                    {section.lines.map((line, index) => (
+                      <p key={`${section.title}-${index}`} style={{ margin: 0 }}>
+                        {line}
+                      </p>
+                    ))}
+                  </div>
+                ))}
+                {selectedDetail.thread.insufficientReason ? (
+                  <p className='muted' style={{ margin: 0 }}>
+                    Limite: {selectedDetail.thread.insufficientReason}
+                  </p>
+                ) : null}
+              </article>
+
+              <article className='core-node stack'>
+                <strong>Evidencias ({selectedDetail.citations.length})</strong>
+                {selectedDetail.citations.slice(0, 5).map((citation) => (
+                  <div key={citation.citationId} className='stack'>
+                    <p style={{ margin: 0 }}>
+                      <strong>
+                        {citation.docTitle} {citation.year ? `(${citation.year})` : ''}
+                      </strong>
+                    </p>
+                    <p className='muted' style={{ margin: 0 }}>
+                      p.{citation.pageStart ?? citation.pageEnd ?? 's/p'}
+                      {citation.pageEnd && citation.pageEnd !== citation.pageStart ? `-${citation.pageEnd}` : ''}
+                    </p>
+                    <p style={{ margin: 0 }}>{citation.quote}</p>
+                  </div>
+                ))}
+                {selectedDetail.citations.length === 0 ? (
+                  <p className='muted' style={{ margin: 0 }}>
+                    Thread sem citacoes persistidas.
+                  </p>
+                ) : null}
+              </article>
+
+              <ThreadDetailActions
+                slug={slug}
+                universeId={list.universeId}
+                threadId={selectedDetail.thread.id}
+                nodeSlug={selectedDetail.thread.node?.slug ?? ''}
+                provasHref={getProvasHref()}
+                firstEvidenceHref={firstEvidenceHref}
+                citations={selectedDetail.citations}
+                currentUrl={currentShareUrl}
+                shareUrl={`/c/${slug}/s/thread/${selectedDetail.thread.id}`}
+              />
+
+              <PortalsRail
+                universeSlug={slug}
+                variant='detail'
+                context={{
+                  type: 'thread',
+                  nodeSlug: selectedDetail.thread.node?.slug ?? '',
+                  docId: selectedDetail.dominantDocumentId ?? '',
+                  threadId: selectedDetail.thread.id,
+                }}
+              />
+
+              <article className='core-node stack'>
+                <strong>Relacionadas</strong>
+                {selectedDetail.related.map((item) => (
+                  <Link key={item.id} className='ui-button' data-variant='ghost' href={makeUrl({ selected: item.id, panel: 'detail' })}>
+                    {item.question}
+                  </Link>
+                ))}
+                {selectedDetail.related.length === 0 ? <p className='muted' style={{ margin: 0 }}>Sem relacionadas por enquanto.</p> : null}
+              </article>
             </div>
           ) : null
         }
       >
         <div className='stack'>
+          <ListKeyboardNavigator ids={threadIds} selectedId={filters.selected} />
           <Card className='stack'>
-            <SectionHeader title='Perguntas recentes' description='Clique para abrir no detalhe e usar como pergunta inicial.' />
-            <div className='stack'>
-              {recent.map((item) => (
-                <article key={item.id} className='core-node'>
-                  <strong>{item.question}</strong>
-                  <p className='muted' style={{ margin: 0 }}>
-                    {new Date(item.createdAt).toLocaleString('pt-BR')}
-                  </p>
-                  <Link className='ui-button' data-variant='ghost' href={makeSelectedLink(item.id, item.question)}>
+            <div className='toolbar-row'>
+              <Carimbo>{`threads:${list.items.length}`}</Carimbo>
+              <Carimbo>{`lente:${filters.lens}`}</Carimbo>
+            </div>
+            <SectionHeader title='Inbox de QAs' description='Selecione uma thread para abrir detalhes, evidencias e acoes.' />
+            <div className='core-grid'>
+              {list.items.map((item) => (
+                <article
+                  key={item.id}
+                  className='core-node stack'
+                  data-testid='thread-item'
+                  data-selected={filters.selected === item.id ? 'true' : undefined}
+                >
+                  <CardHeader title={item.question} typeLabel={item.mode} meta={dateLabel(item.createdAt)} />
+                  <p style={{ margin: 0 }}>{item.answerPreview}</p>
+                  <div className='toolbar-row'>
+                    <Carimbo>{item.mode}</Carimbo>
+                    <Carimbo>{item.source}</Carimbo>
+                    {typeof item.docsUsed === 'number' ? <Carimbo>{`docs:${item.docsUsed}`}</Carimbo> : null}
+                    {typeof item.chunksUsed === 'number' ? <Carimbo>{`chunks:${item.chunksUsed}`}</Carimbo> : null}
+                  </div>
+                  <Link
+                    className='ui-button'
+                    data-variant='ghost'
+                    data-selected={filters.selected === item.id ? 'true' : undefined}
+                    href={makeUrl({ selected: item.id, panel: 'detail' })}
+                  >
                     Ver detalhe
                   </Link>
                 </article>
               ))}
             </div>
+            {list.items.length === 0 ? (
+              <EmptyState
+                title='Sem threads'
+                description='Sem threads para estes filtros.'
+                variant='no-results'
+                actions={[{ label: 'Limpar filtros', href: currentPath }]}
+              />
+            ) : null}
+            {list.nextCursor !== null ? (
+              <Link className='ui-button' href={makeUrl({ cursor: list.nextCursor })}>
+                Carregar mais
+              </Link>
+            ) : null}
           </Card>
 
           <DebatePanel
             slug={slug}
-            universeId={universe?.id ?? null}
-            recent={recent}
-            initialQuestion={q ?? ''}
-            initialNodeSlug={node ?? ''}
-            backUrl={back ?? ''}
+            universeId={list.universeId}
+            recent={list.items.map((item) => ({ id: item.id, question: item.question, createdAt: item.createdAt }))}
+            initialQuestion={initialQuestion}
+            initialNodeSlug={filters.node}
             showRecent={false}
           />
         </div>

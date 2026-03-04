@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { buildUniverseHref } from '@/lib/universeNav';
 
 type DockNavProps = {
@@ -11,6 +12,7 @@ type DockNavProps = {
 const ITEMS = [
   { key: 'provas', label: 'Provas' },
   { key: 'linha', label: 'Linha' },
+  { key: 'glossario', label: 'Glossario' },
   { key: 'trilhas', label: 'Trilhas' },
   { key: 'tutor', label: 'Tutoria' },
   { key: 'debate', label: 'Debate' },
@@ -19,8 +21,9 @@ const ITEMS = [
 
 export function DockNav({ slug }: DockNavProps) {
   const pathname = usePathname();
+  const uiPrefs = useUiPrefsContext();
   return (
-    <nav className='workspace-dock' aria-label='Navegacao rapida mobile'>
+    <nav className='workspace-dock' aria-label='Navegacao rapida mobile' data-testid='dock-nav'>
       {ITEMS.map((item) => {
         const href = buildUniverseHref(slug, item.key);
         const isActive = pathname === href;
@@ -30,6 +33,7 @@ export function DockNav({ slug }: DockNavProps) {
             href={href}
             className='workspace-dock-item'
             aria-current={isActive ? 'page' : undefined}
+            onClick={() => uiPrefs?.setLastSection(item.key)}
           >
             {item.label}
           </Link>

@@ -52,6 +52,19 @@ jobs:
       - name: Run verify
         run: npm run verify
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Run E2E smoke (CI)
+        env:
+          TEST_SEED: "1"
+        run: npm run test:e2e:ci
+
+      - name: Run visual snapshots (CI)
+        env:
+          TEST_SEED: "1"
+        run: npm run test:ui:ci
+
       - name: Setup Supabase CLI
         uses: supabase/setup-cli@v1
         with:

@@ -20,6 +20,12 @@ export type HubData = {
   coreNodes: Array<UniverseNode & { docsCount?: number; evidencesCount?: number }>;
   featuredTrails: Array<{ id: string; title: string; summary: string }>;
   featuredEvidences: Array<{ id: string; title: string; summary: string }>;
+  highlights: {
+    enabled: boolean;
+    evidences: Array<{ id: string; title: string; summary: string; nodeSlug: string | null }>;
+    questions: Array<{ question: string; nodeSlug: string | null }>;
+    events: Array<{ id: string; title: string; day: string | null; kind: string | null; nodeSlug: string | null }>;
+  };
 };
 
 export type MapEdge = {
@@ -105,6 +111,19 @@ function mockQuickQuestions(slug: string): QuickQuestion[] {
   return [...base, ...perNode].slice(0, 8);
 }
 
+function mockHighlights(slug: string) {
+  const questions = mockQuickQuestions(slug).slice(0, 3).map((item) => ({
+    question: item.question,
+    nodeSlug: item.nodeSlug ?? null,
+  }));
+  return {
+    enabled: false,
+    evidences: [] as Array<{ id: string; title: string; summary: string; nodeSlug: string | null }>,
+    questions,
+    events: [] as Array<{ id: string; title: string; day: string | null; kind: string | null; nodeSlug: string | null }>,
+  };
+}
+
 export async function getHubData(slug: string): Promise<HubData> {
   const mock = getUniverseMock(slug);
   const mockQuickStart = {
@@ -126,6 +145,7 @@ export async function getHubData(slug: string): Promise<HubData> {
       coreNodes: mock.coreNodes,
       featuredTrails: mockFeaturedTrails(mock.coreNodes),
       featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
+      highlights: mockHighlights(slug),
     };
   }
 
@@ -141,6 +161,7 @@ export async function getHubData(slug: string): Promise<HubData> {
       coreNodes: mock.coreNodes,
       featuredTrails: mockFeaturedTrails(mock.coreNodes),
       featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
+      highlights: mockHighlights(slug),
     };
   }
 
@@ -162,6 +183,7 @@ export async function getHubData(slug: string): Promise<HubData> {
         coreNodes: mock.coreNodes,
         featuredTrails: mockFeaturedTrails(mock.coreNodes),
         featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
+        highlights: mockHighlights(slug),
       };
     }
 
@@ -183,6 +205,7 @@ export async function getHubData(slug: string): Promise<HubData> {
         coreNodes: mock.coreNodes.slice(0, 5),
         featuredTrails: mockFeaturedTrails(mock.coreNodes),
         featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
+        highlights: mockHighlights(slug),
       };
     }
 
@@ -201,8 +224,13 @@ export async function getHubData(slug: string): Promise<HubData> {
       evidencesCount: linkCounts[node.id]?.evidences ?? 0,
     }));
 
-    const [, trailsQuery, evidencesQuery, docsQuery, nodesCountQuery, evidencesCountQuery, quickQuestions] = await Promise.all([
+    const [, highlightsQuery, trailsQuery, evidencesQuery, docsQuery, nodesCountQuery, evidencesCountQuery, quickQuestions] = await Promise.all([
       ensureQuickStartTrail(universeQuery.data.id, slug),
+      client
+        .from('universe_highlights')
+        .select('evidence_ids, question_prompts, event_ids')
+        .eq('universe_id', universeQuery.data.id)
+        .maybeSingle(),
       client
         .from('trails')
         .select('id, title, summary')
@@ -229,6 +257,84 @@ export async function getHubData(slug: string): Promise<HubData> {
     const docsProcessed = (docsQuery.data ?? []).filter((doc) => doc.status === 'processed').length;
     const nodesTotal = Number(nodesCountQuery.count ?? 0);
     const evidencesTotal = Number(evidencesCountQuery.count ?? 0);
+    const highlightEvidenceIds = Array.isArray(highlightsQuery.data?.evidence_ids)
+      ? highlightsQuery.data?.evidence_ids.filter(Boolean).slice(0, 6)
+      : [];
+    const highlightEventIds = Array.isArray(highlightsQuery.data?.event_ids)
+      ? highlightsQuery.data?.event_ids.filter(Boolean).slice(0, 3)
+      : [];
+    const highlightQuestions = Array.isArray(highlightsQuery.data?.question_prompts)
+      ? highlightsQuery.data?.question_prompts
+          .map((item: unknown) => String(item).trim())
+          .filter(Boolean)
+          .slice(0, 3)
+      : [];
+
+    const [highlightEvidencesRaw, highlightEventsRaw] = await Promise.all([
+      highlightEvidenceIds.length > 0
+        ? client
+            .from('evidences')
+            .select('id, title, summary, node_id')
+            .in('id', highlightEvidenceIds)
+        : Promise.resolve({ data: [] as Array<{ id: string; title: string; summary: string; node_id: string | null }> }),
+      highlightEventIds.length > 0
+        ? client
+            .from('events')
+            .select('id, title, day, kind, node_id')
+            .in('id', highlightEventIds)
+        : Promise.resolve({
+            data: [] as Array<{ id: string; title: string; day: string | null; kind: string | null; node_id: string | null }>,
+          }),
+    ]);
+
+    const highlightNodeIds = Array.from(
+      new Set([
+        ...(highlightEvidencesRaw.data ?? []).map((item) => item.node_id).filter(Boolean),
+        ...(highlightEventsRaw.data ?? []).map((item) => item.node_id).filter(Boolean),
+      ]),
+    );
+    const nodeSlugById = new Map<string, string>();
+    if (highlightNodeIds.length > 0) {
+      const { data: nodeRows } = await client
+        .from('nodes')
+        .select('id, slug')
+        .in('id', highlightNodeIds);
+      for (const row of nodeRows ?? []) {
+        nodeSlugById.set(row.id, row.slug);
+      }
+    }
+
+    const highlightEvidenceById = new Map((highlightEvidencesRaw.data ?? []).map((item) => [item.id, item]));
+    const highlightEventById = new Map((highlightEventsRaw.data ?? []).map((item) => [item.id, item]));
+    const highlightEvidences = highlightEvidenceIds
+      .map((id) => highlightEvidenceById.get(id))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        summary: item.summary,
+        nodeSlug: item.node_id ? nodeSlugById.get(item.node_id) ?? null : null,
+      }));
+    const highlightEvents = highlightEventIds
+      .map((id) => highlightEventById.get(id))
+      .filter((item): item is NonNullable<typeof item> => Boolean(item))
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        day: item.day ?? null,
+        kind: item.kind ?? null,
+        nodeSlug: item.node_id ? nodeSlugById.get(item.node_id) ?? null : null,
+      }));
+    const highlightQuestionRows = highlightQuestions.map((question, index) => ({
+      question,
+      nodeSlug: quickQuestions[index]?.nodeSlug ?? null,
+    }));
+    const highlights = {
+      enabled: highlightEvidences.length > 0 || highlightQuestionRows.length > 0 || highlightEvents.length > 0,
+      evidences: highlightEvidences,
+      questions: highlightQuestionRows,
+      events: highlightEvents,
+    };
 
     return {
       source: 'db',
@@ -246,6 +352,7 @@ export async function getHubData(slug: string): Promise<HubData> {
       coreNodes: coreNodesWithCounts,
       featuredTrails: trailsQuery.data ?? [],
       featuredEvidences: evidencesQuery.data ?? [],
+      highlights,
     };
   } catch {
     return {
@@ -258,6 +365,7 @@ export async function getHubData(slug: string): Promise<HubData> {
       coreNodes: mock.coreNodes,
       featuredTrails: mockFeaturedTrails(mock.coreNodes),
       featuredEvidences: mockFeaturedEvidences(mock.coreNodes),
+      highlights: mockHighlights(slug),
     };
   }
 }

@@ -49,3 +49,17 @@ Nesse caso:
 - `status_code`, `latency_ms`, `rate_limited`
 
 `/admin/status` mostra média `docs_distintos` das asks (24h).
+
+## Lentes no Debate (UI-only)
+
+As lentes de `/c/[slug]/debate` sao deterministicas e **nao** geram fatos novos.
+
+- `default`: render original.
+- `worker`: prioriza impacto no trabalho e riscos.
+- `resident`: prioriza impacto cotidiano/local.
+- `researcher`: prioriza metodo e limitacoes.
+- `policy`: prioriza encaminhamentos e medidas.
+
+Implementacao:
+- `lib/lens/applyLens.ts` reorganiza secoes ja existentes da resposta.
+- Sem LLM adicional e sem alterar citacoes.

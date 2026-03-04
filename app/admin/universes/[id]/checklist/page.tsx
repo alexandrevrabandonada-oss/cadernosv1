@@ -8,6 +8,7 @@ import { SectionHeader } from '@/components/ui/SectionHeader';
 import { getAdminDb, getUniverseById } from '@/lib/admin/db';
 import { requireEditorOrAdmin } from '@/lib/auth/requireRole';
 import { countSuggestionRowsForUniverse, generateSuggestionsForUniverse } from '@/lib/curation/suggest';
+import { validateDemoSources } from '@/lib/demo/validateSources';
 import { getUniverseChecklist } from '@/lib/ops/universeChecklist';
 import { enforceAdminWriteLimit } from '@/lib/ratelimit/enforce';
 
@@ -109,6 +110,21 @@ export default async function UniverseChecklistPage({ params, searchParams }: Un
       (check.id === 'core_evidence_coverage' || check.id === 'core_questions_coverage' || check.id === 'core_nodes') &&
       check.status !== 'pass',
   );
+  const db = getAdminDb();
+  const demoNodesQuery =
+    checklist.overview.slug === 'poluicao-vr' && db
+      ? await db.from('nodes').select('slug, title, tags').eq('universe_id', id)
+      : null;
+  const demoValidation =
+    checklist.overview.slug === 'poluicao-vr'
+      ? validateDemoSources({
+          nodes: (demoNodesQuery?.data ?? []).map((node) => ({
+            slug: node.slug,
+            title: node.title,
+            tags: node.tags ?? [],
+          })),
+        })
+      : null;
 
   return (
     <main className='stack'>
@@ -279,6 +295,9 @@ export default async function UniverseChecklistPage({ params, searchParams }: Un
           <Link className='ui-button' href={`/admin/universes/${id}/assistido`}>
             Abrir Curadoria Assistida
           </Link>
+          <Link className='ui-button' href={`/admin/universes/${id}/sprint`}>
+            Rodar Sprint
+          </Link>
           <form action={generateCoreSuggestionsFromChecklistAction}>
             <input type='hidden' name='universe_id' value={id} />
             <button className='ui-button' type='submit'>
@@ -287,11 +306,34 @@ export default async function UniverseChecklistPage({ params, searchParams }: Un
           </form>
           {needsCoverageHelp ? (
             <p className='muted' style={{ margin: 0 }}>
-              Cobertura core com lacunas: rode geracao assistida e aplique sugestoes prioritarias.
+              Cobertura core com lacunas: rode o Sprint de Curadoria (core) e depois revise no Assistido.
             </p>
           ) : null}
         </div>
       </Card>
+
+      {demoValidation ? (
+        <Card className='stack'>
+          <SectionHeader
+            title='DEMO pipeline (poluicao-vr)'
+            description='Estado rapido do sources.json para operar import + ingest sem friccao.'
+          />
+          <div className='toolbar-row'>
+            <Carimbo>{`placeholders:${demoValidation.stats.placeholders}`}</Carimbo>
+            <Carimbo>{`duplicados:${demoValidation.stats.duplicates}`}</Carimbo>
+            <Carimbo>{`pdf_missing:${demoValidation.stats.missingLocalPdfs}`}</Carimbo>
+            <Carimbo>{`erros:${demoValidation.stats.errors}`}</Carimbo>
+          </div>
+          <div className='toolbar-row'>
+            <Link className='ui-button' href={`/admin/universes/${id}/demo`}>
+              Abrir Console da Demo
+            </Link>
+            <Link className='ui-button' href={`/admin/universes/${id}/assistido`}>
+              Abrir Assistido
+            </Link>
+          </div>
+        </Card>
+      ) : null}
 
       <Card className='stack'>
         <SectionHeader title='Cobertura por no' description='Ordenado do pior score para o melhor.' />

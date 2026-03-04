@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { Card } from '@/components/ui/Card';
+import { ShareButton } from '@/components/share/ShareButton';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { getAdminDb, getUniverseById, hasAdminWriteAccess, slugify } from '@/lib/admin/db';
 import { requireEditorOrAdmin } from '@/lib/auth/requireRole';
@@ -256,11 +257,23 @@ export default async function AdminUniverseMetaPage({ params, searchParams }: Ad
           <Link className='ui-button' href={`/admin/universes/${universe.id}/docs`}>
             Gerenciar docs
           </Link>
+          <Link className='ui-button' href={`/admin/universes/${universe.id}/demo`}>
+            Console demo
+          </Link>
+          <Link className='ui-button' href={`/admin/universes/${universe.id}/highlights`}>
+            Highlights vitrine
+          </Link>
           <Link className='ui-button' href={`/admin/universes/${universe.id}/links`}>
             Curadoria de links
           </Link>
+          <Link className='ui-button' href={`/admin/universes/${universe.id}/sprint`}>
+            Sprint curadoria
+          </Link>
           <Link className='ui-button' href={`/admin/universes/${universe.id}/trilhas`}>
             Editar trilhas
+          </Link>
+          <Link className='ui-button' href={`/admin/universes/${universe.id}/glossario`}>
+            Editar glossario
           </Link>
           <form action={regenerateQuickStartAction}>
             <input type='hidden' name='id' value={universe.id} />
@@ -288,6 +301,12 @@ export default async function AdminUniverseMetaPage({ params, searchParams }: Ad
                 <a className='ui-button' href={`/c/${universe.slug}/exports/${item.id}`} target='_blank' rel='noreferrer'>
                   Abrir pagina publica
                 </a>
+                <ShareButton
+                  url={`/c/${universe.slug}/s/export/${item.id}`}
+                  title={item.title}
+                  text='Dossie compartilhavel do Cadernos Vivos.'
+                  label='Compartilhar'
+                />
                 <form action={toggleExportPublicAction}>
                   <input type='hidden' name='universe_id' value={universe.id} />
                   <input type='hidden' name='export_id' value={item.id} />

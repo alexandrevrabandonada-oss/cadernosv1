@@ -61,6 +61,12 @@
   - obrigatória quando o ponto possui `guided_questions`
 - Só libera “Concluir ponto” quando ambos os critérios passam.
 
+## Integracao com Trilhas v2
+- Em `/c/[slug]/trilhas`, trilhas com `guided_question` ou `required_evidence_ids` recebem badge `Tutor-ready`.
+- CTA `Abrir no Tutor`:
+  - redireciona para `/c/[slug]/tutor` para continuar sessao existente ou iniciar nova.
+- No modo player de trilhas, o painel de detalhe inclui atalho direto para o Tutor.
+
 ## Arquivos principais
 - Planner: `lib/tutor/planner.ts`
 - Actions server: `app/actions/tutor.ts`

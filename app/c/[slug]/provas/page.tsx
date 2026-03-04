@@ -2,37 +2,29 @@ import Link from 'next/link';
 import { revalidatePath } from 'next/cache';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
-import { FilterRail } from '@/components/workspace/FilterRail';
-import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
+import { PortalsRail } from '@/components/portals/PortalsRail';
 import { CopyCitationButton } from '@/components/provas/CopyCitationButton';
+import { ShareButton } from '@/components/share/ShareButton';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { CardHeader } from '@/components/ui/CardHeader';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { FilterRail } from '@/components/workspace/FilterRail';
+import { ListKeyboardNavigator } from '@/components/workspace/ListKeyboardNavigator';
+import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
 import { canWriteAdminContent, requireEditorOrAdmin } from '@/lib/auth/requireRole';
 import { addNodeEvidence } from '@/lib/data/nodeLinks';
+import { getChunkDetail, getEvidenceDetail, listChunkItems, listEvidenceItems } from '@/lib/data/provas';
+import { parseProvasFilters, serializeProvasFilters } from '@/lib/filters/provasFilters';
 import { enforceAdminWriteLimit } from '@/lib/ratelimit/enforce';
+import { getUniverseMock } from '@/lib/mock/universe';
 import { getSupabaseServerClient, getSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { buildUniverseHref } from '@/lib/universeNav';
 
 type ProvasPageProps = {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{
-    page?: string;
-    doc?: string;
-    node?: string;
-    year?: string;
-    selected?: string;
-    panel?: string;
-  }>;
-};
-
-type ChunkRow = {
-  id: string;
-  document_id: string;
-  page_start: number | null;
-  page_end: number | null;
-  text: string;
-  created_at: string;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
 function clip(text: string, max = 260) {
@@ -40,13 +32,7 @@ function clip(text: string, max = 260) {
   return normalized.length > max ? `${normalized.slice(0, max)}...` : normalized;
 }
 
-function citationFormat(
-  docTitle: string,
-  year: number | null,
-  pageStart: number | null,
-  pageEnd: number | null,
-  text: string,
-) {
+function citationFormat(docTitle: string, year: number | null, pageStart: number | null, pageEnd: number | null, text: string) {
   const yearLabel = year ? String(year) : 's.d.';
   const pageLabel =
     pageStart && pageEnd && pageStart !== pageEnd
@@ -55,10 +41,50 @@ function citationFormat(
   return `${docTitle} (${yearLabel}), ${pageLabel}: "${clip(text, 320)}"`;
 }
 
+function hasRestrictiveFilters(input: {
+  q: string;
+  node: string;
+  tags: string[];
+  relatedTo: string;
+  yearFrom: number | null;
+  yearTo: number | null;
+}) {
+  return Boolean(input.q || input.node || input.relatedTo || input.tags.length > 0 || input.yearFrom || input.yearTo);
+}
+
+function buildTestSeedData(slug: string) {
+  const mock = getUniverseMock(slug);
+  const universe = { id: `mock-${slug}`, title: mock.title, slug: mock.slug };
+  const nodes = mock.coreNodes.map((node) => ({
+    id: node.id,
+    slug: node.slug ?? node.id,
+    title: node.label,
+    tags: node.tags ?? [],
+    kind: node.type === 'conceito' ? 'core' : node.type,
+  }));
+  const docs = Array.from({ length: 6 }).map((_, index) => ({
+    id: `${slug}-doc-${index + 1}`,
+    title: `Documento Demo ${index + 1}`,
+    year: 2019 + index,
+  }));
+  const items = nodes.slice(0, 6).map((node, index) => ({
+    id: `${slug}-ev-${index + 1}`,
+    kind: 'evidence' as const,
+    title: `Evidencia ${index + 1} sobre ${node.title}`,
+    snippet: `Trecho de evidencia para ${node.title} com contexto rastreavel e pagina definida.`,
+    tags: Array.from(new Set([...(node.tags ?? []), 'seed', index % 2 === 0 ? 'saude' : 'territorio'])),
+    year: docs[index % docs.length]?.year ?? null,
+    pages: { start: 10 + index, end: 11 + index },
+    document: docs[index % docs.length] ?? null,
+    nodeIds: [node.id],
+    nodeSlugs: [node.slug],
+  }));
+  return { universe, nodes, docs, items };
+}
+
 async function saveEvidenceAction(formData: FormData) {
   'use server';
   const session = await requireEditorOrAdmin();
-
   const service = getSupabaseServiceRoleClient();
   if (!service) return;
 
@@ -68,7 +94,6 @@ async function saveEvidenceAction(formData: FormData) {
   const nodeId = String(formData.get('node_id') ?? '').trim();
   const documentId = String(formData.get('document_id') ?? '').trim();
   const docTitle = String(formData.get('doc_title') ?? '').trim();
-  const sourceUrl = String(formData.get('source_url') ?? '').trim();
   const excerpt = String(formData.get('excerpt') ?? '').trim();
   const pageStart = Number(formData.get('page_start') ?? 0) || null;
 
@@ -79,87 +104,190 @@ async function saveEvidenceAction(formData: FormData) {
   const title = `Evidencia: ${docTitle || 'Documento'} ${pageStart ? `(p.${pageStart})` : ''}`.trim();
   const summary = clip(excerpt, 420);
 
-  const { data: existing } = await service
+  const existing = await service
     .from('evidences')
     .select('id')
     .eq('universe_id', universeId)
     .eq('chunk_id', chunkId)
     .maybeSingle();
 
-  if (existing?.id) {
+  let evidenceId: string | null = null;
+  if (existing.data?.id) {
+    evidenceId = existing.data.id;
     await service
       .from('evidences')
-      .update({
-        node_id: nodeId || null,
-        document_id: documentId,
-        title,
-        summary,
-        source_url: sourceUrl || null,
-        curated: true,
-      })
-      .eq('id', existing.id);
-    if (nodeId) {
-      await addNodeEvidence({
-        universeId,
-        nodeId,
-        evidenceId: existing.id,
-        pinRank: 100,
-      });
-    }
+      .update({ node_id: nodeId || null, document_id: documentId, title, summary, curated: true })
+      .eq('id', evidenceId);
   } else {
-    const insertResult = await service
+    const inserted = await service
       .from('evidences')
       .insert({
-      universe_id: universeId,
-      node_id: nodeId || null,
-      document_id: documentId,
-      chunk_id: chunkId,
-      title,
-      summary,
-      source_url: sourceUrl || null,
-      curated: true,
-      confidence: 0.6,
+        universe_id: universeId,
+        node_id: nodeId || null,
+        document_id: documentId,
+        chunk_id: chunkId,
+        title,
+        summary,
+        curated: true,
+        confidence: 0.6,
       })
       .select('id')
       .maybeSingle();
-    if (nodeId && insertResult.data?.id) {
-      await addNodeEvidence({
-        universeId,
-        nodeId,
-        evidenceId: insertResult.data.id,
-        pinRank: 100,
-      });
-    }
+    evidenceId = inserted.data?.id ?? null;
   }
-
+  if (nodeId && evidenceId) {
+    await addNodeEvidence({ universeId, nodeId, evidenceId, pinRank: 100 });
+  }
   revalidatePath(buildUniverseHref(slug, 'provas'));
 }
 
 export default async function ProvasPage({ params, searchParams }: ProvasPageProps) {
   const { slug } = await params;
-  const sp = await searchParams;
-  const db = getSupabaseServerClient();
   const currentPath = buildUniverseHref(slug, 'provas');
-  const page = Math.max(Number(sp.page ?? 1) || 1, 1);
-  const pageSize = 10;
-  const offset = (page - 1) * pageSize;
-  const selectedDoc = sp.doc ?? '';
-  const selectedNode = sp.node ?? '';
-  const selectedYear = sp.year ?? '';
-  const selectedChunkId = sp.selected ?? '';
+  const filters = parseProvasFilters(await searchParams);
+  const db = getSupabaseServerClient();
+  const testSeed = process.env.TEST_SEED === '1';
 
-  if (!db) {
+  if (!db || testSeed) {
+    if (testSeed) {
+      const seed = buildTestSeedData(slug);
+      const years = Array.from(new Set(seed.docs.map((doc) => doc.year).filter((year): year is number => typeof year === 'number'))).sort(
+        (a, b) => b - a,
+      );
+      const tagPool = Array.from(new Set(seed.nodes.flatMap((node) => node.tags ?? []))).slice(0, 20);
+      const selected = seed.items.find((item) => item.id === filters.selected) ?? null;
+      const filtered = seed.items.filter((item) => {
+        if (filters.q && !`${item.title} ${item.snippet}`.toLowerCase().includes(filters.q.toLowerCase())) return false;
+        if (filters.node && !item.nodeSlugs.includes(filters.node)) return false;
+        if (filters.tags.length > 0) {
+          const lowered = item.tags.map((tag) => tag.toLowerCase());
+          if (!filters.tags.some((tag) => lowered.includes(tag))) return false;
+        }
+        if (typeof filters.yearFrom === 'number' && typeof item.year === 'number' && item.year < filters.yearFrom) return false;
+        if (typeof filters.yearTo === 'number' && typeof item.year === 'number' && item.year > filters.yearTo) return false;
+        return true;
+      });
+      const listIds = filtered.map((item) => item.id);
+      const makeUrl = (override: Partial<typeof filters>) => {
+        const next = {
+          ...filters,
+          ...override,
+        };
+        const query = serializeProvasFilters(next);
+        return query ? `${currentPath}?${query}` : currentPath;
+      };
+      return (
+        <div className='stack'>
+          <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Provas' />
+          <WorkspaceShell
+            slug={slug}
+            section='provas'
+            title={`Evidencias de ${seed.universe.title}`}
+            subtitle='Modo de teste com dados mock para validacao de UI.'
+            selectedId={filters.selected}
+            detailTitle='Detalhe da evidencia'
+            filter={
+              <FilterRail>
+                <form method='get' className='stack'>
+                  <label>
+                    <span>Tipo</span>
+                    <select name='type' defaultValue={filters.type} style={{ width: '100%', minHeight: 42 }}>
+                      <option value='evidence'>Evidencias</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span>Busca textual</span>
+                    <input name='q' defaultValue={filters.q} placeholder='termo, frase, autor...' style={{ width: '100%', minHeight: 42 }} />
+                  </label>
+                  <label>
+                    <span>No</span>
+                    <select name='node' defaultValue={filters.node} style={{ width: '100%', minHeight: 42 }}>
+                      <option value=''>Todos</option>
+                      {seed.nodes.map((node) => (
+                        <option key={node.id} value={node.slug}>
+                          {node.title}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    <span>Tags (csv)</span>
+                    <input name='tags' defaultValue={filters.tags.join(',')} placeholder='ex.: seed,saude' style={{ width: '100%', minHeight: 42 }} />
+                  </label>
+                  <small className='muted'>Sugestoes: {tagPool.join(', ') || 'n/d'}</small>
+                  <input type='hidden' name='selected' value={filters.selected} />
+                  <div className='toolbar-row'>
+                    <button className='ui-button' type='submit'>
+                      Aplicar
+                    </button>
+                    <Link className='ui-button' data-variant='ghost' href={currentPath}>
+                      Limpar
+                    </Link>
+                  </div>
+                  {years.length > 0 ? (
+                    <p className='muted' style={{ margin: 0 }}>
+                      Anos disponiveis: {years.join(', ')}
+                    </p>
+                  ) : null}
+                </form>
+              </FilterRail>
+            }
+            detail={
+              selected ? (
+                <div className='stack'>
+                  <article className='core-node'>
+                    <strong>{selected.title}</strong>
+                    <p style={{ margin: 0 }}>{selected.snippet}</p>
+                  </article>
+                </div>
+              ) : null
+            }
+          >
+            <ListKeyboardNavigator ids={listIds} selectedId={filters.selected} />
+            <Card className='stack'>
+              <SectionHeader title='Evidencias curadas' description='Clique no card para abrir detalhe no painel.' />
+              <div className='core-grid'>
+                {filtered.map((item) => (
+                  <article key={item.id} className='core-node' data-testid='evidence-card' data-selected={filters.selected === item.id ? 'true' : undefined}>
+                    <CardHeader
+                      title={item.title}
+                      typeLabel='evidence'
+                      meta={`${item.document?.title ?? 'Documento n/d'} ${item.year ? `(${item.year})` : ''}`}
+                    />
+                    <p style={{ margin: 0 }}>{clip(item.snippet, 180)}</p>
+                    <div className='toolbar-row'>
+                      <Link className='ui-button' data-variant='ghost' data-selected={filters.selected === item.id ? 'true' : undefined} href={makeUrl({ selected: item.id, panel: 'detail' })}>
+                        Ver detalhe
+                      </Link>
+                    </div>
+                  </article>
+                ))}
+              </div>
+              {filtered.length === 0 ? (
+                <EmptyState
+                  title='Sem resultados'
+                  description='Nenhum item encontrado para os filtros atuais.'
+                  variant='no-results'
+                  actions={[{ label: 'Limpar filtros', href: currentPath }]}
+                />
+              ) : null}
+            </Card>
+          </WorkspaceShell>
+        </div>
+      );
+    }
+
     return (
       <div className='stack'>
         <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Provas' />
         <Card className='stack'>
-          <SectionHeader title='Provas' description='Banco nao configurado para listar chunks/evidencias.' />
+          <SectionHeader title='Provas' description='Banco nao configurado.' />
         </Card>
       </div>
     );
   }
 
-  const { data: universe } = await db.from('universes').select('id, title').eq('slug', slug).maybeSingle();
+  const { data: universe } = await db.from('universes').select('id, title, slug').eq('slug', slug).maybeSingle();
   if (!universe) {
     return (
       <div className='stack'>
@@ -171,162 +299,61 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
     );
   }
 
-  const [{ data: docsRaw }, { data: nodesRaw }] = await Promise.all([
-    db
-      .from('documents')
-      .select('id, title, year, source_url, status')
-      .eq('universe_id', universe.id)
-      .eq('is_deleted', false)
-      .order('created_at', { ascending: false }),
-    db
-      .from('nodes')
-      .select('id, title')
-      .eq('universe_id', universe.id)
-      .order('title', { ascending: true }),
+  const [nodesRaw, docsRaw] = await Promise.all([
+    db.from('nodes').select('id, slug, title, tags, kind').eq('universe_id', universe.id).order('title', { ascending: true }),
+    db.from('documents').select('id, title, year').eq('universe_id', universe.id).eq('is_deleted', false),
   ]);
-
-  const documents = docsRaw ?? [];
-  const nodes = nodesRaw ?? [];
-
-  const years = Array.from(new Set(documents.map((doc) => doc.year).filter((year) => typeof year === 'number'))).sort(
+  const nodes = nodesRaw.data ?? [];
+  const docs = docsRaw.data ?? [];
+  const years = Array.from(new Set(docs.map((doc) => doc.year).filter((year): year is number => typeof year === 'number'))).sort(
     (a, b) => b - a,
   );
+  const tagPool = Array.from(new Set(nodes.flatMap((node) => node.tags ?? []))).slice(0, 20);
 
-  const docsFilteredByYear =
-    selectedYear && !Number.isNaN(Number(selectedYear))
-      ? documents.filter((doc) => doc.year === Number(selectedYear))
-      : documents;
+  const limit = 18;
+  const cursor = filters.cursor;
+  const evidenceList = await listEvidenceItems({
+    universeId: universe.id,
+    filters,
+    limit,
+    cursor,
+  });
+  const chunkList =
+    filters.type === 'chunk'
+      ? await listChunkItems({ universeId: universe.id, filters, limit, cursor })
+      : { items: [], nextCursor: null, total: 0 };
 
-  const docsFiltered = selectedDoc
-    ? docsFilteredByYear.filter((doc) => doc.id === selectedDoc)
-    : docsFilteredByYear;
+  const restrictive = hasRestrictiveFilters(filters);
+  const shouldShowFallback = filters.type === 'evidence' && !restrictive && evidenceList.items.length < 6;
+  const fallbackChunks = shouldShowFallback
+    ? await listChunkItems({
+        universeId: universe.id,
+        filters: { ...filters, type: 'chunk', q: filters.q },
+        limit: 8,
+        cursor: 0,
+      })
+    : { items: [], nextCursor: null, total: 0 };
 
-  const allowedDocIds = docsFiltered.map((doc) => doc.id);
-  const hasDocFilterResult = allowedDocIds.length > 0;
-
-  let nodeChunkIds: string[] | null = null;
-  let linkedEvidenceIds: string[] | null = null;
-  if (selectedNode) {
-    const { data: nodeLinks } = await db
-      .from('node_evidences')
-      .select('evidence_id')
-      .eq('universe_id', universe.id)
-      .eq('node_id', selectedNode);
-    linkedEvidenceIds = Array.from(
-      new Set((nodeLinks ?? []).map((row) => row.evidence_id).filter(Boolean)),
-    );
-
-    if (linkedEvidenceIds.length > 0) {
-      const { data: linkedEvidenceRows } = await db
-        .from('evidences')
-        .select('chunk_id')
-        .in('id', linkedEvidenceIds)
-        .eq('universe_id', universe.id)
-        .not('chunk_id', 'is', null);
-      nodeChunkIds = Array.from(
-        new Set((linkedEvidenceRows ?? []).map((row) => row.chunk_id).filter(Boolean)),
-      );
-    } else {
-      const { data: fallbackLinked } = await db
-        .from('evidences')
-        .select('chunk_id')
-        .eq('universe_id', universe.id)
-        .eq('node_id', selectedNode)
-        .not('chunk_id', 'is', null);
-      nodeChunkIds = Array.from(new Set((fallbackLinked ?? []).map((row) => row.chunk_id).filter(Boolean)));
-    }
-  }
-
-  let chunks: ChunkRow[] = [];
-  let totalCount = 0;
-
-  if (hasDocFilterResult && (selectedNode ? (nodeChunkIds?.length ?? 0) > 0 || (linkedEvidenceIds?.length ?? 0) > 0 : true)) {
-    let countQuery = db
-      .from('chunks')
-      .select('*', { count: 'exact', head: true })
-      .eq('universe_id', universe.id)
-      .eq('archived', false);
-    countQuery = countQuery.in('document_id', allowedDocIds);
-    if (selectedNode && nodeChunkIds && nodeChunkIds.length > 0) countQuery = countQuery.in('id', nodeChunkIds);
-
-    const { count } = await countQuery;
-    totalCount = count ?? 0;
-
-    let dataQuery = db
-      .from('chunks')
-      .select('id, document_id, page_start, page_end, text, created_at')
-      .eq('universe_id', universe.id)
-      .eq('archived', false)
-      .order('created_at', { ascending: false })
-      .range(offset, offset + pageSize - 1);
-    dataQuery = dataQuery.in('document_id', allowedDocIds);
-    if (selectedNode && nodeChunkIds && nodeChunkIds.length > 0) dataQuery = dataQuery.in('id', nodeChunkIds);
-
-    const { data } = await dataQuery;
-    chunks = (data ?? []) as ChunkRow[];
-  }
-
-  let evidencesQuery = db
-    .from('evidences')
-    .select('id, title, summary, confidence, source_url, created_at, node_id, document_id')
-    .eq('universe_id', universe.id)
-    .eq('curated', true)
-    .order('created_at', { ascending: false })
-    .limit(40);
-
-  if (selectedNode) {
-    if (linkedEvidenceIds && linkedEvidenceIds.length > 0) {
-      evidencesQuery = evidencesQuery.in('id', linkedEvidenceIds);
-    } else {
-      evidencesQuery = evidencesQuery.eq('node_id', selectedNode);
-    }
-  }
-  if (selectedDoc) evidencesQuery = evidencesQuery.eq('document_id', selectedDoc);
-  if (selectedYear && hasDocFilterResult) evidencesQuery = evidencesQuery.in('document_id', allowedDocIds);
-
-  const { data: evidences } = await evidencesQuery;
-  const evidenceList = evidences ?? [];
-
-  const docById = new Map(documents.map((doc) => [doc.id, doc]));
-  const nodeById = new Map(nodes.map((node) => [node.id, node]));
-  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
+  const selectedDetail = filters.selected
+    ? filters.type === 'chunk'
+      ? await getChunkDetail(filters.selected)
+      : await getEvidenceDetail(filters.selected)
+    : null;
   const adminCanWrite = Boolean((await canWriteAdminContent()) && process.env.SUPABASE_SERVICE_ROLE_KEY);
-  let selectedChunk: ChunkRow | null = chunks.find((item) => item.id === selectedChunkId) ?? null;
-  if (!selectedChunk && selectedChunkId) {
-    const { data } = await db
-      .from('chunks')
-      .select('id, document_id, page_start, page_end, text, created_at')
-      .eq('id', selectedChunkId)
-      .eq('universe_id', universe.id)
-      .maybeSingle();
-    selectedChunk = (data as ChunkRow | null) ?? null;
-  }
 
-  const makeLink = (nextPage: number) => {
-    const q = new URLSearchParams();
-    if (selectedDoc) q.set('doc', selectedDoc);
-    if (selectedNode) q.set('node', selectedNode);
-    if (selectedYear) q.set('year', selectedYear);
-    if (selectedChunkId) q.set('selected', selectedChunkId);
-    q.set('page', String(nextPage));
-    return `${currentPath}?${q.toString()}`;
+  const makeUrl = (override: Partial<typeof filters>) => {
+    const next = {
+      ...filters,
+      ...override,
+    };
+    const query = serializeProvasFilters(next);
+    return query ? `${currentPath}?${query}` : currentPath;
   };
+  const currentShareUrl = makeUrl({});
 
-  const makeSelectedLink = (chunkId: string) => {
-    const q = new URLSearchParams();
-    if (selectedDoc) q.set('doc', selectedDoc);
-    if (selectedNode) q.set('node', selectedNode);
-    if (selectedYear) q.set('year', selectedYear);
-    q.set('page', String(page));
-    q.set('selected', chunkId);
-    q.set('panel', 'detail');
-    return `${currentPath}?${q.toString()}`;
-  };
-
-  const selectedDocMeta = selectedChunk ? docById.get(selectedChunk.document_id) : null;
-  const selectedRelatedEvidences = selectedChunk
-    ? evidenceList.filter((item) => item.document_id === selectedChunk.document_id).slice(0, 3)
-    : [];
+  const selectedNodeId = filters.node ? nodes.find((node) => node.slug === filters.node)?.id ?? '' : '';
+  const listItems = filters.type === 'chunk' ? chunkList.items : evidenceList.items;
+  const listIds = listItems.map((item) => item.id);
 
   return (
     <div className='stack'>
@@ -334,172 +361,261 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
       <WorkspaceShell
         slug={slug}
         section='provas'
-        title={`Provas de ${universe.title}`}
-        subtitle='Chunks paginados e evidencias curadas.'
-        selectedId={selectedChunkId}
-        detailTitle='Detalhe da prova'
+        title={`Evidencias de ${universe.title}`}
+        subtitle='Evidence-first: curadas primeiro, chunks como fallback.'
+        selectedId={filters.selected}
+        detailTitle='Detalhe da evidencia'
         filter={
           <FilterRail>
             <form method='get' className='stack'>
               <label>
-                <span>Documento</span>
-                <select name='doc' defaultValue={selectedDoc} style={{ width: '100%', minHeight: 42 }}>
-                  <option value=''>Todos</option>
-                  {documents.map((doc) => (
-                    <option key={doc.id} value={doc.id}>
-                      {doc.title}
-                    </option>
-                  ))}
+                <span>Tipo</span>
+                <select name='type' defaultValue={filters.type} style={{ width: '100%', minHeight: 42 }}>
+                  <option value='evidence'>Evidencias</option>
+                  <option value='chunk'>Trechos</option>
                 </select>
+              </label>
+              <label>
+                <span>Busca textual</span>
+                <input name='q' defaultValue={filters.q} placeholder='termo, frase, autor...' style={{ width: '100%', minHeight: 42 }} />
               </label>
               <label>
                 <span>No</span>
-                <select name='node' defaultValue={selectedNode} style={{ width: '100%', minHeight: 42 }}>
+                <select name='node' defaultValue={filters.node} style={{ width: '100%', minHeight: 42 }}>
                   <option value=''>Todos</option>
-                  {nodes.map((node) => (
-                    <option key={node.id} value={node.id}>
-                      {node.title}
-                    </option>
-                  ))}
+                  {nodes
+                    .sort((a, b) => {
+                      if (a.kind === 'core' && b.kind !== 'core') return -1;
+                      if (a.kind !== 'core' && b.kind === 'core') return 1;
+                      return a.title.localeCompare(b.title);
+                    })
+                    .map((node) => (
+                      <option key={node.id} value={node.slug}>
+                        {node.title}
+                      </option>
+                    ))}
                 </select>
               </label>
+              <div className='layout-shell' style={{ gridTemplateColumns: '1fr 1fr' }}>
+                <label>
+                  <span>De</span>
+                  <input name='yearFrom' type='number' min='1900' max='2100' defaultValue={filters.yearFrom ?? ''} style={{ width: '100%', minHeight: 42 }} />
+                </label>
+                <label>
+                  <span>Ate</span>
+                  <input name='yearTo' type='number' min='1900' max='2100' defaultValue={filters.yearTo ?? ''} style={{ width: '100%', minHeight: 42 }} />
+                </label>
+              </div>
               <label>
-                <span>Ano</span>
-                <select name='year' defaultValue={selectedYear} style={{ width: '100%', minHeight: 42 }}>
-                  <option value=''>Todos</option>
-                  {years.map((year) => (
-                    <option key={year} value={year}>
-                      {year}
-                    </option>
-                  ))}
-                </select>
+                <span>Tags (csv)</span>
+                <input name='tags' defaultValue={filters.tags.join(',')} placeholder='ex.: core,curada,2024' style={{ width: '100%', minHeight: 42 }} />
               </label>
-              <input type='hidden' name='page' value='1' />
+              <small className='muted'>Sugestoes: {tagPool.join(', ') || 'n/d'}</small>
+              <input type='hidden' name='selected' value={filters.selected} />
               <div className='toolbar-row'>
                 <button className='ui-button' type='submit'>
                   Aplicar
                 </button>
-                <Link className='ui-button' href={currentPath} data-variant='ghost'>
+                <Link className='ui-button' data-variant='ghost' href={currentPath}>
                   Limpar
                 </Link>
               </div>
+              {years.length > 0 ? (
+                <p className='muted' style={{ margin: 0 }}>
+                  Anos disponiveis: {years.join(', ')}
+                </p>
+              ) : null}
             </form>
           </FilterRail>
         }
         detail={
-          selectedChunk ? (
+          selectedDetail ? (
             <div className='stack'>
               <article className='core-node'>
-                <strong>{selectedDocMeta?.title ?? 'Documento'}</strong>
+                <strong>{selectedDetail.title}</strong>
+                <p style={{ margin: 0 }}>{selectedDetail.snippet}</p>
                 <p className='muted' style={{ margin: 0 }}>
-                  {selectedDocMeta?.year ? `Ano ${selectedDocMeta.year}` : 'Ano n/d'} |{' '}
-                  {selectedChunk.page_start ? `p.${selectedChunk.page_start}` : 's/p'}
-                  {selectedChunk.page_end && selectedChunk.page_end !== selectedChunk.page_start
-                    ? `-${selectedChunk.page_end}`
-                    : ''}
+                  {selectedDetail.document?.title ?? 'Documento n/d'} {selectedDetail.year ? `(${selectedDetail.year})` : ''} |{' '}
+                  {selectedDetail.pages.start ? `p.${selectedDetail.pages.start}` : 's/p'}
+                  {selectedDetail.pages.end && selectedDetail.pages.end !== selectedDetail.pages.start ? `-${selectedDetail.pages.end}` : ''}
                 </p>
-                <p style={{ margin: 0 }}>{clip(selectedChunk.text, 460)}</p>
+                <div className='toolbar-row'>
+                  {selectedDetail.document?.id ? (
+                    <Link
+                      className='ui-button'
+                      href={`/c/${slug}/doc/${selectedDetail.document.id}${selectedDetail.pages.start ? `?p=${selectedDetail.pages.start}` : ''}`}
+                    >
+                      Ver no Documento
+                    </Link>
+                  ) : null}
+                  <CopyCitationButton
+                    citation={citationFormat(
+                      selectedDetail.document?.title ?? 'Documento',
+                      selectedDetail.year,
+                      selectedDetail.pages.start,
+                      selectedDetail.pages.end,
+                      selectedDetail.snippet,
+                    )}
+                  />
+                  {selectedDetail.kind === 'evidence' ? (
+                    <ShareButton
+                      url={`/c/${slug}/s/evidence/${selectedDetail.id}`}
+                      title={selectedDetail.title}
+                      text={selectedDetail.snippet}
+                    />
+                  ) : (
+                    <CopyCitationButton citation={currentShareUrl} label='Copiar link' />
+                  )}
+                </div>
               </article>
-              {selectedRelatedEvidences.map((evidence) => (
-                <article key={evidence.id} className='core-node'>
-                  <strong>{evidence.title}</strong>
-                  <p style={{ margin: 0 }}>{clip(evidence.summary, 240)}</p>
-                </article>
-              ))}
-              {selectedDocMeta?.id ? (
-                <Link className='ui-button' href={`/c/${slug}/doc/${selectedDocMeta.id}`}>
-                  Abrir documento
-                </Link>
-              ) : null}
+
+              <article className='core-node'>
+                <strong>Tags</strong>
+                <div className='toolbar-row'>
+                  {selectedDetail.tags.map((tag) => (
+                    <Link key={tag} className='ui-button' data-variant='ghost' href={makeUrl({ tags: [tag], selected: '' })}>
+                      {tag}
+                    </Link>
+                  ))}
+                </div>
+              </article>
+
+              <article className='core-node stack'>
+                <strong>Relacionados</strong>
+                {selectedDetail.related.map((item) => (
+                  <Link
+                    key={item.id}
+                    className='ui-button'
+                    data-variant='ghost'
+                    data-selected={filters.selected === item.id ? 'true' : undefined}
+                    href={makeUrl({ selected: item.id, panel: 'detail', type: item.kind })}
+                  >
+                    {item.title}
+                  </Link>
+                ))}
+                {selectedDetail.related.length === 0 ? <p className='muted' style={{ margin: 0 }}>Sem relacionados por enquanto.</p> : null}
+              </article>
+
+              <PortalsRail
+                universeSlug={slug}
+                variant='detail'
+                context={
+                  selectedDetail.nodeSlugs[0]
+                    ? {
+                        type: 'node',
+                        nodeSlug: selectedDetail.nodeSlugs[0],
+                        tags: selectedDetail.tags,
+                        docId: selectedDetail.document?.id ?? '',
+                      }
+                    : {
+                        type: 'tag',
+                        tags: selectedDetail.tags,
+                        docId: selectedDetail.document?.id ?? '',
+                      }
+                }
+              />
             </div>
           ) : null
         }
       >
         <div className='stack'>
+          <ListKeyboardNavigator ids={listIds} selectedId={filters.selected} />
           <Card className='stack'>
-            <SectionHeader title='Chunks' description='Clique em um item para abrir detalhes.' />
-            <div className='stack'>
-              {chunks.map((chunk) => {
-                const doc = docById.get(chunk.document_id);
-                const citation = citationFormat(
-                  doc?.title ?? 'Documento',
-                  doc?.year ?? null,
-                  chunk.page_start,
-                  chunk.page_end,
-                  chunk.text,
-                );
-                return (
-                  <article key={chunk.id} className='core-node'>
-                    <strong>{doc?.title ?? 'Documento nao encontrado'}</strong>
-                    <p className='muted' style={{ margin: 0 }}>
-                      {doc?.year ? `Ano ${doc.year}` : 'Ano n/d'} | {chunk.page_start ? `p.${chunk.page_start}` : 's/p'}
-                      {chunk.page_end && chunk.page_end !== chunk.page_start ? `-${chunk.page_end}` : ''}
-                    </p>
-                    <p style={{ margin: 0 }}>{clip(chunk.text, 300)}</p>
-                    <div className='toolbar-row'>
-                      <Link className='ui-button' data-variant='ghost' href={makeSelectedLink(chunk.id)}>
-                        Ver detalhe
+            <SectionHeader
+              title={filters.type === 'chunk' ? 'Trechos' : 'Evidencias curadas'}
+              description='Clique no card para abrir detalhe no painel e gerar link compartilhavel.'
+            />
+            <div className='toolbar-row'>
+              <Carimbo>{`tipo:${filters.type}`}</Carimbo>
+              <Carimbo>{`itens:${listItems.length}`}</Carimbo>
+            </div>
+            <div className='core-grid'>
+              {listItems.map((item) => (
+                <article
+                  key={item.id}
+                  className='core-node'
+                  data-testid='evidence-card'
+                  data-selected={filters.selected === item.id ? 'true' : undefined}
+                >
+                  <CardHeader
+                    title={item.title}
+                    typeLabel={item.kind === 'evidence' ? 'evidence' : 'chunk'}
+                    meta={`${item.document?.title ?? 'Documento n/d'} ${item.year ? `(${item.year})` : ''} | ${
+                      item.pages.start ? `p.${item.pages.start}` : 's/p'
+                    }`}
+                  />
+                  <p style={{ margin: 0 }}>{clip(item.snippet, 180)}</p>
+                  <div className='toolbar-row'>
+                    <Link
+                      className='ui-button'
+                      data-variant='ghost'
+                      data-selected={filters.selected === item.id ? 'true' : undefined}
+                      href={makeUrl({ selected: item.id, panel: 'detail' })}
+                    >
+                      Ver detalhe
+                    </Link>
+                    {item.tags.slice(0, 2).map((tag) => (
+                      <Link key={`${item.id}-${tag}`} className='ui-button' data-variant='ghost' href={makeUrl({ tags: [tag], selected: '' })}>
+                        {tag}
                       </Link>
-                      <CopyCitationButton citation={citation} />
+                    ))}
+                    {item.kind === 'chunk' ? (
                       <form action={saveEvidenceAction}>
                         <input type='hidden' name='slug' value={slug} />
                         <input type='hidden' name='universe_id' value={universe.id} />
-                        <input type='hidden' name='chunk_id' value={chunk.id} />
-                        <input type='hidden' name='document_id' value={chunk.document_id} />
-                        <input type='hidden' name='node_id' value={selectedNode} />
-                        <input type='hidden' name='doc_title' value={doc?.title ?? ''} />
-                        <input type='hidden' name='source_url' value={doc?.source_url ?? ''} />
-                        <input type='hidden' name='page_start' value={chunk.page_start ?? ''} />
-                        <input type='hidden' name='page_end' value={chunk.page_end ?? ''} />
-                        <input type='hidden' name='excerpt' value={chunk.text} />
+                        <input type='hidden' name='chunk_id' value={item.id} />
+                        <input type='hidden' name='document_id' value={item.document?.id ?? ''} />
+                        <input type='hidden' name='node_id' value={selectedNodeId} />
+                        <input type='hidden' name='doc_title' value={item.document?.title ?? ''} />
+                        <input type='hidden' name='page_start' value={item.pages.start ?? ''} />
+                        <input type='hidden' name='page_end' value={item.pages.end ?? ''} />
+                        <input type='hidden' name='excerpt' value={item.snippet} />
                         <button className='ui-button' type='submit' disabled={!adminCanWrite}>
-                          Salvar evid.
+                          Curar
                         </button>
                       </form>
-                    </div>
-                  </article>
-                );
-              })}
-              {chunks.length === 0 ? (
-                <p className='muted' style={{ margin: 0 }}>
-                  Nenhum chunk encontrado para os filtros atuais.
-                </p>
-              ) : null}
+                    ) : null}
+                  </div>
+                </article>
+              ))}
             </div>
-            <div className='toolbar-row'>
-              <Link className='ui-button' href={makeLink(Math.max(1, page - 1))} data-variant='ghost'>
-                Anterior
+            {listItems.length === 0 ? (
+              <EmptyState
+                title='Sem resultados'
+                description='Nenhum item encontrado para os filtros atuais.'
+                variant='no-results'
+                actions={[{ label: 'Limpar filtros', href: currentPath }]}
+              />
+            ) : null}
+            {(filters.type === 'chunk' ? chunkList.nextCursor : evidenceList.nextCursor) !== null ? (
+              <Link
+                className='ui-button'
+                href={makeUrl({ cursor: (filters.type === 'chunk' ? chunkList.nextCursor : evidenceList.nextCursor) ?? 0 })}
+              >
+                Carregar mais
               </Link>
-              <Carimbo>
-                Pagina {page} de {totalPages}
-              </Carimbo>
-              <Link className='ui-button' href={makeLink(Math.min(totalPages, page + 1))} data-variant='ghost'>
-                Proxima
-              </Link>
-            </div>
+            ) : null}
           </Card>
 
-          <Card className='stack'>
-            <SectionHeader title='Evidencias curadas' />
-            <div className='stack'>
-              {evidenceList.map((evidence) => {
-                const doc = evidence.document_id ? docById.get(evidence.document_id) : null;
-                const node = evidence.node_id ? nodeById.get(evidence.node_id) : null;
-                return (
-                  <article key={evidence.id} className='core-node'>
-                    <strong>{evidence.title}</strong>
-                    <p className='muted' style={{ margin: 0 }}>
-                      {doc?.title ?? 'Sem documento'} {doc?.year ? `(${doc.year})` : ''} | confianca {evidence.confidence}
-                    </p>
-                    <p className='muted' style={{ margin: 0 }}>
-                      {node ? `No: ${node.title}` : 'Sem ligacao com no'}
-                    </p>
-                    <p style={{ margin: 0 }}>{clip(evidence.summary, 280)}</p>
+          {shouldShowFallback ? (
+            <Card className='stack'>
+              <SectionHeader
+                title='Trechos relevantes (fallback)'
+                description='Ainda ha poucas evidencias curadas. Estes trechos brutos ajudam na triagem editorial.'
+              />
+              <div className='core-grid'>
+                {fallbackChunks.items.map((chunk) => (
+                  <article key={chunk.id} className='core-node'>
+                    <strong>{chunk.title}</strong>
+                    <p style={{ margin: 0 }}>{clip(chunk.snippet, 180)}</p>
+                    <Link className='ui-button' data-variant='ghost' href={makeUrl({ selected: chunk.id, panel: 'detail', type: 'chunk' })}>
+                      Abrir trecho
+                    </Link>
                   </article>
-                );
-              })}
-            </div>
-          </Card>
+                ))}
+              </div>
+            </Card>
+          ) : null}
         </div>
       </WorkspaceShell>
 

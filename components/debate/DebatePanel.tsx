@@ -303,6 +303,7 @@ export function DebatePanel({
               endpoint='/api/admin/export/thread'
               label='Gerar Dossie (MD+PDF)'
               payload={{ universeId, threadId: result.threadId, isPublic: false }}
+              shareSlug={slug}
             />
           ) : (
             <p className='muted' style={{ margin: 0 }}>

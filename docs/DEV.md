@@ -47,3 +47,26 @@ npm install
    - `/` nao deve listar o universo.
    - `/c/[slug]` deve retornar bloqueio sanitizado (404).
 6. Logado como `editor/admin`, `/c/[slug]` continua acessivel em preview.
+
+## Atalhos de teclado (UI-10)
+
+- Disponiveis apenas em desktop (`>= 1024px`) nas rotas `/c/[slug]/*`.
+- Abrir palette:
+  - `/`
+  - `Ctrl/Cmd + K`
+- Navegacao rapida (`g` + tecla em ate 700ms):
+  - `g m` mapa
+  - `g p` provas
+  - `g l` linha
+  - `g d` debate
+  - `g g` glossario
+  - `g t` trilhas
+  - `g u` tutor
+- `Esc`:
+  - fecha command palette
+  - fecha drawer/detail do workspace quando aberto
+
+### Desativar atalhos em dev (temporario)
+
+- Opcao simples: testar em viewport mobile (`< 1024px`) para atalhos nao dispararem.
+- Para desligar via codigo local, comente o componente `CommandPalette` em `app/c/[slug]/layout.tsx`.

@@ -13,6 +13,7 @@ export type UniverseRecord = {
   published_at: string | null;
   published: boolean | null;
   tags: string[];
+  hasHighlights?: boolean;
 };
 
 export function isUniversePublished(universe: Pick<UniverseRecord, 'published_at' | 'published'> | null | undefined) {
@@ -47,6 +48,7 @@ export async function listPublishedUniverses(options: { q?: string } = {}) {
         published_at: new Date().toISOString(),
         published: true,
         tags: [],
+        hasHighlights: false,
       }));
   }
 
@@ -75,9 +77,16 @@ export async function listPublishedUniverses(options: { q?: string } = {}) {
     tagsByUniverse.set(node.universe_id, merged);
   }
 
+  const { data: highlightsRows } = await db
+    .from('universe_highlights')
+    .select('universe_id')
+    .in('universe_id', universeIds);
+  const highlightSet = new Set((highlightsRows ?? []).map((row) => row.universe_id));
+
   const mapped = universes.map((universe) => ({
     ...universe,
     tags: tagsByUniverse.get(universe.id) ?? [],
+    hasHighlights: highlightSet.has(universe.id),
   }));
 
   if (!q) return mapped;
@@ -110,6 +119,7 @@ export async function getUniverseBySlug(
       published_at: new Date().toISOString(),
       published: true,
       tags: [],
+      hasHighlights: false,
     };
   }
 

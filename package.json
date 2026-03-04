@@ -10,6 +10,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:ci": "vitest run --reporter=dot",
+    "test:e2e": "playwright test --config=playwright.config.ts",
+    "test:e2e:ci": "node tools/run-e2e-ci.mjs",
+    "test:ui": "playwright test --config=playwright.config.ts tests/e2e/visual.spec.ts",
+    "test:ui:ci": "node tools/run-ui-ci.mjs",
+    "demo:seed": "node tools/seed-demo.mjs",
+    "demo:import": "node tools/import-sources.mjs",
     "secrets:check": "node tools/secrets-check.mjs",
     "verify": "npm run lint && npm run typecheck && npm run build",
     "supabase:check": "node tools/check-supabase.mjs",
@@ -31,6 +37,7 @@
     "react-dom": "^18.3.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@types/node": "^22.10.0",
     "@types/react": "^18.3.12",
     "@types/react-dom": "^18.3.1",

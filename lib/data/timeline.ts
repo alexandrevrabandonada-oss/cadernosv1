@@ -1,162 +1,298 @@
 import 'server-only';
 import { getUniverseMock } from '@/lib/mock/universe';
 import { getSupabaseServerClient, isSupabaseServerEnvConfigured } from '@/lib/supabase/server';
+import type { TimelineFilters } from '@/lib/filters/timelineFilters';
 
 export type TimelineNodeFilter = {
   id: string;
+  slug: string;
   title: string;
+  kind: string | null;
+  tags: string[];
 };
 
-export type TimelineEvent = {
+export type TimelineDocMeta = {
+  id: string;
+  title: string;
+  year: number | null;
+  sourceUrl: string | null;
+};
+
+export type TimelineItem = {
   id: string;
   title: string;
   summary: string;
-  eventDate: string | null;
-  periodLabel: string | null;
-  nodeId: string | null;
-  nodeTitle: string | null;
-  evidenceId: string | null;
-  evidenceTitle: string | null;
-  documentId: string | null;
-  documentTitle: string | null;
-  documentYear: number | null;
+  body: string | null;
+  day: string | null;
+  kind: string;
+  tags: string[];
+  sourceUrl: string | null;
+  node: { id: string; slug: string; title: string } | null;
+  document: TimelineDocMeta | null;
+  createdAt: string;
 };
 
-export type TimelineData = {
+export type TimelineListResult = {
   source: 'db' | 'mock';
+  universeId: string;
   universeTitle: string;
   nodes: TimelineNodeFilter[];
-  events: TimelineEvent[];
+  kindOptions: string[];
+  tagOptions: string[];
+  items: TimelineItem[];
+  nextCursor: number | null;
 };
 
-type TimelineFilters = {
-  from?: string;
-  to?: string;
-  nodeId?: string;
+type DbEventRow = {
+  id: string;
+  title: string;
+  summary: string | null;
+  body: string | null;
+  kind: string | null;
+  tags: string[] | null;
+  source_url: string | null;
+  node_id: string | null;
+  document_id: string | null;
+  day: string | null;
+  event_date: string | null;
+  created_at: string;
 };
 
-function mockTimeline(slug: string, filters: TimelineFilters): TimelineData {
+function clip(text: string, max = 210) {
+  const normalized = text.replace(/\s+/g, ' ').trim();
+  return normalized.length > max ? `${normalized.slice(0, max)}...` : normalized;
+}
+
+function normalizeKind(value: string | null | undefined) {
+  const safe = (value ?? 'event').trim().toLowerCase();
+  return safe || 'event';
+}
+
+function uniq<T>(items: T[]) {
+  return Array.from(new Set(items));
+}
+
+function applyLocalFilters(items: TimelineItem[], filters: TimelineFilters) {
+  return items.filter((item) => {
+    if (filters.kind.length > 0 && !filters.kind.includes(item.kind)) return false;
+    if (filters.tags.length > 0) {
+      const lowered = item.tags.map((tag) => tag.toLowerCase());
+      if (!filters.tags.some((tag) => lowered.includes(tag))) return false;
+    }
+    const year = item.day ? Number(item.day.slice(0, 4)) : null;
+    if (typeof filters.yearFrom === 'number' && typeof year === 'number' && year < filters.yearFrom) return false;
+    if (typeof filters.yearTo === 'number' && typeof year === 'number' && year > filters.yearTo) return false;
+    if (filters.q) {
+      const q = filters.q.toLowerCase();
+      const blob = `${item.title} ${item.summary} ${item.body ?? ''}`.toLowerCase();
+      if (!blob.includes(q)) return false;
+    }
+    if (filters.node) {
+      if (!item.node || item.node.slug !== filters.node) return false;
+    }
+    return true;
+  });
+}
+
+function mockTimelineList(slug: string, filters: TimelineFilters, limit: number, cursor: number): TimelineListResult {
   const mock = getUniverseMock(slug);
-  const nodes = mock.coreNodes.map((node) => ({ id: node.id, title: node.label }));
-  const base = new Date('2023-01-01');
-  const events: TimelineEvent[] = mock.coreNodes.slice(0, 6).map((node, idx) => {
-    const date = new Date(base);
-    date.setMonth(base.getMonth() + idx * 3);
+  const now = new Date('2026-01-10T00:00:00.000Z');
+  const nodes: TimelineNodeFilter[] = mock.coreNodes.map((node) => ({
+    id: node.id,
+    slug: node.slug ?? node.id,
+    title: node.label,
+    kind: 'core',
+    tags: ['core'],
+  }));
+
+  const events: TimelineItem[] = mock.coreNodes.slice(0, 12).map((node, idx) => {
+    const date = new Date(now);
+    date.setMonth(now.getMonth() - idx * 3);
+    const kind = idx % 4 === 0 ? 'report' : idx % 3 === 0 ? 'law' : idx % 2 === 0 ? 'news' : 'event';
+    const nodeSlug = node.slug ?? node.id;
     return {
-      id: `${slug}-ev-${idx + 1}`,
-      title: `Evento: ${node.label}`,
-      summary: node.summary ?? `Evolucao de ${node.label} na linha temporal.`,
-      eventDate: date.toISOString().slice(0, 10),
-      periodLabel: idx < 2 ? 'Fase 1' : idx < 4 ? 'Fase 2' : 'Fase 3',
-      nodeId: node.id,
-      nodeTitle: node.label,
-      evidenceId: null,
-      evidenceTitle: null,
-      documentId: null,
-      documentTitle: null,
-      documentYear: null,
+      id: `${slug}-timeline-${idx + 1}`,
+      title: `${node.label}: marco ${idx + 1}`,
+      summary: clip(node.summary ?? `Atualizacao de ${node.label} na linha do tempo.`),
+      body: `${node.summary ?? `Descricao detalhada sobre ${node.label}.`} Registro de marco editorial no universo.`,
+      day: date.toISOString().slice(0, 10),
+      kind,
+      tags: uniq(['core', nodeSlug, kind]).slice(0, 4),
+      sourceUrl: null,
+      node: { id: node.id, slug: nodeSlug, title: node.label },
+      document: null,
+      createdAt: date.toISOString(),
     };
   });
 
-  const filtered = events.filter((event) => {
-    if (filters.nodeId && event.nodeId !== filters.nodeId) return false;
-    if (filters.from && event.eventDate && event.eventDate < filters.from) return false;
-    if (filters.to && event.eventDate && event.eventDate > filters.to) return false;
-    return true;
-  });
+  const filtered = applyLocalFilters(events, filters);
+  const page = filtered.slice(cursor, cursor + limit);
+  const nextCursor = filtered.length > cursor + limit ? cursor + limit : null;
+  const kindOptions = uniq(events.map((item) => item.kind)).sort();
+  const tagOptions = uniq(events.flatMap((item) => item.tags)).sort();
 
   return {
     source: 'mock',
+    universeId: mock.slug,
     universeTitle: mock.title,
     nodes,
-    events: filtered,
+    kindOptions,
+    tagOptions,
+    items: page,
+    nextCursor,
   };
 }
 
-export async function getTimelineData(slug: string, filters: TimelineFilters): Promise<TimelineData> {
+async function enrichEvents(universeId: string, rows: DbEventRow[]): Promise<TimelineItem[]> {
+  const db = getSupabaseServerClient();
+  if (!db || rows.length === 0) return [];
+
+  const nodeIds = uniq(rows.map((row) => row.node_id).filter((value): value is string => Boolean(value)));
+  const docIds = uniq(rows.map((row) => row.document_id).filter((value): value is string => Boolean(value)));
+
+  const [{ data: nodesRaw }, { data: docsRaw }] = await Promise.all([
+    nodeIds.length > 0
+      ? db.from('nodes').select('id, slug, title').in('id', nodeIds)
+      : Promise.resolve({ data: [] as Array<{ id: string; slug: string; title: string }> }),
+    docIds.length > 0
+      ? db
+          .from('documents')
+          .select('id, title, year, source_url, is_deleted')
+          .eq('universe_id', universeId)
+          .in('id', docIds)
+          .eq('is_deleted', false)
+      : Promise.resolve({ data: [] as Array<{ id: string; title: string; year: number | null; source_url: string | null; is_deleted: boolean }> }),
+  ]);
+
+  const nodeById = new Map((nodesRaw ?? []).map((item) => [item.id, item]));
+  const docById = new Map(
+    (docsRaw ?? [])
+      .filter((doc) => !doc.is_deleted)
+      .map((doc) => [doc.id, doc]),
+  );
+
+  return rows.map((row) => {
+    const node = row.node_id ? nodeById.get(row.node_id) : null;
+    const doc = row.document_id ? docById.get(row.document_id) : null;
+    const day = row.day ?? row.event_date ?? null;
+    return {
+      id: row.id,
+      title: row.title,
+      summary: clip(row.summary ?? row.body ?? ''),
+      body: row.body ?? null,
+      day,
+      kind: normalizeKind(row.kind),
+      tags: (row.tags ?? []).map((tag) => String(tag).trim()).filter(Boolean),
+      sourceUrl: row.source_url ?? doc?.source_url ?? null,
+      node: node ? { id: node.id, slug: node.slug, title: node.title } : null,
+      document: doc
+        ? {
+            id: doc.id,
+            title: doc.title,
+            year: doc.year,
+            sourceUrl: doc.source_url ?? null,
+          }
+        : null,
+      createdAt: row.created_at,
+    } satisfies TimelineItem;
+  });
+}
+
+export async function listTimelineItems(input: {
+  slug: string;
+  filters: TimelineFilters;
+  limit: number;
+  cursor?: number;
+}): Promise<TimelineListResult> {
+  const limit = Math.max(1, Math.min(40, input.limit));
+  const cursor = Math.max(0, input.cursor ?? input.filters.cursor ?? 0);
+
   if (!isSupabaseServerEnvConfigured()) {
-    return mockTimeline(slug, filters);
+    return mockTimelineList(input.slug, input.filters, limit, cursor);
   }
 
   const db = getSupabaseServerClient();
   if (!db) {
-    return mockTimeline(slug, filters);
+    return mockTimelineList(input.slug, input.filters, limit, cursor);
   }
 
-  const { data: universe } = await db.from('universes').select('id, title').eq('slug', slug).maybeSingle();
+  const { data: universe } = await db.from('universes').select('id, title').eq('slug', input.slug).maybeSingle();
   if (!universe) {
-    return mockTimeline(slug, filters);
+    return mockTimelineList(input.slug, input.filters, limit, cursor);
   }
 
   const { data: nodesRaw } = await db
     .from('nodes')
-    .select('id, title')
+    .select('id, slug, title, kind, tags')
     .eq('universe_id', universe.id)
     .order('title', { ascending: true });
-  const nodes = (nodesRaw ?? []).map((node) => ({ id: node.id, title: node.title }));
+  const nodes: TimelineNodeFilter[] = (nodesRaw ?? []).map((node) => ({
+    id: node.id,
+    slug: node.slug,
+    title: node.title,
+    kind: node.kind ?? null,
+    tags: node.tags ?? [],
+  }));
+  const nodeSlugToId = new Map(nodes.map((node) => [node.slug, node.id]));
 
   let query = db
     .from('events')
-    .select('id, title, summary, event_date, period_label, node_id, evidence_id, document_id')
+    .select('id, title, summary, body, kind, tags, source_url, node_id, document_id, day, event_date, created_at')
     .eq('universe_id', universe.id)
-    .order('event_date', { ascending: true, nullsFirst: false });
+    .order('day', { ascending: false, nullsFirst: false })
+    .order('event_date', { ascending: false, nullsFirst: false })
+    .order('created_at', { ascending: false })
+    .range(cursor, cursor + limit + 120);
 
-  if (filters.nodeId) query = query.eq('node_id', filters.nodeId);
-  if (filters.from) query = query.gte('event_date', filters.from);
-  if (filters.to) query = query.lte('event_date', filters.to);
-
-  const { data: eventsRaw } = await query;
-  if (!eventsRaw || eventsRaw.length === 0) {
-    return {
-      source: 'db',
-      universeTitle: universe.title,
-      nodes,
-      events: [],
-    };
+  if (input.filters.kind.length > 0) query = query.in('kind', input.filters.kind);
+  if (input.filters.node) {
+    const nodeId = nodeSlugToId.get(input.filters.node);
+    if (nodeId) query = query.eq('node_id', nodeId);
+    else return { source: 'db', universeId: universe.id, universeTitle: universe.title, nodes, kindOptions: [], tagOptions: [], items: [], nextCursor: null };
   }
+  if (input.filters.tags.length > 0) query = query.overlaps('tags', input.filters.tags);
+  if (input.filters.q) query = query.or(`title.ilike.%${input.filters.q}%,summary.ilike.%${input.filters.q}%,body.ilike.%${input.filters.q}%`);
+  if (typeof input.filters.yearFrom === 'number') query = query.gte('day', `${input.filters.yearFrom}-01-01`);
+  if (typeof input.filters.yearTo === 'number') query = query.lte('day', `${input.filters.yearTo}-12-31`);
 
-  const evidenceIds = Array.from(new Set(eventsRaw.map((event) => event.evidence_id).filter(Boolean)));
-  const documentIds = Array.from(new Set(eventsRaw.map((event) => event.document_id).filter(Boolean)));
+  const { data: rowsRaw } = await query;
+  const rows = (rowsRaw ?? []) as DbEventRow[];
+  const items = applyLocalFilters(await enrichEvents(universe.id, rows), input.filters);
+  const page = items.slice(0, limit);
+  const nextCursor = items.length > limit ? cursor + limit : null;
 
-  const [{ data: evidencesRaw }, { data: documentsRaw }] = await Promise.all([
-    evidenceIds.length > 0
-      ? db.from('evidences').select('id, title').in('id', evidenceIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; title: string }> }),
-    documentIds.length > 0
-      ? db.from('documents').select('id, title, year, is_deleted').in('id', documentIds)
-      : Promise.resolve({ data: [] as Array<{ id: string; title: string; year: number | null; is_deleted: boolean }> }),
-  ]);
-
-  const nodeById = new Map(nodes.map((node) => [node.id, node.title]));
-  const evidenceById = new Map((evidencesRaw ?? []).map((ev) => [ev.id, ev.title]));
-  const documentById = new Map(
-    (documentsRaw ?? [])
-      .filter((doc) => !doc.is_deleted)
-      .map((doc) => [doc.id, { title: doc.title, year: doc.year }]),
-  );
-
-  const events: TimelineEvent[] = eventsRaw.map((event) => {
-    const doc = event.document_id ? documentById.get(event.document_id) : null;
-    return {
-      id: event.id,
-      title: event.title,
-      summary: event.summary,
-      eventDate: event.event_date,
-      periodLabel: event.period_label,
-      nodeId: event.node_id,
-      nodeTitle: event.node_id ? nodeById.get(event.node_id) ?? null : null,
-      evidenceId: event.evidence_id,
-      evidenceTitle: event.evidence_id ? evidenceById.get(event.evidence_id) ?? null : null,
-      documentId: event.document_id,
-      documentTitle: doc?.title ?? null,
-      documentYear: doc?.year ?? null,
-    };
-  });
+  const { data: facetsRaw } = await db
+    .from('events')
+    .select('kind, tags')
+    .eq('universe_id', universe.id)
+    .order('created_at', { ascending: false })
+    .limit(250);
+  const kindOptions = uniq((facetsRaw ?? []).map((item) => normalizeKind(item.kind))).sort();
+  const tagOptions = uniq((facetsRaw ?? []).flatMap((item) => item.tags ?? []).filter(Boolean)).sort();
 
   return {
     source: 'db',
+    universeId: universe.id,
     universeTitle: universe.title,
     nodes,
-    events,
+    kindOptions,
+    tagOptions,
+    items: page,
+    nextCursor,
   };
+}
+
+export async function getTimelineDetail(eventId: string): Promise<TimelineItem | null> {
+  if (!eventId) return null;
+  const db = getSupabaseServerClient();
+  if (!db) return null;
+  const { data: rowRaw } = await db
+    .from('events')
+    .select('id, title, summary, body, kind, tags, source_url, node_id, document_id, day, event_date, created_at, universe_id')
+    .eq('id', eventId)
+    .maybeSingle();
+  if (!rowRaw) return null;
+  const row = rowRaw as DbEventRow & { universe_id: string };
+  const enriched = await enrichEvents(row.universe_id, [row]);
+  return enriched[0] ?? null;
 }

@@ -119,13 +119,22 @@ export async function enqueueAllPendingDocuments(universeId: string) {
   return { queued, skipped };
 }
 
-export async function claimNextJobs({ limit, workerId }: { limit: number; workerId: string }) {
+export async function claimNextJobs({
+  limit,
+  workerId,
+  universeId,
+}: {
+  limit: number;
+  workerId: string;
+  universeId?: string;
+}) {
   const db = getAdminDb();
   if (!db) return [];
 
   const { data } = await db.rpc('claim_ingest_jobs', {
     p_limit: limit,
     p_worker_id: workerId,
+    p_universe_id: universeId ?? null,
   });
 
   const jobs = (data ?? []) as IngestJob[];

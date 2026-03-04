@@ -2,6 +2,7 @@ export const universeSections = [
   { path: '', label: 'Hub' },
   { path: 'mapa', label: 'Mapa' },
   { path: 'provas', label: 'Provas' },
+  { path: 'glossario', label: 'Glossario' },
   { path: 'linha', label: 'Linha' },
   { path: 'trilhas', label: 'Trilhas' },
   { path: 'debate', label: 'Debate' },

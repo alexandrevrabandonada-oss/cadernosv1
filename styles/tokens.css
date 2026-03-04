@@ -25,6 +25,14 @@
   --brand-1: #055f45;
   --alert-0: #9d2a1a;
   --focus: #1e8876;
+  --focus-strong: #d6aa2f;
+  --motion-fast: 140ms;
+  --motion-base: 220ms;
+  --motion-slow: 320ms;
+  --ease-standard: cubic-bezier(0.2, 0, 0.15, 1);
+  --cv-card-pad: var(--space-3);
+  --cv-card-gap: var(--space-2);
+  --cv-font-sm: 0.9rem;
   --shadow-0: 0 8px 26px rgba(0, 0, 0, 0.15);
   --shadow-1: 0 2px 0 rgba(0, 0, 0, 0.55);
   --texture-grid:
@@ -35,6 +43,7 @@
       rgba(0, 0, 0, 0.03) 30px
     ),
     repeating-linear-gradient(0deg, transparent 0, transparent 29px, rgba(0, 0, 0, 0.02) 30px);
+  --texture-opacity: 1;
 }
 
 @media (max-width: 720px) {
