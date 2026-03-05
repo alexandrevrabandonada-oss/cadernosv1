@@ -2,6 +2,8 @@ import 'server-only';
 import { getSupabaseServerClient, getSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { RATE_LIMITS, isRateLimitEnabled, isUpstashConfigured } from '@/lib/ratelimit/config';
 import { isSentryConfigured } from '@/lib/obs/sentry';
+import { getWeekKey } from '@/lib/share/week';
+import { getGlobalAnalyticsSummary24h } from '@/lib/analytics/dashboard';
 
 type HealthState = 'ok' | 'fail' | 'warn';
 
@@ -70,6 +72,10 @@ export type AdminSystemStatus = BaseStatus & {
       latencyAvgMs: number;
       latencyP95Ms: number;
       latencyMaxMs: number;
+      confidenceStrong: number;
+      confidenceMedium: number;
+      confidenceWeak: number;
+      divergencePct: number;
     };
     ingest: {
       avgJobLatencyMs: number;
@@ -100,6 +106,24 @@ export type AdminSystemStatus = BaseStatus & {
       pointsCompleted24h: number;
       summaries24h: number;
       sessionExports24h: number;
+    };
+    distribution: {
+      weekKey: string;
+      packsPendingThisWeek: number;
+      channelsPendingThisWeek: number;
+      latestCronRunAt: string | null;
+    };
+    evidences: {
+      draft: number;
+      review: number;
+      published24h: number;
+    };
+    analytics: {
+      pageViews24h: number;
+      shareViews24h: number;
+      shareOpenApp24h: number;
+      universesWithShareOpenApp: number;
+      topUniversesByShareOpenApp: Array<{ universeId: string; shareOpenAppClicks: number }>;
     };
   };
 };
@@ -230,6 +254,10 @@ async function getOps24h() {
         latencyAvgMs: 0,
         latencyP95Ms: 0,
         latencyMaxMs: 0,
+        confidenceStrong: 0,
+        confidenceMedium: 0,
+        confidenceWeak: 0,
+        divergencePct: 0,
       },
       ingest: {
         avgJobLatencyMs: 0,
@@ -256,10 +284,29 @@ async function getOps24h() {
         summaries24h: 0,
         sessionExports24h: 0,
       },
+      distribution: {
+        weekKey: getWeekKey(new Date(), 'America/Sao_Paulo'),
+        packsPendingThisWeek: 0,
+        channelsPendingThisWeek: 0,
+        latestCronRunAt: null,
+      },
+      evidences: {
+        draft: 0,
+        review: 0,
+        published24h: 0,
+      },
+      analytics: {
+        pageViews24h: 0,
+        shareViews24h: 0,
+        shareOpenApp24h: 0,
+        universesWithShareOpenApp: 0,
+        topUniversesByShareOpenApp: [],
+      },
     };
   }
 
   const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+  const weekKey = getWeekKey(new Date(), 'America/Sao_Paulo');
   const [
     { data: qa },
     { data: ingest },
@@ -271,6 +318,15 @@ async function getOps24h() {
     { count: tutorPointsDoneCount },
     { count: tutorSummariesCount },
     { count: tutorSessionExportsCount },
+    { data: weekPacksRaw },
+    { data: weekPostsRaw },
+    { data: latestCronRunRaw },
+    { count: evidenceDraftCount },
+    { count: evidenceReviewCount },
+    { count: evidencePublished24hCount },
+    { data: qaThreadsMetricsRaw },
+    { data: analytics24hRaw },
+    globalAnalyticsSummary,
     pending,
     running,
     error,
@@ -305,18 +361,46 @@ async function getOps24h() {
       .gte('completed_at', since),
     db.from('tutor_session_summaries').select('*', { count: 'exact', head: true }).gte('created_at', since),
     db.from('exports').select('*', { count: 'exact', head: true }).eq('kind', 'tutor_session').gte('created_at', since),
+    db.from('share_packs').select('id').eq('week_key', weekKey).limit(500),
+    db.from('share_pack_posts').select('pack_id, status').eq('status', 'pending').limit(2000),
+    db
+      .from('share_pack_runs')
+      .select('created_at')
+      .eq('run_kind', 'cron')
+      .order('created_at', { ascending: false })
+      .limit(1),
+    db.from('evidences').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
+    db.from('evidences').select('*', { count: 'exact', head: true }).eq('status', 'review'),
+    db.from('evidences').select('*', { count: 'exact', head: true }).eq('status', 'published').gte('published_at', since),
+    db
+      .from('qa_threads')
+      .select('confidence_label, divergence_flag')
+      .gte('created_at', since)
+      .limit(5000),
+    db
+      .from('analytics_events')
+      .select('event_name')
+      .gte('created_at', since)
+      .in('event_name', ['page_view', 'share_view', 'share_open_app'])
+      .limit(50_000),
+    getGlobalAnalyticsSummary24h(),
     countIngestByStatus('pending'),
     countIngestByStatus('running'),
     countIngestByStatus('error'),
   ]);
 
   const qaRows = qa ?? [];
+  const qaThreadsMetrics = qaThreadsMetricsRaw ?? [];
   const qaLat = qaRows.map((row) => row.latency_ms).filter((n): n is number => typeof n === 'number' && n >= 0);
   const qaDocsDistintos = qaRows
     .map((row) => row.docs_distintos)
     .filter((n): n is number => typeof n === 'number' && n >= 0);
   const qa429 = qaRows.filter((row) => row.rate_limited || row.status_code === 429).length;
   const qa5xx = qaRows.filter((row) => (row.status_code ?? 0) >= 500).length;
+  const confidenceStrong = qaThreadsMetrics.filter((row) => row.confidence_label === 'forte').length;
+  const confidenceMedium = qaThreadsMetrics.filter((row) => row.confidence_label === 'media').length;
+  const confidenceWeak = qaThreadsMetrics.filter((row) => row.confidence_label === 'fraca').length;
+  const divergenceCount = qaThreadsMetrics.filter((row) => row.divergence_flag === true).length;
 
   const ingestRows = ingest ?? [];
   const ingestLat = ingestRows
@@ -363,6 +447,16 @@ async function getOps24h() {
     (row) => row.insufficient_reason !== null || row.evidence_sufficient === false,
   ).length;
 
+  const weekPackIds = new Set((weekPacksRaw ?? []).map((row) => row.id));
+  const pendingPostsThisWeek = (weekPostsRaw ?? []).filter((row) => weekPackIds.has(row.pack_id));
+  const packsPendingThisWeek = new Set(pendingPostsThisWeek.map((row) => row.pack_id)).size;
+  const channelsPendingThisWeek = pendingPostsThisWeek.length;
+  const latestCronRunAt = (latestCronRunRaw ?? [])[0]?.created_at ?? null;
+  const analytics24h = analytics24hRaw ?? [];
+  const pageViews24h = analytics24h.filter((row) => row.event_name === 'page_view').length;
+  const shareViews24h = analytics24h.filter((row) => row.event_name === 'share_view').length;
+  const shareOpenApp24h = analytics24h.filter((row) => row.event_name === 'share_open_app').length;
+
   return {
     ask: {
       requests: qaRows.length,
@@ -374,6 +468,10 @@ async function getOps24h() {
       latencyAvgMs: avg(qaLat),
       latencyP95Ms: percentile95(qaLat),
       latencyMaxMs: qaLat.length ? Math.max(...qaLat) : 0,
+      confidenceStrong,
+      confidenceMedium,
+      confidenceWeak,
+      divergencePct: pct(divergenceCount, qaThreadsMetrics.length),
     },
     ingest: {
       avgJobLatencyMs: avg(ingestLat),
@@ -399,6 +497,24 @@ async function getOps24h() {
       pointsCompleted24h: tutorPointsDoneCount ?? 0,
       summaries24h: tutorSummariesCount ?? 0,
       sessionExports24h: tutorSessionExportsCount ?? 0,
+    },
+    distribution: {
+      weekKey,
+      packsPendingThisWeek,
+      channelsPendingThisWeek,
+      latestCronRunAt,
+    },
+    evidences: {
+      draft: evidenceDraftCount ?? 0,
+      review: evidenceReviewCount ?? 0,
+      published24h: evidencePublished24hCount ?? 0,
+    },
+    analytics: {
+      pageViews24h,
+      shareViews24h,
+      shareOpenApp24h,
+      universesWithShareOpenApp: globalAnalyticsSummary.topUniversesByShareOpenApp.length,
+      topUniversesByShareOpenApp: globalAnalyticsSummary.topUniversesByShareOpenApp,
     },
   };
 }

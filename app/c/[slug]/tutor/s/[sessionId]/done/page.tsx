@@ -46,6 +46,7 @@ export default async function TutorDonePage({ params, searchParams }: TutorDoneP
   let currentIndex = 0;
   let mode: 'visitor' | 'logged' = 'visitor';
   let summary: Awaited<ReturnType<typeof getOrCreateTutorSummary>> = null;
+  let averageConfidence: number | null = null;
 
   if (sessionId === 'local') {
     points = await getTutorPlanPreview(slug);
@@ -57,6 +58,22 @@ export default async function TutorDonePage({ params, searchParams }: TutorDoneP
     currentIndex = tutorSession.currentIndex;
     mode = 'logged';
     summary = await getOrCreateTutorSummary(sessionId);
+    const db = getSupabaseServerClient();
+    const threadIds = points.map((point) => point.lastThreadId).filter((id): id is string => Boolean(id));
+    if (db && threadIds.length > 0) {
+      const { data: scoresRaw } = await db
+        .from('qa_threads')
+        .select('confidence_score')
+        .in('id', threadIds)
+        .not('confidence_score', 'is', null)
+        .limit(200);
+      const scores = (scoresRaw ?? [])
+        .map((item) => item.confidence_score)
+        .filter((value): value is number => typeof value === 'number' && value >= 0);
+      if (scores.length > 0) {
+        averageConfidence = Math.round(scores.reduce((acc, value) => acc + value, 0) / scores.length);
+      }
+    }
   }
   const canExport = Boolean(session && (session.role === 'admin' || session.role === 'editor'));
 
@@ -90,6 +107,7 @@ export default async function TutorDonePage({ params, searchParams }: TutorDoneP
           currentIndex={currentIndex}
           summary={summary}
           canExport={canExport}
+          averageConfidence={averageConfidence}
         />
       </Card>
 

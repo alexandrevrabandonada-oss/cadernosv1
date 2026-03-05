@@ -28,6 +28,19 @@ Pergunta ao motor de debate por universo.
   "mode": "strict_ok",
   "insufficient": false,
   "insufficientReason": null,
+  "confidence": {
+    "score": 78,
+    "label": "forte"
+  },
+  "limitations": [
+    "Base concentrada em um unico documento."
+  ],
+  "divergence": {
+    "flag": false,
+    "summary": null
+  },
+  "docsDistinct": 3,
+  "avgDocQuality": 74,
   "suggestions": [],
   "threadId": "uuid-da-thread",
   "citations": [
@@ -77,5 +90,41 @@ Pergunta ao motor de debate por universo.
 - `mode`:
   - `strict_ok`: resposta com base suficiente.
   - `insufficient`: modo estrito bloqueou conclusao.
+- `confidence`:
+  - `score`: heuristica 0..100 sobre sustentacao da resposta.
+  - `label`: `forte|media|fraca`.
+- `limitations`: bullets deterministicas para leitura critica.
+- `divergence`: sinaliza possivel conflito/inconclusao entre fontes.
+- `docsDistinct` e `avgDocQuality`: metadados de apoio para rastreabilidade.
 - `suggestions` traz termos/nos sugeridos quando `insufficient=true`.
 - Em modo estrito, sem evidencias suficientes nao ha conclusao.
+
+## POST `/api/track`
+
+Tracking leve de produto (server-side) para funil/CTAs/share.
+
+### Input
+
+```json
+{
+  "universeSlug": "poluicao-vr",
+  "event_name": "cta_click",
+  "route": "/c/poluicao-vr/mapa",
+  "object_type": "node",
+  "object_id": "uuid-opcional",
+  "meta": { "cta": "ver_provas" }
+}
+```
+
+### Notas
+
+- `event_name` aceitos:
+  - `page_view`
+  - `cta_click`
+  - `share_view`
+  - `share_open_app`
+  - `evidence_click`
+  - `node_select`
+  - `download_click`
+- Sessão anônima via cookie `cv_sid`.
+- Endpoint aplica validação e rate-limit por sessão.

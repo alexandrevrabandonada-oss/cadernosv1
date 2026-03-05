@@ -4,7 +4,9 @@ import { getSupabaseServerAuthClient, getSupabaseServiceRoleClient } from '@/lib
 export type AppRole = 'admin' | 'editor' | 'viewer';
 
 export function isDevAdminBypass() {
-  return process.env.NODE_ENV === 'development' && process.env.DEV_ADMIN_BYPASS === '1';
+  const devBypass = process.env.NODE_ENV === 'development' && process.env.DEV_ADMIN_BYPASS === '1';
+  const testBypass = process.env.NODE_ENV !== 'production' && process.env.TEST_SEED === '1';
+  return devBypass || testBypass;
 }
 
 export async function getCurrentSession() {

@@ -53,10 +53,23 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           <Carimbo>{`evidencias:${universe.quickStart.evidencesTotal}`}</Carimbo>
         </div>
         <div className='toolbar-row'>
-          <a className='ui-button' href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}>
+          <a
+            className='ui-button'
+            href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}
+            data-track-event='cta_click'
+            data-track-cta='comecar_aqui'
+            data-track-section='hub'
+          >
             Iniciar trilha &quot;Comece Aqui&quot;
           </a>
-          <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'debate')}>
+          <a
+            className='ui-button'
+            data-variant='ghost'
+            href={buildUniverseHref(slug, 'debate')}
+            data-track-event='cta_click'
+            data-track-cta='abrir_debate'
+            data-track-section='hub'
+          >
             Abrir Debate
           </a>
           {uiPrefs.isLoggedIn && lastSection ? (
@@ -107,6 +120,9 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
                         slug,
                         `provas?selected=${encodeURIComponent(item.id)}&panel=detail${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
                       )}
+                      data-track-event='evidence_click'
+                      data-track-cta='hub_evidence'
+                      data-track-section='hub_highlights'
                     >
                       Abrir evidencia
                     </a>
@@ -174,10 +190,23 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           </section>
 
           <div className='toolbar-row'>
-            <a className='ui-button' href={buildUniverseHref(slug, 'provas')}>
+            <a
+              className='ui-button'
+              href={buildUniverseHref(slug, 'provas')}
+              data-track-event='cta_click'
+              data-track-cta='explorar_provas'
+              data-track-section='hub'
+            >
               Explorar Provas
             </a>
-            <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
+            <a
+              className='ui-button'
+              data-variant='ghost'
+              href={buildUniverseHref(slug, 'tutor')}
+              data-track-event='cta_click'
+              data-track-cta='abrir_tutor'
+              data-track-section='hub'
+            >
               Comecar Tutor
             </a>
             <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'linha')}>

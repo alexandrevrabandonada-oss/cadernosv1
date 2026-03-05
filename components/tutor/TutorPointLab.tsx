@@ -48,6 +48,9 @@ type AskResponse = {
   insufficientReason?: string | null;
   suggestions?: string[];
   threadId?: string | null;
+  confidence?: { score: number; label: 'forte' | 'media' | 'fraca' } | null;
+  limitations?: string[];
+  divergence?: { flag: boolean; summary: string | null } | null;
   citations: AskCitation[];
 };
 
@@ -77,7 +80,7 @@ type TutorPointLabProps = {
     pointId: string;
     text: string;
   }) => Promise<
-    | {
+      | {
         ok: true;
         threadId: string;
         answer: string;
@@ -86,6 +89,9 @@ type TutorPointLabProps = {
         insufficient: boolean;
         insufficientReason: string | null;
         suggestions: string[];
+        confidence: { score: number; label: 'forte' | 'media' | 'fraca' } | null;
+        limitations: string[];
+        divergence: { flag: boolean; summary: string | null };
       }
     | { ok: false; reason: string; status?: number }
   >;
@@ -97,6 +103,9 @@ type TutorChatMessage = {
   text: string;
   citations?: AskCitation[];
   qaThreadId?: string | null;
+  confidence?: { score: number; label: 'forte' | 'media' | 'fraca' } | null;
+  limitations?: string[];
+  divergence?: { flag: boolean; summary: string | null } | null;
 };
 
 function chatStorageKey(slug: string, sessionId: string, pointId: string) {
@@ -262,6 +271,9 @@ export function TutorPointLab({
           text: response.answer,
           citations: response.citations,
           qaThreadId: response.qaThreadId,
+          confidence: response.confidence,
+          limitations: response.limitations,
+          divergence: response.divergence,
         };
         setChatMessages((current) => [...current, tutorMessage]);
       } else {
@@ -288,6 +300,9 @@ export function TutorPointLab({
           text: data.answer,
           citations: data.citations ?? [],
           qaThreadId: data.threadId ?? null,
+          confidence: data.confidence ?? null,
+          limitations: data.limitations ?? [],
+          divergence: data.divergence ?? { flag: false, summary: null },
         };
         setChatThreadId(data.threadId ?? chatThreadId);
         setChatMessages((current) => [...current, tutorMessage]);
@@ -384,7 +399,29 @@ export function TutorPointLab({
           {result ? (
             <article className='core-node stack'>
               <strong>Resposta</strong>
+              {result.confidence ? (
+                <p className='muted' style={{ margin: 0 }}>
+                  Confianca: {result.confidence.label} ({result.confidence.score}/100)
+                </p>
+              ) : null}
               <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{result.answer}</p>
+              {result.limitations && result.limitations.length > 0 ? (
+                <details>
+                  <summary>Limitacoes</summary>
+                  <div className='stack'>
+                    {result.limitations.slice(0, 4).map((item, index) => (
+                      <p key={`guided-limit-${index}`} className='muted' style={{ margin: 0 }}>
+                        - {item}
+                      </p>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+              {result.divergence?.flag ? (
+                <p className='muted' style={{ margin: 0, color: 'var(--alert-0)' }}>
+                  Divergencia: {result.divergence.summary ?? 'Ha sinais de conflito entre fontes.'}
+                </p>
+              ) : null}
               {result.citations?.slice(0, 3).map((citation, idx) => (
                 <p key={`${citation.docId}-${idx}`} className='muted' style={{ margin: 0 }}>
                   {citation.doc} {citation.year ? `(${citation.year})` : ''} | {citation.pages}
@@ -412,6 +449,28 @@ export function TutorPointLab({
                 ) : null}
               </div>
               <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{message.text}</p>
+              {message.confidence ? (
+                <p className='muted' style={{ margin: 0 }}>
+                  Confianca: {message.confidence.label} ({message.confidence.score}/100)
+                </p>
+              ) : null}
+              {message.limitations && message.limitations.length > 0 ? (
+                <details>
+                  <summary>Limitacoes</summary>
+                  <div className='stack'>
+                    {message.limitations.slice(0, 4).map((item, idx) => (
+                      <p key={`${message.id}-lim-${idx}`} className='muted' style={{ margin: 0 }}>
+                        - {item}
+                      </p>
+                    ))}
+                  </div>
+                </details>
+              ) : null}
+              {message.divergence?.flag ? (
+                <p className='muted' style={{ margin: 0, color: 'var(--alert-0)' }}>
+                  Divergencia: {message.divergence.summary ?? 'Ha sinais de conflito entre fontes.'}
+                </p>
+              ) : null}
               {message.citations && message.citations.length > 0 ? (
                 <div className='stack'>
                   {message.citations.slice(0, 3).map((citation, idx) => (

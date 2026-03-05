@@ -79,8 +79,16 @@ export async function planTutorPoints(universeId: string): Promise<TutorPointDra
   const nodes = nodesQuery.data ?? [];
   if (nodes.length === 0) return [];
 
+  const evidenceIds = Array.from(new Set((nodeEvidenceQuery.data ?? []).map((row) => row.evidence_id)));
+  const { data: evidenceStatusRaw } =
+    evidenceIds.length > 0
+      ? await db.from('evidences').select('id, status').in('id', evidenceIds)
+      : { data: [] as Array<{ id: string; status: string }> };
+  const evidenceStatusById = new Map((evidenceStatusRaw ?? []).map((row) => [row.id, row.status]));
+
   const evidenceByNode = new Map<string, string[]>();
   for (const row of nodeEvidenceQuery.data ?? []) {
+    if (evidenceStatusById.get(row.evidence_id) !== 'published') continue;
     const current = evidenceByNode.get(row.node_id) ?? [];
     if (!current.includes(row.evidence_id)) current.push(row.evidence_id);
     evidenceByNode.set(row.node_id, current);

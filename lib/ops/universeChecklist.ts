@@ -58,6 +58,7 @@ type CoverageRow = {
   core: boolean;
   docsLinkedCount: number;
   evidencesLinkedCount: number;
+  draftEvidencesLinkedCount: number;
   questionsCount: number;
   coverageScore: number;
 };
@@ -81,6 +82,8 @@ export type UniverseChecklist = {
     docsByStatus: Record<'uploaded' | 'processed' | 'link_only' | 'error', number>;
     totalChunks: number;
     totalEvidences: number;
+    publishedEvidencesTotal: number;
+    draftEvidencesTotal: number;
     totalTrails: number;
     totalTutorModules: number;
     links: {
@@ -167,7 +170,7 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
     nodesQuery,
     documentsQuery,
     chunksCountQuery,
-    evidencesCountQuery,
+    evidencesRowsQuery,
     trailsCountQuery,
     tutorModulesCountQuery,
     nodeDocumentsQuery,
@@ -185,11 +188,11 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
       .eq('universe_id', universeId)
       .eq('is_deleted', false),
     db.from('chunks').select('id', { count: 'exact', head: true }).eq('universe_id', universeId),
-    db.from('evidences').select('id', { count: 'exact', head: true }).eq('universe_id', universeId),
+    db.from('evidences').select('id, status').eq('universe_id', universeId),
     db.from('trails').select('id', { count: 'exact', head: true }).eq('universe_id', universeId),
     db.from('tutor_modules').select('id', { count: 'exact', head: true }).eq('universe_id', universeId),
     db.from('node_documents').select('id, node_id').eq('universe_id', universeId),
-    db.from('node_evidences').select('id, node_id').eq('universe_id', universeId),
+    db.from('node_evidences').select('id, node_id, evidence_id').eq('universe_id', universeId),
     db.from('node_questions').select('id, node_id').eq('universe_id', universeId),
     db
       .from('qa_logs')
@@ -235,13 +238,30 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
   const nodeQuestions = nodeQuestionsQuery.data ?? [];
   const docsByNode = new Map<string, number>();
   const evidencesByNode = new Map<string, number>();
+  const draftEvidencesByNode = new Map<string, number>();
   const questionsByNode = new Map<string, number>();
+
+  const evidenceStatusById = new Map(
+    (evidencesRowsQuery.data ?? []).map((row) => [
+      row.id,
+      row.status === 'draft' || row.status === 'review' || row.status === 'rejected' ? row.status : 'published',
+    ]),
+  );
+
+  const allEvidencesTotal = Number(evidencesRowsQuery.data?.length ?? 0);
+  const publishedEvidencesTotal = (evidencesRowsQuery.data ?? []).filter((row) => row.status === 'published').length;
+  const draftEvidencesTotal = (evidencesRowsQuery.data ?? []).filter((row) => row.status !== 'published').length;
 
   for (const row of nodeDocuments) {
     docsByNode.set(row.node_id, (docsByNode.get(row.node_id) ?? 0) + 1);
   }
   for (const row of nodeEvidences) {
-    evidencesByNode.set(row.node_id, (evidencesByNode.get(row.node_id) ?? 0) + 1);
+    const status = evidenceStatusById.get(row.evidence_id) ?? 'published';
+    if (status === 'published') {
+      evidencesByNode.set(row.node_id, (evidencesByNode.get(row.node_id) ?? 0) + 1);
+    } else {
+      draftEvidencesByNode.set(row.node_id, (draftEvidencesByNode.get(row.node_id) ?? 0) + 1);
+    }
   }
   for (const row of nodeQuestions) {
     questionsByNode.set(row.node_id, (questionsByNode.get(row.node_id) ?? 0) + 1);
@@ -251,6 +271,7 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
     .map((node) => {
       const docs = docsByNode.get(node.id) ?? 0;
       const evidences = evidencesByNode.get(node.id) ?? 0;
+      const draftEvidences = draftEvidencesByNode.get(node.id) ?? 0;
       const questions = questionsByNode.get(node.id) ?? 0;
       const core = coreNodeSet.has(node.id);
       return {
@@ -261,6 +282,7 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
         core,
         docsLinkedCount: docs,
         evidencesLinkedCount: evidences,
+        draftEvidencesLinkedCount: draftEvidences,
         questionsCount: questions,
         coverageScore: scoreNodeCoverage({ docs, evidences, questions }),
       };
@@ -416,28 +438,31 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
   });
 
   const evidencesStatus = toStatus(
-    Number(evidencesCountQuery.count ?? 0),
+    publishedEvidencesTotal,
     thresholds.minEvidencesTotal,
     8,
   );
   pushCheck({
     id: 'evidences_total',
-    label: 'Evidencias totais',
+    label: 'Evidencias publicadas',
     status: evidencesStatus,
-    value: String(evidencesCountQuery.count ?? 0),
+    value: `${publishedEvidencesTotal} (draft/review/rejected: ${draftEvidencesTotal})`,
     target: `>= ${thresholds.minEvidencesTotal}`,
-    actionLink: `/admin/universes/${universeId}/provas`,
+    actionLink: `/admin/universes/${universeId}/review`,
   });
 
   const coreEvidencesStatus: CheckStatus =
     coreMissingEvidence > 0 ? 'fail' : coreWarnEvidence > 0 ? 'warn' : 'pass';
   pushCheck({
     id: 'core_evidence_coverage',
-    label: 'Cobertura de evidencias por no core',
+    label: 'Cobertura de evidencias publicadas por no core',
     status: coreEvidencesStatus,
-    value: `0:${coreMissingEvidence} | 1:${coreWarnEvidence}`,
+    value: `0:${coreMissingEvidence} | 1:${coreWarnEvidence} | drafts:${coreCoverage.reduce(
+      (sum, row) => sum + row.draftEvidencesLinkedCount,
+      0,
+    )}`,
     target: `cada core >= ${thresholds.minEvidencesPerCoreNode}`,
-    actionLink: `/admin/universes/${universeId}/assistido`,
+    actionLink: `/admin/universes/${universeId}/review`,
   });
 
   const coreQuestionsStatus: CheckStatus =
@@ -512,7 +537,9 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
       totalDocs,
       docsByStatus,
       totalChunks: Number(chunksCountQuery.count ?? 0),
-      totalEvidences: Number(evidencesCountQuery.count ?? 0),
+      totalEvidences: allEvidencesTotal,
+      publishedEvidencesTotal,
+      draftEvidencesTotal,
       totalTrails: Number(trailsCountQuery.count ?? 0),
       totalTutorModules: Number(tutorModulesCountQuery.count ?? 0),
       links: {

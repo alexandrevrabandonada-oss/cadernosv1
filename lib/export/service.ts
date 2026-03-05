@@ -174,7 +174,7 @@ async function getThreadExportPayload(universeId: string, threadId: string) {
 
   const { data: thread } = await db
     .from('qa_threads')
-    .select('id, question, answer, created_at')
+    .select('id, question, answer, created_at, confidence_score, confidence_label, divergence_flag, divergence_summary, limitations')
     .eq('id', threadId)
     .eq('universe_id', universeId)
     .maybeSingle();
@@ -292,12 +292,37 @@ export async function createThreadDossier(input: {
       question: payload.thread.question,
       answer: payload.thread.answer,
       createdAt: generatedAt,
+      confidence: {
+        score: payload.thread.confidence_score ?? null,
+        label:
+          payload.thread.confidence_label === 'forte' ||
+          payload.thread.confidence_label === 'media' ||
+          payload.thread.confidence_label === 'fraca'
+            ? payload.thread.confidence_label
+            : null,
+      },
+      limitations: Array.isArray(payload.thread.limitations)
+        ? (payload.thread.limitations as string[]).filter((item) => typeof item === 'string').slice(0, 4)
+        : [],
+      divergence: {
+        flag: Boolean(payload.thread.divergence_flag),
+        summary: payload.thread.divergence_summary ?? null,
+      },
       citations: payload.citations,
     });
 
     const quoteBoxes = payload.citations.map(
       (c) => `[${c.index}] ${c.docTitle}${c.year ? ` (${c.year})` : ''}, ${pageLabel(c.pageStart, c.pageEnd)}: "${c.quote}"`,
     );
+    const threadLimitations = Array.isArray(payload.thread.limitations)
+      ? (payload.thread.limitations as string[]).filter((item) => typeof item === 'string').slice(0, 4)
+      : [];
+    const confidenceLabel =
+      payload.thread.confidence_label === 'forte' ||
+      payload.thread.confidence_label === 'media' ||
+      payload.thread.confidence_label === 'fraca'
+        ? payload.thread.confidence_label
+        : null;
 
     const pdfBuffer = await renderConcretoZenPdf({
       title: 'Dossie de Debate',
@@ -308,6 +333,22 @@ export async function createThreadDossier(input: {
       sections: [
         { title: 'Pergunta', body: [payload.thread.question] },
         { title: 'Resposta', body: [payload.thread.answer] },
+        {
+          title: 'Forca do achado',
+          body: [
+            confidenceLabel
+              ? `Sinal ${confidenceLabel}${typeof payload.thread.confidence_score === 'number' ? ` (${payload.thread.confidence_score}/100)` : ''}.`
+              : 'Sinal n/d.',
+            ...(threadLimitations.length > 0 ? threadLimitations.map((item) => `Limitacao: ${item}`) : ['Sem limitacoes adicionais registradas.']),
+            ...(payload.thread.divergence_flag
+              ? [
+                  `Possivel divergencia entre fontes: ${
+                    payload.thread.divergence_summary ?? 'ha sinais de resultados divergentes ou inconclusivos.'
+                  }`,
+                ]
+              : []),
+          ],
+        },
         {
           title: 'Evidencias',
           body: ['Trechos curtos citados para suportar a resposta.'],

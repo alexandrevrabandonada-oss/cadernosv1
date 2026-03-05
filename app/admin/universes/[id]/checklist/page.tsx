@@ -246,7 +246,10 @@ export default async function UniverseChecklistPage({ params, searchParams }: Un
           </article>
           <article className='core-node'>
             <strong>Evidencias</strong>
-            <p style={{ margin: 0 }}>{checklist.overview.totalEvidences}</p>
+            <p style={{ margin: 0 }}>
+              total {checklist.overview.totalEvidences} | publicadas {checklist.overview.publishedEvidencesTotal} |
+              draft/review/rejected {checklist.overview.draftEvidencesTotal}
+            </p>
           </article>
           <article className='core-node'>
             <strong>Ask 24h</strong>
@@ -294,6 +297,9 @@ export default async function UniverseChecklistPage({ params, searchParams }: Un
         <div className='toolbar-row'>
           <Link className='ui-button' href={`/admin/universes/${id}/assistido`}>
             Abrir Curadoria Assistida
+          </Link>
+          <Link className='ui-button' href={`/admin/universes/${id}/review`}>
+            Abrir fila de revisao
           </Link>
           <Link className='ui-button' href={`/admin/universes/${id}/sprint`}>
             Rodar Sprint
@@ -349,7 +355,8 @@ export default async function UniverseChecklistPage({ params, searchParams }: Un
                 kind: {row.kind} | tags: {row.tags.join(', ') || 'n/d'}
               </p>
               <p className='muted' style={{ margin: 0 }}>
-                docs:{row.docsLinkedCount} | evidencias:{row.evidencesLinkedCount} | perguntas:{row.questionsCount}
+                docs:{row.docsLinkedCount} | evidencias publicadas:{row.evidencesLinkedCount} | evidencias draft/review:
+                {row.draftEvidencesLinkedCount} | perguntas:{row.questionsCount}
               </p>
               <Link className='ui-button' href={`/admin/universes/${id}/links?node=${row.nodeId}`}>
                 Abrir vinculos

@@ -242,6 +242,7 @@ export async function getHubData(slug: string): Promise<HubData> {
         .select('id, title, summary')
         .eq('universe_id', universeQuery.data.id)
         .eq('curated', true)
+        .eq('status', 'published')
         .order('created_at', { ascending: false })
         .limit(3),
       client
@@ -250,7 +251,11 @@ export async function getHubData(slug: string): Promise<HubData> {
         .eq('universe_id', universeQuery.data.id)
         .eq('is_deleted', false),
       client.from('nodes').select('id', { count: 'exact', head: true }).eq('universe_id', universeQuery.data.id),
-      client.from('evidences').select('id', { count: 'exact', head: true }).eq('universe_id', universeQuery.data.id),
+      client
+        .from('evidences')
+        .select('id', { count: 'exact', head: true })
+        .eq('universe_id', universeQuery.data.id)
+        .eq('status', 'published'),
       getQuickQuestions(universeQuery.data.id),
     ]);
 
@@ -276,6 +281,7 @@ export async function getHubData(slug: string): Promise<HubData> {
             .from('evidences')
             .select('id, title, summary, node_id')
             .in('id', highlightEvidenceIds)
+            .eq('status', 'published')
         : Promise.resolve({ data: [] as Array<{ id: string; title: string; summary: string; node_id: string | null }> }),
       highlightEventIds.length > 0
         ? client

@@ -57,14 +57,33 @@ export default async function ShareExportPage({ params }: ShareExportPageProps) 
 
         <div className='toolbar-row'>
           {exportItem.downloadUrl ? (
-            <a className='ui-button' href={exportItem.downloadUrl} target='_blank' rel='noreferrer'>
+            <a
+              className='ui-button'
+              href={exportItem.downloadUrl}
+              target='_blank'
+              rel='noreferrer'
+              data-track-event='download_click'
+              data-track-cta='download_export_pdf'
+              data-track-section='share_export'
+              data-track-object-type='export'
+              data-track-object-id={id}
+            >
               Baixar PDF
             </a>
           ) : (
             <span className='muted'>Download indisponivel</span>
           )}
           {exportItem.appHref ? (
-            <Link className='ui-button' data-variant='ghost' href={exportItem.appHref}>
+            <Link
+              className='ui-button'
+              data-variant='ghost'
+              href={exportItem.appHref}
+              data-track-event='share_open_app'
+              data-track-cta='open_app_export'
+              data-track-section='share_export'
+              data-track-object-type='export'
+              data-track-object-id={id}
+            >
               Abrir no app
             </Link>
           ) : null}

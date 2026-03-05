@@ -89,7 +89,15 @@ export default async function ShareNodePage({ params }: ShareNodePageProps) {
 
       <Card className='stack'>
         <div className='toolbar-row'>
-          <Link className='ui-button' href={mapHref}>
+          <Link
+            className='ui-button'
+            href={mapHref}
+            data-track-event='share_open_app'
+            data-track-cta='open_app_node'
+            data-track-section='share_node'
+            data-track-object-type='node'
+            data-track-object-id={id}
+          >
             Abrir no app
           </Link>
           <Link className='ui-button' data-variant='ghost' href={provasHref}>

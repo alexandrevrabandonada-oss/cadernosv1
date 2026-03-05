@@ -30,6 +30,7 @@ type TutorDoneSummaryProps = {
   currentIndex: number;
   summary: TutorSessionSummaryView | null;
   canExport: boolean;
+  averageConfidence: number | null;
 };
 
 export function TutorDoneSummary({
@@ -41,6 +42,7 @@ export function TutorDoneSummary({
   currentIndex,
   summary,
   canExport,
+  averageConfidence,
 }: TutorDoneSummaryProps) {
   const tutor = useTutorSession({
     slug,
@@ -103,6 +105,7 @@ export function TutorDoneSummary({
     <div className='stack'>
       <div className='toolbar-row'>
         <Carimbo>{`concluidos:${covered.length}/${points.length}`}</Carimbo>
+        {typeof averageConfidence === 'number' ? <Carimbo>{`confianca media:${averageConfidence}/100`}</Carimbo> : null}
       </div>
       <article className='core-node stack'>
         <strong>O que foi coberto</strong>

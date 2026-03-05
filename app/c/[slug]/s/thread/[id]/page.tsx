@@ -54,7 +54,15 @@ export default async function ShareThreadPage({ params }: ShareThreadPageProps) 
           {thread.dominantDocTitle ? ` | doc: ${thread.dominantDocTitle}${thread.dominantDocYear ? ` (${thread.dominantDocYear})` : ''}` : ''}
         </p>
         <div className='toolbar-row'>
-          <Link className='ui-button' href={appHref}>
+          <Link
+            className='ui-button'
+            href={appHref}
+            data-track-event='share_open_app'
+            data-track-cta='open_app_thread'
+            data-track-section='share_thread'
+            data-track-object-type='thread'
+            data-track-object-id={id}
+          >
             Abrir no app
           </Link>
           <ShareButton url={shareUrl} title={thread.question} text={thread.answer} />

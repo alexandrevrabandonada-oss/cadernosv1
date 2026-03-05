@@ -89,7 +89,15 @@ export default async function ShareTermPage({ params }: ShareTermPageProps) {
 
       <Card className='stack'>
         <div className='toolbar-row'>
-          <Link className='ui-button' href={glossarioHref}>
+          <Link
+            className='ui-button'
+            href={glossarioHref}
+            data-track-event='share_open_app'
+            data-track-cta='open_app_term'
+            data-track-section='share_term'
+            data-track-object-type='term'
+            data-track-object-id={id}
+          >
             Abrir no app
           </Link>
           <Link className='ui-button' data-variant='ghost' href={provasHref}>

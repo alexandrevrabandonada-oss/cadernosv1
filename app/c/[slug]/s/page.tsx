@@ -48,7 +48,13 @@ export default async function ShareUniversePage({ params }: ShareUniversePagePro
       <Card className='stack'>
         <SectionHeader title={universe.title} description={universe.summary} tag='Vitrine publica' />
         <div className='toolbar-row'>
-          <Link className='ui-button' href={buildUniverseHref(slug, '')}>
+          <Link
+            className='ui-button'
+            href={buildUniverseHref(slug, '')}
+            data-track-event='share_open_app'
+            data-track-cta='open_app_universe'
+            data-track-section='share_universe'
+          >
             Abrir no app
           </Link>
           <ShareButton url={shareUrl} title={`${universe.title} - Cadernos Vivos`} text={universe.summary} />

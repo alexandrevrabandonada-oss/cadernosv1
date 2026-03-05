@@ -224,7 +224,13 @@ export default async function LinhaPage({ params, searchParams }: LinhaPageProps
               </article>
 
               <div className='toolbar-row'>
-                <Link className='ui-button' href={buildProvasHref()}>
+                <Link
+                  className='ui-button'
+                  href={buildProvasHref()}
+                  data-track-event='cta_click'
+                  data-track-cta='ver_provas'
+                  data-track-section='linha_detail'
+                >
                   Ver Provas
                 </Link>
                 <ShareButton

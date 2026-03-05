@@ -295,13 +295,31 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
                 </article>
 
                 <div className='toolbar-row'>
-                  <Link className='ui-button' href={provasHref()}>
+                  <Link
+                    className='ui-button'
+                    href={provasHref()}
+                    data-track-event='cta_click'
+                    data-track-cta='ver_provas'
+                    data-track-section='mapa_detail'
+                  >
                     Ver Provas
                   </Link>
-                  <Link className='ui-button' href={linhaHref()}>
+                  <Link
+                    className='ui-button'
+                    href={linhaHref()}
+                    data-track-event='cta_click'
+                    data-track-cta='ver_linha'
+                    data-track-section='mapa_detail'
+                  >
                     Ver Linha
                   </Link>
-                  <Link className='ui-button' href={debateHref()}>
+                  <Link
+                    className='ui-button'
+                    href={debateHref()}
+                    data-track-event='cta_click'
+                    data-track-cta='ver_debate'
+                    data-track-section='mapa_detail'
+                  >
                     Ver Debate
                   </Link>
                   <Link className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>

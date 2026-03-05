@@ -155,6 +155,15 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
                 </select>
               </label>
               <label>
+                <span>Confianca</span>
+                <select name='confidence' defaultValue={filters.confidence} style={{ width: '100%', minHeight: 42 }}>
+                  <option value='all'>Todas</option>
+                  <option value='forte'>Forte</option>
+                  <option value='media'>Media</option>
+                  <option value='fraca'>Fraca</option>
+                </select>
+              </label>
+              <label>
                 <span>Tipo</span>
                 <select name='kind' defaultValue={filters.kind} style={{ width: '100%', minHeight: 42 }}>
                   <option value='all'>Todos</option>
@@ -197,6 +206,14 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
                 <p className='muted' style={{ margin: 0 }}>
                   {dateLabel(selectedDetail.thread.createdAt)} | {selectedDetail.thread.source} | {selectedDetail.thread.mode}
                 </p>
+                <div className='toolbar-row'>
+                  <Carimbo>{`confianca:${selectedDetail.thread.confidenceLabel ?? 'n/d'}`}</Carimbo>
+                  {typeof selectedDetail.thread.confidenceScore === 'number' ? (
+                    <Carimbo>{`${selectedDetail.thread.confidenceScore}/100`}</Carimbo>
+                  ) : null}
+                  <Carimbo>{`docs:${selectedDetail.thread.docsDistinct ?? selectedDetail.thread.docsUsed ?? 0}`}</Carimbo>
+                  <Carimbo>{`citacoes:${selectedDetail.citations.length}`}</Carimbo>
+                </div>
                 {selectedDetail.thread.node ? (
                   <div className='toolbar-row'>
                     <p className='muted' style={{ margin: 0 }}>
@@ -231,6 +248,27 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
                   </p>
                 ) : null}
               </article>
+
+              {selectedDetail.thread.limitations.length > 0 ? (
+                <article className='core-node stack'>
+                  <strong>Limitacoes</strong>
+                  {selectedDetail.thread.limitations.slice(0, 4).map((item, index) => (
+                    <p key={`thread-limit-${index}`} className='muted' style={{ margin: 0 }}>
+                      - {item}
+                    </p>
+                  ))}
+                </article>
+              ) : null}
+
+              {selectedDetail.thread.divergenceFlag ? (
+                <article className='core-node stack'>
+                  <strong>Possivel divergencia entre fontes</strong>
+                  <p className='muted' style={{ margin: 0 }}>
+                    {selectedDetail.thread.divergenceSummary ??
+                      'Ha sinais de resultados divergentes ou inconclusivos entre os documentos usados.'}
+                  </p>
+                </article>
+              ) : null}
 
               <article className='core-node stack'>
                 <strong>Evidencias ({selectedDetail.citations.length})</strong>
@@ -314,6 +352,8 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
                     <Carimbo>{item.source}</Carimbo>
                     {typeof item.docsUsed === 'number' ? <Carimbo>{`docs:${item.docsUsed}`}</Carimbo> : null}
                     {typeof item.chunksUsed === 'number' ? <Carimbo>{`chunks:${item.chunksUsed}`}</Carimbo> : null}
+                    {item.confidenceLabel ? <Carimbo>{`conf:${item.confidenceLabel}`}</Carimbo> : null}
+                    {item.divergenceFlag ? <Carimbo variant='alert'>divergencia</Carimbo> : null}
                   </div>
                   <Link
                     className='ui-button'

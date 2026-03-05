@@ -78,6 +78,8 @@ function buildTestSeedData(slug: string) {
     document: docs[index % docs.length] ?? null,
     nodeIds: [node.id],
     nodeSlugs: [node.slug],
+    curated: true,
+    editorialStatus: 'published' as const,
   }));
   return { universe, nodes, docs, items };
 }
@@ -114,10 +116,20 @@ async function saveEvidenceAction(formData: FormData) {
   let evidenceId: string | null = null;
   if (existing.data?.id) {
     evidenceId = existing.data.id;
+    const previous = await service.from('evidences').select('status').eq('id', evidenceId).maybeSingle();
     await service
       .from('evidences')
-      .update({ node_id: nodeId || null, document_id: documentId, title, summary, curated: true })
+      .update({ node_id: nodeId || null, document_id: documentId, title, summary, curated: true, status: 'draft' })
       .eq('id', evidenceId);
+    await service.from('evidence_audit_logs').insert({
+      evidence_id: evidenceId,
+      universe_id: universeId,
+      action: 'status_change',
+      from_status: previous.data?.status ?? null,
+      to_status: 'draft',
+      note: 'Curada manualmente em Provas',
+      changed_by: session.userId,
+    });
   } else {
     const inserted = await service
       .from('evidences')
@@ -129,11 +141,23 @@ async function saveEvidenceAction(formData: FormData) {
         title,
         summary,
         curated: true,
+        status: 'draft',
         confidence: 0.6,
       })
       .select('id')
       .maybeSingle();
     evidenceId = inserted.data?.id ?? null;
+    if (evidenceId) {
+      await service.from('evidence_audit_logs').insert({
+        evidence_id: evidenceId,
+        universe_id: universeId,
+        action: 'create',
+        from_status: null,
+        to_status: 'draft',
+        note: 'Criada manualmente em Provas',
+        changed_by: session.userId,
+      });
+    }
   }
   if (nodeId && evidenceId) {
     await addNodeEvidence({ universeId, nodeId, evidenceId, pinRank: 100 });
@@ -147,6 +171,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
   const filters = parseProvasFilters(await searchParams);
   const db = getSupabaseServerClient();
   const testSeed = process.env.TEST_SEED === '1';
+  const adminCanWrite = Boolean((await canWriteAdminContent()) && process.env.SUPABASE_SERVICE_ROLE_KEY);
 
   if (!db || testSeed) {
     if (testSeed) {
@@ -195,8 +220,20 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                       <option value='evidence'>Evidencias</option>
                     </select>
                   </label>
+                {adminCanWrite ? (
                   <label>
-                    <span>Busca textual</span>
+                    <span>Status editorial</span>
+                    <select name='editorial' defaultValue={filters.editorial} style={{ width: '100%', minHeight: 42 }}>
+                      <option value='published'>Publicadas</option>
+                      <option value='review'>Em revisao</option>
+                      <option value='draft'>Rascunhos</option>
+                      <option value='rejected'>Rejeitadas</option>
+                      <option value='all'>Todas</option>
+                    </select>
+                  </label>
+                ) : null}
+                <label>
+                  <span>Busca textual</span>
                     <input name='q' defaultValue={filters.q} placeholder='termo, frase, autor...' style={{ width: '100%', minHeight: 42 }} />
                   </label>
                   <label>
@@ -252,11 +289,19 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                     <CardHeader
                       title={item.title}
                       typeLabel='evidence'
-                      meta={`${item.document?.title ?? 'Documento n/d'} ${item.year ? `(${item.year})` : ''}`}
+                      meta={`${item.document?.title ?? 'Documento n/d'} ${item.year ? `(${item.year})` : ''} | ${item.editorialStatus}`}
                     />
                     <p style={{ margin: 0 }}>{clip(item.snippet, 180)}</p>
                     <div className='toolbar-row'>
-                      <Link className='ui-button' data-variant='ghost' data-selected={filters.selected === item.id ? 'true' : undefined} href={makeUrl({ selected: item.id, panel: 'detail' })}>
+                      <Link
+                        className='ui-button'
+                        data-variant='ghost'
+                        data-selected={filters.selected === item.id ? 'true' : undefined}
+                        href={makeUrl({ selected: item.id, panel: 'detail' })}
+                        data-track-event='evidence_click'
+                        data-track-cta='open_detail'
+                        data-track-section='provas_list'
+                      >
                         Ver detalhe
                       </Link>
                     </div>
@@ -339,8 +384,6 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
       ? await getChunkDetail(filters.selected)
       : await getEvidenceDetail(filters.selected)
     : null;
-  const adminCanWrite = Boolean((await canWriteAdminContent()) && process.env.SUPABASE_SERVICE_ROLE_KEY);
-
   const makeUrl = (override: Partial<typeof filters>) => {
     const next = {
       ...filters,
@@ -375,6 +418,18 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                   <option value='chunk'>Trechos</option>
                 </select>
               </label>
+              {adminCanWrite ? (
+                <label>
+                  <span>Status editorial</span>
+                  <select name='editorial' defaultValue={filters.editorial} style={{ width: '100%', minHeight: 42 }}>
+                    <option value='published'>Publicadas</option>
+                    <option value='review'>Em revisao</option>
+                    <option value='draft'>Rascunhos</option>
+                    <option value='rejected'>Rejeitadas</option>
+                    <option value='all'>Todas</option>
+                  </select>
+                </label>
+              ) : null}
               <label>
                 <span>Busca textual</span>
                 <input name='q' defaultValue={filters.q} placeholder='termo, frase, autor...' style={{ width: '100%', minHeight: 42 }} />
@@ -527,6 +582,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
             />
             <div className='toolbar-row'>
               <Carimbo>{`tipo:${filters.type}`}</Carimbo>
+              <Carimbo>{`editorial:${filters.editorial}`}</Carimbo>
               <Carimbo>{`itens:${listItems.length}`}</Carimbo>
             </div>
             <div className='core-grid'>
@@ -542,7 +598,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                     typeLabel={item.kind === 'evidence' ? 'evidence' : 'chunk'}
                     meta={`${item.document?.title ?? 'Documento n/d'} ${item.year ? `(${item.year})` : ''} | ${
                       item.pages.start ? `p.${item.pages.start}` : 's/p'
-                    }`}
+                    } | ${item.editorialStatus}`}
                   />
                   <p style={{ margin: 0 }}>{clip(item.snippet, 180)}</p>
                   <div className='toolbar-row'>
@@ -551,6 +607,9 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                       data-variant='ghost'
                       data-selected={filters.selected === item.id ? 'true' : undefined}
                       href={makeUrl({ selected: item.id, panel: 'detail' })}
+                      data-track-event='evidence_click'
+                      data-track-cta='open_detail'
+                      data-track-section='provas_list'
                     >
                       Ver detalhe
                     </Link>

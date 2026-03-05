@@ -33,6 +33,9 @@ type AskResponse = {
   mode: 'strict_ok' | 'insufficient';
   threadId: string | null;
   insufficientReason?: string | null;
+  confidence?: { score: number; label: 'forte' | 'media' | 'fraca' };
+  limitations?: string[];
+  divergence?: { flag: boolean; summary: string | null };
   citations: AskCitation[];
 };
 
@@ -128,7 +131,13 @@ export function ThreadDetailActions({
   return (
     <div className='stack'>
       <div className='toolbar-row'>
-        <Link className='ui-button' href={provasHref}>
+        <Link
+          className='ui-button'
+          href={provasHref}
+          data-track-event='cta_click'
+          data-track-cta='ver_provas'
+          data-track-section='debate_detail'
+        >
           Ver Provas
         </Link>
         {firstEvidenceHref ? (
@@ -171,10 +180,30 @@ export function ThreadDetailActions({
       {result ? (
         <Card className='stack' role='status' aria-live='polite'>
           <strong>Resultado do follow-up</strong>
+          {result.confidence ? (
+            <p className='muted' style={{ margin: 0 }}>
+              Confianca: {result.confidence.label} ({result.confidence.score}/100)
+            </p>
+          ) : null}
           <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{result.answer}</p>
           {result.insufficientReason ? (
             <p className='muted' style={{ margin: 0 }}>
               Limite: {result.insufficientReason}
+            </p>
+          ) : null}
+          {result.limitations && result.limitations.length > 0 ? (
+            <div className='stack'>
+              <strong>Limitacoes</strong>
+              {result.limitations.slice(0, 4).map((item, index) => (
+                <p key={`followup-limit-${index}`} className='muted' style={{ margin: 0 }}>
+                  - {item}
+                </p>
+              ))}
+            </div>
+          ) : null}
+          {result.divergence?.flag ? (
+            <p className='muted' style={{ margin: 0, color: 'var(--alert-0)' }}>
+              Divergencia: {result.divergence.summary ?? 'Ha sinais de resultados divergentes ou inconclusivos entre fontes.'}
             </p>
           ) : null}
           <div className='stack'>

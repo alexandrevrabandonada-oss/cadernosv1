@@ -3,12 +3,14 @@ import 'server-only';
 export type DebateLens = 'default' | 'worker' | 'resident' | 'researcher' | 'policy';
 export type DebateKind = 'all' | 'default' | 'guided' | 'tutor_chat';
 export type DebateStatus = 'all' | 'strict_ok' | 'insufficient';
+export type DebateConfidence = 'all' | 'forte' | 'media' | 'fraca';
 
 export type DebateFilters = {
   lens: DebateLens;
   node: string;
   kind: DebateKind;
   status: DebateStatus;
+  confidence: DebateConfidence;
   q: string;
   yearFrom: number | null;
   yearTo: number | null;
@@ -42,6 +44,11 @@ function parseStatus(value: string): DebateStatus {
   return 'all';
 }
 
+function parseConfidence(value: string): DebateConfidence {
+  if (value === 'forte' || value === 'media' || value === 'fraca') return value;
+  return 'all';
+}
+
 export function parseDebateFilters(searchParams: Record<string, string | string[] | undefined>): DebateFilters {
   const panelRaw = readFirst(searchParams.panel);
   const panel: '' | 'detail' | 'filters' = panelRaw === 'detail' || panelRaw === 'filters' ? panelRaw : '';
@@ -50,6 +57,7 @@ export function parseDebateFilters(searchParams: Record<string, string | string[
     node: readFirst(searchParams.node).trim(),
     kind: parseKind(readFirst(searchParams.kind)),
     status: parseStatus(readFirst(searchParams.status)),
+    confidence: parseConfidence(readFirst(searchParams.confidence)),
     q: readFirst(searchParams.q).trim(),
     yearFrom: parseNumber(readFirst(searchParams.yearFrom)),
     yearTo: parseNumber(readFirst(searchParams.yearTo)),
@@ -65,6 +73,7 @@ export function serializeDebateFilters(filters: Partial<DebateFilters>) {
   if (filters.node) qs.set('node', filters.node);
   if (filters.kind && filters.kind !== 'all') qs.set('kind', filters.kind);
   if (filters.status && filters.status !== 'all') qs.set('status', filters.status);
+  if (filters.confidence && filters.confidence !== 'all') qs.set('confidence', filters.confidence);
   if (filters.q) qs.set('q', filters.q);
   if (typeof filters.yearFrom === 'number') qs.set('yearFrom', String(filters.yearFrom));
   if (typeof filters.yearTo === 'number') qs.set('yearTo', String(filters.yearTo));

@@ -59,15 +59,39 @@ export async function promoteChunkToEvidence(input: {
     source_url: doc?.source_url ?? null,
     confidence: 0.7,
     curated: true,
+    status: 'draft',
+    published_at: null,
+    reviewed_by: session.userId,
   };
 
   let evidenceId: string | null = null;
   if (existing?.id) {
+    const { data: previous } = await service.from('evidences').select('status').eq('id', existing.id).maybeSingle();
     await service.from('evidences').update(payload).eq('id', existing.id);
     evidenceId = existing.id;
+    await service.from('evidence_audit_logs').insert({
+      evidence_id: evidenceId,
+      universe_id: input.universeId,
+      action: 'status_change',
+      from_status: previous?.status ?? null,
+      to_status: 'draft',
+      note: 'Promovida/atualizada via curadoria assistida',
+      changed_by: session.userId,
+    });
   } else {
     const { data: inserted } = await service.from('evidences').insert(payload).select('id').maybeSingle();
     evidenceId = inserted?.id ?? null;
+    if (evidenceId) {
+      await service.from('evidence_audit_logs').insert({
+        evidence_id: evidenceId,
+        universe_id: input.universeId,
+        action: 'create',
+        from_status: null,
+        to_status: 'draft',
+        note: 'Promovida via curadoria assistida',
+        changed_by: session.userId,
+      });
+    }
   }
 
   if (evidenceId && input.nodeId) {

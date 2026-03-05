@@ -139,3 +139,15 @@ Quando houver suspeita de vazamento, rotacionar imediatamente:
 ## Regra operacional
 
 - Nunca colar secrets em relatórios, comentários de PR, output de script ou logs de erro.
+
+## Analytics e privacidade
+
+- Tracking interno via `POST /api/track` (sem GA por padrão).
+- Coletamos apenas:
+  - `session_id` anônimo (`cv_sid`)
+  - `user_id` quando autenticado
+  - rota/evento/objeto e metadados curtos de CTA
+- Não coletamos:
+  - IP bruto
+  - texto de perguntas do debate
+  - payloads sensíveis de auth

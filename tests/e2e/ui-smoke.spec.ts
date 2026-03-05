@@ -33,6 +33,8 @@ test.describe('UI smoke - workspace critico', () => {
   test('debate: seleciona thread, troca lente e CTA Ver Provas funciona', async ({ page }) => {
     await page.goto(`/c/${slug}/debate?selected=${slug}-thread-1`);
     await expect(page.getByTestId('detail-panel').first()).toBeVisible();
+    await expect(page.getByTestId('detail-panel').first()).toContainText('confianca:');
+    await expect(page.getByTestId('detail-panel').first()).toContainText('Limitacoes');
 
     await page.getByTestId('lens-toggle').first().selectOption('worker');
     await page.getByRole('button', { name: 'Aplicar' }).first().click();
@@ -42,6 +44,26 @@ test.describe('UI smoke - workspace critico', () => {
     expect(provasHref).toContain(`/c/${slug}/provas`);
     await page.goto(provasHref ?? `/c/${slug}/provas`);
     await expect(page).toHaveURL(new RegExp(`/c/${slug}/provas`));
+  });
+
+  test('api ask: retorna confidence limitations e divergence', async ({ request }) => {
+    const response = await request.post('/api/ask', {
+      data: {
+        universeSlug: slug,
+        question: 'Quais evidencias principais desta base?',
+      },
+    });
+    expect(response.status()).toBe(200);
+    const payload = (await response.json()) as {
+      confidence?: { score: number; label: string };
+      limitations?: string[];
+      divergence?: { flag: boolean; summary: string | null };
+    };
+    expect(payload.confidence).toBeTruthy();
+    expect(typeof payload.confidence?.score).toBe('number');
+    expect(['forte', 'media', 'fraca']).toContain(payload.confidence?.label);
+    expect(Array.isArray(payload.limitations)).toBeTruthy();
+    expect(payload.divergence).toBeTruthy();
   });
 
   test('glossario: abre detalhe e CTA Ir para No abre mapa com node selecionado', async ({ page }) => {
@@ -177,5 +199,88 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page.getByRole('link', { name: 'Abrir no app' })).toBeVisible();
     const ogImage = page.locator('meta[property="og:image"]');
     await expect(ogImage).toHaveAttribute('content', new RegExp(`/api/og\\?type=term&u=${slug}&id=mock-${slug}-${slug}-n1`));
+  });
+
+  test('share pack semanal: gera lista de links validos', async ({ request }) => {
+    const response = await request.get(`/api/share-pack?u=${slug}`);
+    expect(response.status()).toBe(200);
+    const payload = (await response.json()) as {
+      weekKey: string;
+      title: string;
+      items: Array<{ type: string; url: string }>;
+    };
+
+    expect(payload.weekKey).toMatch(/^\d{4}-W\d{2}$/);
+    expect(payload.title).toContain('Pack da semana');
+    expect(payload.items.length).toBeGreaterThanOrEqual(5);
+
+    const types = new Set(payload.items.map((item) => item.type));
+    expect(types.has('evidence')).toBeTruthy();
+    expect(types.has('thread')).toBeTruthy();
+    expect(types.has('event')).toBeTruthy();
+    expect(types.has('term')).toBeTruthy();
+    expect(types.has('node')).toBeTruthy();
+
+    for (const item of payload.items) {
+      const linkResponse = await request.get(item.url);
+      expect(linkResponse.status()).toBe(200);
+    }
+  });
+
+  test('share pack caption: endpoint responde em ambiente de teste', async ({ request }) => {
+    const response = await request.get(`/api/share-pack/caption?u=${slug}&channel=instagram`);
+    expect(response.status()).toBe(200);
+  });
+
+  test('cron weekly-pack: endpoint protegido cria/garante pack da semana', async ({ request }) => {
+    const unauthorized = await request.post('/api/cron/weekly-pack');
+    expect(unauthorized.status()).toBe(401);
+
+    const response = await request.post('/api/cron/weekly-pack', {
+      headers: { 'x-cron-secret': 'test-cron-secret' },
+    });
+    expect(response.status()).toBe(200);
+    const payload = (await response.json()) as { ok: boolean; processed: number; results: Array<{ packId: string | null }> };
+    expect(payload.ok).toBeTruthy();
+    expect(payload.results.length).toBeGreaterThan(0);
+    expect(payload.results[0]?.packId).toBeTruthy();
+  });
+
+  test('share pack admin: marcar instagram como postado persiste', async ({ page, request }) => {
+    await request.post('/api/cron/weekly-pack', {
+      headers: { 'x-cron-secret': 'test-cron-secret' },
+    });
+
+    await page.goto('/admin/universes/mock-demo/share-pack');
+    const instagramCard = page.locator('article.core-node').filter({ hasText: 'instagram' }).first();
+    await expect(instagramCard).toBeVisible();
+    await instagramCard.getByRole('button', { name: 'Marcar postado' }).click();
+    await expect(instagramCard).toContainText('posted');
+
+    await page.reload();
+    const instagramAfterReload = page.locator('article.core-node').filter({ hasText: 'instagram' }).first();
+    await expect(instagramAfterReload).toContainText('posted');
+  });
+
+  test('api track: aceita evento valido', async ({ request }) => {
+    const response = await request.post('/api/track', {
+      data: {
+        universeSlug: slug,
+        event_name: 'cta_click',
+        route: `/c/${slug}`,
+        meta: { cta: 'smoke_test' },
+      },
+    });
+    expect(response.status()).toBe(200);
+    const payload = (await response.json()) as { ok: boolean };
+    expect(payload.ok).toBeTruthy();
+  });
+
+  test('share page: link Abrir no app tem tracking e navega', async ({ page }) => {
+    await page.goto(`/c/${slug}/s/evidence/${slug}-ev-1`);
+    const openAppLink = page.getByRole('link', { name: 'Abrir no app' });
+    await expect(openAppLink).toHaveAttribute('data-track-event', 'share_open_app');
+    await openAppLink.click();
+    await expect(page).toHaveURL(new RegExp(`/c/${slug}/provas`));
   });
 });

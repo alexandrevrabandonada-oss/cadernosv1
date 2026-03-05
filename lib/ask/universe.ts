@@ -3,6 +3,8 @@ import { RATE_LIMITS } from '@/lib/ratelimit/config';
 import { rateLimit } from '@/lib/ratelimit';
 import { composeAnswer } from '@/lib/answer/compose';
 import { captureException } from '@/lib/obs/sentry';
+import { computeConfidence } from '@/lib/quality/confidence';
+import { detectDivergence } from '@/lib/quality/divergence';
 import { buildAskRateKey } from '@/lib/ratelimit/keys';
 import { rerankCandidates } from '@/lib/search/rerank';
 import { retrieveCandidates } from '@/lib/search/retrieve';
@@ -44,6 +46,8 @@ type AskCitation = {
   quote: string;
   quoteStart: number | null;
   quoteEnd: number | null;
+  methodKind: string | null;
+  docQuality: number | null;
 };
 
 type QaLogStatus = 'ok' | 'invalid_payload' | 'rate_limited' | 'error';
@@ -200,7 +204,19 @@ async function persistQaThread(
   citations: AskCitation[],
   nodeId: string | null,
   source: 'guided' | 'default' | 'tutor_chat',
-  meta: { mode: 'strict_ok' | 'insufficient'; docsUsed: number; chunksUsed: number; insufficientReason: string | null },
+  meta: {
+    mode: 'strict_ok' | 'insufficient';
+    docsUsed: number;
+    chunksUsed: number;
+    insufficientReason: string | null;
+    confidenceScore: number;
+    confidenceLabel: 'forte' | 'media' | 'fraca';
+    divergenceFlag: boolean;
+    divergenceSummary: string | null;
+    limitations: string[];
+    docsDistinct: number;
+    avgDocQuality: number | null;
+  },
 ) {
   const service = getSupabaseServiceRoleClient();
   if (!service) return null;
@@ -216,6 +232,13 @@ async function persistQaThread(
       docs_used: meta.docsUsed,
       chunks_used: meta.chunksUsed,
       insufficient_reason: meta.insufficientReason,
+      confidence_score: meta.confidenceScore,
+      confidence_label: meta.confidenceLabel,
+      divergence_flag: meta.divergenceFlag,
+      divergence_summary: meta.divergenceSummary,
+      limitations: meta.limitations,
+      docs_distinct: meta.docsDistinct,
+      avg_doc_quality: meta.avgDocQuality,
     })
     .select('id')
     .maybeSingle();
@@ -324,6 +347,72 @@ export async function askUniverse(payload: AskPayload, context: AskRunContext): 
   const question = payload.question.trim();
   const db = getSupabaseServerClient();
   if (!db) {
+    if (process.env.TEST_SEED === '1') {
+      const mockCitations = [
+        {
+          ord: 1,
+          citationId: `${universeSlug}-mock-cite-1`,
+          threadId: `${universeSlug}-mock-thread`,
+          docId: `${universeSlug}-doc-1`,
+          chunkId: `${universeSlug}-chunk-1`,
+          doc: 'Documento Demo',
+          year: 2024,
+          pages: 'p.12-13',
+          pageStart: 12,
+          pageEnd: 13,
+          quote: 'Trecho de evidencia sintetico para ambiente de teste.',
+          quoteStart: 8,
+          quoteEnd: 54,
+          highlightToken: `${universeSlug}-hl-1`,
+        },
+        {
+          ord: 2,
+          citationId: `${universeSlug}-mock-cite-2`,
+          threadId: `${universeSlug}-mock-thread`,
+          docId: `${universeSlug}-doc-2`,
+          chunkId: `${universeSlug}-chunk-2`,
+          doc: 'Documento Demo B',
+          year: 2023,
+          pages: 'p.5',
+          pageStart: 5,
+          pageEnd: 5,
+          quote: 'Outro trecho para contraste metodologico em teste.',
+          quoteStart: 0,
+          quoteEnd: 46,
+          highlightToken: `${universeSlug}-hl-2`,
+        },
+      ];
+      const confidence = computeConfidence({
+        mode: 'strict_ok',
+        docsDistinct: 2,
+        chunksUsed: 2,
+        citationsCount: 2,
+        avgDocQuality: 72,
+        methodKinds: ['review', 'observational'],
+        citationsByDoc: new Map([
+          [`${universeSlug}-doc-1`, 1],
+          [`${universeSlug}-doc-2`, 1],
+        ]),
+      });
+      return {
+        status: 200,
+        body: {
+          answer:
+            '## Achados\n- Evidencias de teste apontam sinais consistentes no recorte atual.\n## Limitacoes\n- Base de teste sintetica para validacao de fluxo.\n## Citacoes\n- As citacoes estruturadas estao no bloco `citations[]` desta resposta.',
+          mode: 'strict_ok',
+          insufficient: false,
+          insufficientReason: null,
+          confidence: { score: confidence.score, label: confidence.label },
+          limitations: confidence.limitations,
+          divergence: { flag: false, summary: null },
+          docsDistinct: 2,
+          avgDocQuality: 72,
+          suggestions: [],
+          threadId: `${universeSlug}-mock-thread`,
+          citations: mockCitations,
+        },
+      };
+    }
     await logQaAttempt({
       status: 'error',
       statusCode: 503,
@@ -420,8 +509,11 @@ export async function askUniverse(payload: AskPayload, context: AskRunContext): 
 
     const docIds = Array.from(new Set(selected.map((item) => item.document_id)));
     const { data: docs } = docIds.length
-      ? await db.from('documents').select('id, title, year').in('id', docIds)
-      : { data: [] as Array<{ id: string; title: string; year: number | null }> };
+      ? await db
+          .from('documents')
+          .select('id, title, year, text_quality_score, method_kind')
+          .in('id', docIds)
+      : { data: [] as Array<{ id: string; title: string; year: number | null; text_quality_score: number | null; method_kind: string | null }> };
     const docById = new Map((docs ?? []).map((d) => [d.id, d]));
 
     const citations = uniqueByChunk(
@@ -440,6 +532,8 @@ export async function askUniverse(payload: AskPayload, context: AskRunContext): 
           quote,
           quoteStart: offsets.quoteStart,
           quoteEnd: offsets.quoteEnd,
+          methodKind: doc?.method_kind ?? null,
+          docQuality: typeof doc?.text_quality_score === 'number' ? doc.text_quality_score : null,
         } satisfies AskCitation;
       }),
     ).slice(0, 8);
@@ -463,12 +557,51 @@ export async function askUniverse(payload: AskPayload, context: AskRunContext): 
       insufficientReason: insufficientReason ?? undefined,
     });
     const mode: 'strict_ok' | 'insufficient' = insufficient ? 'insufficient' : 'strict_ok';
+    const citationsByDoc = new Map<string, number>();
+    for (const citation of citations) {
+      citationsByDoc.set(citation.documentId, (citationsByDoc.get(citation.documentId) ?? 0) + 1);
+    }
+    const distinctDocsFromCitations = citationsByDoc.size;
+    const docQualities = Array.from(
+      new Set(
+        citations
+          .map((citation) => citation.docQuality)
+          .filter((value): value is number => typeof value === 'number' && value >= 0),
+      ),
+    );
+    const avgDocQuality =
+      docQualities.length > 0
+        ? Math.round(docQualities.reduce((acc, item) => acc + item, 0) / docQualities.length)
+        : null;
+    const confidence = computeConfidence({
+      mode,
+      docsDistinct: distinctDocsFromCitations,
+      chunksUsed,
+      citationsCount: citations.length,
+      avgDocQuality,
+      methodKinds: citations.map((citation) => citation.methodKind),
+      citationsByDoc,
+    });
+    const divergence = detectDivergence({
+      question,
+      docsDistinct: distinctDocsFromCitations,
+      mode,
+      chunks: selected.map((item) => ({ documentId: item.document_id, text: item.text })),
+      limitations: confidence.limitations,
+    });
 
     const persisted = await persistQaThread(universe.id, question, answer, citations, nodeId, source, {
       mode,
       docsUsed,
       chunksUsed,
       insufficientReason,
+      confidenceScore: confidence.score,
+      confidenceLabel: confidence.label,
+      divergenceFlag: divergence.flag,
+      divergenceSummary: divergence.summary,
+      limitations: confidence.limitations,
+      docsDistinct: distinctDocsFromCitations,
+      avgDocQuality,
     });
     const citationByChunk = new Map((persisted?.citations ?? []).map((c) => [c.chunk_id, c]));
 
@@ -485,7 +618,7 @@ export async function askUniverse(payload: AskPayload, context: AskRunContext): 
       chunksUsed,
       chunksUsados: chunksUsed,
       docsUsed,
-      docsDistintos: docsUsed,
+      docsDistintos: distinctDocsFromCitations,
       evidenceSufficient: !insufficient,
       latencyMs: Date.now() - startedAt,
       requesterHash,
@@ -503,6 +636,17 @@ export async function askUniverse(payload: AskPayload, context: AskRunContext): 
         mode,
         insufficient,
         insufficientReason,
+        confidence: {
+          score: confidence.score,
+          label: confidence.label,
+        },
+        limitations: confidence.limitations,
+        divergence: {
+          flag: divergence.flag,
+          summary: divergence.summary,
+        },
+        docsDistinct: distinctDocsFromCitations,
+        avgDocQuality,
         suggestions: insufficient ? suggestions : [],
         threadId: persisted?.threadId ?? null,
         citations: citations.map((citation, ord) => {

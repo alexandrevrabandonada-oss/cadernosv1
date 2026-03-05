@@ -14,6 +14,15 @@ type RenderThreadInput = {
   question: string;
   answer: string;
   createdAt: string;
+  confidence: {
+    score: number | null;
+    label: 'forte' | 'media' | 'fraca' | null;
+  };
+  limitations: string[];
+  divergence: {
+    flag: boolean;
+    summary: string | null;
+  };
   citations: ThreadCitation[];
 };
 
@@ -75,6 +84,30 @@ export function renderThreadMarkdown(input: RenderThreadInput) {
   lines.push('');
   lines.push(input.answer);
   lines.push('');
+  lines.push('## Forca do achado');
+  lines.push('');
+  if (input.confidence.label) {
+    lines.push(
+      `- Sinal: ${input.confidence.label}${typeof input.confidence.score === 'number' ? ` (${input.confidence.score}/100)` : ''}.`,
+    );
+  } else {
+    lines.push('- Sinal: n/d.');
+  }
+  lines.push('');
+  lines.push('## Limitacoes');
+  lines.push('');
+  if (input.limitations.length > 0) {
+    input.limitations.slice(0, 4).forEach((item) => lines.push(`- ${item}`));
+  } else {
+    lines.push('- Sem limitacoes adicionais registradas.');
+  }
+  lines.push('');
+  if (input.divergence.flag) {
+    lines.push('## Possivel divergencia entre fontes');
+    lines.push('');
+    lines.push(`- ${input.divergence.summary ?? 'Ha sinais de resultados divergentes ou inconclusivos entre fontes.'}`);
+    lines.push('');
+  }
   lines.push('## Evidencias');
   lines.push('');
 

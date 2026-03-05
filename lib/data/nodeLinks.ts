@@ -1,5 +1,5 @@
 import 'server-only';
-import { requireEditorOrAdmin } from '@/lib/auth/requireRole';
+import { canWriteAdminContent, requireEditorOrAdmin } from '@/lib/auth/requireRole';
 import { getSupabaseServerClient, getSupabaseServiceRoleClient } from '@/lib/supabase/server';
 
 export type NodeLinkedDocument = {
@@ -86,9 +86,17 @@ function asRecord<T>(rows: T[], key: (row: T) => string) {
   return out;
 }
 
+async function getReadClient() {
+  if (await canWriteAdminContent()) {
+    const service = getSupabaseServiceRoleClient();
+    if (service) return service;
+  }
+  return getSupabaseServerClient();
+}
+
 async function fetchNodeDocumentsRows(universeId: string, nodeIds: string[]) {
   if (nodeIds.length === 0) return [] as NodeDocRow[];
-  const db = getSupabaseServerClient();
+  const db = await getReadClient();
   if (!db) return [] as NodeDocRow[];
 
   const { data } = await db
@@ -103,7 +111,7 @@ async function fetchNodeDocumentsRows(universeId: string, nodeIds: string[]) {
 
 async function fetchNodeEvidencesRows(universeId: string, nodeIds: string[]) {
   if (nodeIds.length === 0) return [] as NodeEvidenceRow[];
-  const db = getSupabaseServerClient();
+  const db = await getReadClient();
   if (!db) return [] as NodeEvidenceRow[];
 
   const { data } = await db
@@ -117,7 +125,7 @@ async function fetchNodeEvidencesRows(universeId: string, nodeIds: string[]) {
 }
 
 export async function listNodeDocuments(nodeId: string) {
-  const db = getSupabaseServerClient();
+  const db = await getReadClient();
   if (!db) return [] as NodeLinkedDocument[];
 
   const { data: node } = await db.from('nodes').select('id, universe_id').eq('id', nodeId).maybeSingle();
@@ -160,7 +168,7 @@ export async function listNodeDocuments(nodeId: string) {
 
 export async function listNodeDocumentsByNodeIds(universeId: string, nodeIds: string[]) {
   const rows = await fetchNodeDocumentsRows(universeId, nodeIds);
-  const db = getSupabaseServerClient();
+  const db = await getReadClient();
   if (!db) return {} as Record<string, NodeLinkedDocument[]>;
   if (rows.length === 0) return {} as Record<string, NodeLinkedDocument[]>;
 
@@ -199,7 +207,7 @@ export async function listNodeDocumentsByNodeIds(universeId: string, nodeIds: st
 }
 
 export async function listNodeEvidences(nodeId: string) {
-  const db = getSupabaseServerClient();
+  const db = await getReadClient();
   if (!db) return [] as NodeLinkedEvidence[];
 
   const { data: node } = await db.from('nodes').select('id, universe_id').eq('id', nodeId).maybeSingle();
@@ -262,7 +270,7 @@ export async function listNodeEvidencesByNodeIds(universeId: string, nodeIds: st
   const links = await fetchNodeEvidencesRows(universeId, nodeIds);
   if (links.length === 0) return {} as Record<string, NodeLinkedEvidence[]>;
 
-  const db = getSupabaseServerClient();
+  const db = await getReadClient();
   if (!db) return {} as Record<string, NodeLinkedEvidence[]>;
 
   const evidenceIds = Array.from(new Set(links.map((link) => link.evidence_id)));
@@ -318,7 +326,7 @@ export async function listNodeEvidencesByNodeIds(universeId: string, nodeIds: st
 }
 
 export async function listNodeQuestions(nodeId: string) {
-  const db = getSupabaseServerClient();
+  const db = await getReadClient();
   if (!db) return [] as NodeQuestion[];
 
   const { data } = await db
@@ -339,7 +347,7 @@ export async function listNodeQuestions(nodeId: string) {
 
 export async function listNodeQuestionsByNodeIds(universeId: string, nodeIds: string[]) {
   if (nodeIds.length === 0) return {} as Record<string, NodeQuestion[]>;
-  const db = getSupabaseServerClient();
+  const db = await getReadClient();
   if (!db) return {} as Record<string, NodeQuestion[]>;
 
   const { data } = await db

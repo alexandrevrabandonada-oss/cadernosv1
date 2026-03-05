@@ -60,6 +60,9 @@ Separar variaveis publicas (seguras para browser) de segredos server-only.
 - `SENTRY_PROFILES_SAMPLE_RATE`
   - tipo: server-side
   - uso: profiling (geralmente `0.0` no inicio)
+- `CRON_SECRET`
+  - tipo: secreta server-side
+  - uso: proteger endpoint interno `/api/cron/weekly-pack`
 - `DEV_ADMIN_BYPASS`
   - tipo: feature flag local (apenas desenvolvimento)
   - uso: permite bypass de auth para admin quando `NODE_ENV=development` e valor `1`
@@ -82,6 +85,7 @@ Observacao Sentry:
   - `SENTRY_ENVIRONMENT=development`
   - `SENTRY_TRACES_SAMPLE_RATE=0.1`
   - `SENTRY_PROFILES_SAMPLE_RATE=0.0`
+  - `CRON_SECRET` (se for testar cron local por HTTP)
   - variaveis de CLI (`SUPABASE_*`, `VERCEL_*`) apenas se usar automacao local
   - `DEV_ADMIN_BYPASS=1` somente para desenvolvimento local sem login
 - `.env.local` nao deve ser commitado.
@@ -97,6 +101,7 @@ Observacao Sentry:
   - `UPSTASH_REDIS_REST_TOKEN`
   - `SENTRY_DSN`
   - `SENTRY_AUTH_TOKEN`
+  - `CRON_SECRET`
 - Variables (ou secrets):
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
@@ -121,6 +126,7 @@ Observacao Sentry:
   - `SENTRY_ENVIRONMENT`
   - `SENTRY_TRACES_SAMPLE_RATE`
   - `SENTRY_PROFILES_SAMPLE_RATE`
+  - `CRON_SECRET`
   - `DEV_ADMIN_BYPASS` (deixe `0` em preview/prod)
 - Nao envie `SUPABASE_DB_PASSWORD` para runtime web, salvo necessidade explicita.
 

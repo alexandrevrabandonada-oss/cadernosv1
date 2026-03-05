@@ -19,6 +19,13 @@ Exemplos:
 - `/api/og?type=node&u=poluicao-vr&id=<nodeId>`
 - `/api/og?type=term&u=poluicao-vr&id=<termId>`
 
+## Share Pack semanal
+- Admin: `/admin/universes/[id]/share-pack`
+- Doc detalhada: `docs/SHARE_PACK.md`
+- Endpoint de leitura: `/api/share-pack?u=<slug>`
+  - retorna itens canonicos do pack da semana para universo publicado.
+- Endpoint de legenda por canal (protegido): `/api/share-pack/caption?u=<slug>&channel=instagram|whatsapp|telegram|twitter`
+
 ## Paginas publicas de share
 - Universo: `/c/[slug]/s`
 - Evidencia: `/c/[slug]/s/evidence/[id]`

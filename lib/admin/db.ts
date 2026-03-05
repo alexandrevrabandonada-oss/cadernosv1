@@ -91,7 +91,28 @@ export async function listUniverses() {
 export async function getUniverseById(id: string) {
   await requireUser();
   const db = getAdminDb();
-  if (!db) return null;
+  if (!db) {
+    if (process.env.TEST_SEED === '1') {
+      const slug = id.startsWith('mock-') ? id.replace(/^mock-/, '') : id;
+      const title = slug
+        .split('-')
+        .filter(Boolean)
+        .map((chunk) => chunk[0].toUpperCase() + chunk.slice(1))
+        .join(' ');
+      return {
+        id: id.startsWith('mock-') ? id : `mock-${slug}`,
+        slug,
+        title: title || 'Demo',
+        summary: `Universo mock para ${slug}.`,
+        cover_url: null,
+        ui_theme: null,
+        published: true,
+        published_at: new Date().toISOString(),
+        created_at: new Date().toISOString(),
+      } as AdminUniverse;
+    }
+    return null;
+  }
 
   const { data } = await db
     .from('universes')

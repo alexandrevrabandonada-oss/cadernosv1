@@ -40,8 +40,8 @@ const dbMock = {
         select: () => ({
           in: async () => ({
             data: [
-              { id: 'd1', title: 'Doc A', year: 2021 },
-              { id: 'd2', title: 'Doc B', year: 2023 },
+              { id: 'd1', title: 'Doc A', year: 2021, text_quality_score: 82, method_kind: 'review' },
+              { id: 'd2', title: 'Doc B', year: 2023, text_quality_score: 74, method_kind: 'observational' },
             ],
           }),
         }),
@@ -200,6 +200,10 @@ describe('/api/ask integration leve', () => {
     expect(body.insufficient).toBe(true);
     expect(body.answer).toContain('## Achados');
     expect(body.answer).toContain('Nao ha base suficiente');
+    expect(body.confidence).toBeTruthy();
+    expect(body.confidence.label).toBe('fraca');
+    expect(Array.isArray(body.limitations)).toBe(true);
+    expect(body.divergence).toBeTruthy();
     expect(Array.isArray(body.citations)).toBe(true);
     expect(body.citations.length).toBeLessThanOrEqual(3);
   });
@@ -265,5 +269,10 @@ describe('/api/ask integration leve', () => {
     expect(body.citations[0].threadId).toBe('thread-1');
     expect(body.citations[0]).toHaveProperty('quoteStart');
     expect(body.citations[0]).toHaveProperty('quoteEnd');
+    expect(body.confidence).toBeTruthy();
+    expect(typeof body.confidence.score).toBe('number');
+    expect(['forte', 'media', 'fraca']).toContain(body.confidence.label);
+    expect(Array.isArray(body.limitations)).toBe(true);
+    expect(body.divergence).toHaveProperty('flag');
   });
 });

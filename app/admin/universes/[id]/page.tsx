@@ -251,6 +251,9 @@ export default async function AdminUniverseMetaPage({ params, searchParams }: Ad
           <Link className='ui-button' href={`/admin/universes/${universe.id}/assistido`}>
             Curadoria Assistida
           </Link>
+          <Link className='ui-button' href={`/admin/universes/${universe.id}/review`}>
+            Fila de revisao
+          </Link>
           <Link className='ui-button' href={`/admin/universes/${universe.id}/nodes`}>
             Gerenciar nos
           </Link>
@@ -262,6 +265,15 @@ export default async function AdminUniverseMetaPage({ params, searchParams }: Ad
           </Link>
           <Link className='ui-button' href={`/admin/universes/${universe.id}/highlights`}>
             Highlights vitrine
+          </Link>
+          <Link className='ui-button' href={`/admin/universes/${universe.id}/share-pack`}>
+            Share pack semanal
+          </Link>
+          <Link className='ui-button' href={`/admin/universes/${universe.id}/distribution`}>
+            Rotina distribuicao
+          </Link>
+          <Link className='ui-button' href={`/admin/universes/${universe.id}/analytics`}>
+            Analytics
           </Link>
           <Link className='ui-button' href={`/admin/universes/${universe.id}/links`}>
             Curadoria de links

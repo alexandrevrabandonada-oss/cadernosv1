@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useToast } from '@/components/ui/Toast';
+import { trackEvent } from '@/lib/analytics/track';
 
 type ShareButtonProps = {
   url: string;
@@ -26,6 +27,8 @@ export function ShareButton({ url, title, text, label = 'Compartilhar', classNam
   async function onShare() {
     if (!absoluteUrl || busy) return;
     setBusy(true);
+    const match = absoluteUrl.match(/\/c\/([^/]+)/i);
+    const universeSlug = match?.[1] ? decodeURIComponent(match[1]) : undefined;
     try {
       if (navigator.share) {
         await navigator.share({ title, text: text ?? title, url: absoluteUrl });
@@ -34,6 +37,16 @@ export function ShareButton({ url, title, text, label = 'Compartilhar', classNam
         await navigator.clipboard.writeText(absoluteUrl);
         toast.success('Link copiado');
       }
+      trackEvent({
+        universeSlug,
+        event_name: 'cta_click',
+        route: typeof window !== 'undefined' ? `${window.location.pathname}${window.location.search}` : undefined,
+        object_type: 'share',
+        meta: {
+          cta: 'compartilhar',
+          target: absoluteUrl,
+        },
+      });
     } catch {
       try {
         await navigator.clipboard.writeText(absoluteUrl);

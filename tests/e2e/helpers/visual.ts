@@ -45,7 +45,7 @@ export async function disableMotion(page: Page) {
 
 export async function waitForAppReady(page: Page, options?: { requireWorkspace?: boolean }) {
   if (options?.requireWorkspace ?? true) {
-    await expect(page.getByTestId('workspace')).toBeVisible();
+    await expect(page.locator('[data-testid="workspace"]:visible').first()).toBeVisible();
   }
   await expect(page.getByTestId('skeleton')).toHaveCount(0, { timeout: 4_000 });
 }

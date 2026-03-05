@@ -58,7 +58,15 @@ export default async function ShareEvidencePage({ params }: ShareEvidencePagePro
           {evidence.docTitle ?? 'Documento'} {evidence.year ? `(${evidence.year})` : ''} | {pageLabel}
         </p>
         <div className='toolbar-row'>
-          <Link className='ui-button' href={appHref}>
+          <Link
+            className='ui-button'
+            href={appHref}
+            data-track-event='share_open_app'
+            data-track-cta='open_app_evidence'
+            data-track-section='share_evidence'
+            data-track-object-type='evidence'
+            data-track-object-id={id}
+          >
             Abrir no app
           </Link>
           <ShareButton url={shareUrl} title={evidence.title} text={evidence.snippet} />

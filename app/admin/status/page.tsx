@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { Card } from '@/components/ui/Card';
 import { Carimbo } from '@/components/ui/Badge';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -74,6 +75,16 @@ export default async function AdminStatusPage() {
             <span>Latência max</span>
             <strong>{status.ops24h.ask.latencyMaxMs}ms</strong>
           </div>
+          <div className='status-item'>
+            <span>Confianca (F/M/FR)</span>
+            <strong>
+              {status.ops24h.ask.confidenceStrong}/{status.ops24h.ask.confidenceMedium}/{status.ops24h.ask.confidenceWeak}
+            </strong>
+          </div>
+          <div className='status-item'>
+            <span>Divergencia</span>
+            <strong>{status.ops24h.ask.divergencePct}%</strong>
+          </div>
         </div>
       </Card>
 
@@ -110,6 +121,27 @@ export default async function AdminStatusPage() {
       </Card>
 
       <Card className='stack'>
+        <SectionHeader title='Workflow editorial de evidencias' />
+        <div className='status-grid'>
+          <div className='status-item'>
+            <span>Draft</span>
+            <strong>{status.ops24h.evidences.draft}</strong>
+          </div>
+          <div className='status-item'>
+            <span>Review</span>
+            <strong>{status.ops24h.evidences.review}</strong>
+          </div>
+          <div className='status-item'>
+            <span>Published (24h)</span>
+            <strong>{status.ops24h.evidences.published24h}</strong>
+          </div>
+        </div>
+        <Link className='ui-button' href='/admin/universes'>
+          Abrir universos (fila de revisao por universo)
+        </Link>
+      </Card>
+
+      <Card className='stack'>
         <SectionHeader title='Tutor Chat (24h)' />
         <div className='status-grid'>
           <div className='status-item'>
@@ -134,6 +166,69 @@ export default async function AdminStatusPage() {
             <span>Exports de sessão</span>
             <strong>{status.ops24h.tutor.sessionExports24h}</strong>
           </div>
+        </div>
+      </Card>
+
+      <Card className='stack'>
+        <SectionHeader title='Distribuicao semanal' />
+        <div className='status-grid'>
+          <div className='status-item'>
+            <span>Semana</span>
+            <strong>{status.ops24h.distribution.weekKey}</strong>
+          </div>
+          <div className='status-item'>
+            <span>Packs pendentes</span>
+            <strong>{status.ops24h.distribution.packsPendingThisWeek}</strong>
+          </div>
+          <div className='status-item'>
+            <span>Canais pendentes</span>
+            <strong>{status.ops24h.distribution.channelsPendingThisWeek}</strong>
+          </div>
+          <div className='status-item'>
+            <span>Ultimo cron</span>
+            <strong>
+              {status.ops24h.distribution.latestCronRunAt
+                ? new Date(status.ops24h.distribution.latestCronRunAt).toLocaleString('pt-BR')
+                : 'n/a'}
+            </strong>
+          </div>
+        </div>
+      </Card>
+
+      <Card className='stack'>
+        <SectionHeader title='Analytics de produto (24h)' />
+        <div className='status-grid'>
+          <div className='status-item'>
+            <span>Page views</span>
+            <strong>{status.ops24h.analytics.pageViews24h}</strong>
+          </div>
+          <div className='status-item'>
+            <span>Share views</span>
+            <strong>{status.ops24h.analytics.shareViews24h}</strong>
+          </div>
+          <div className='status-item'>
+            <span>Share open app</span>
+            <strong>{status.ops24h.analytics.shareOpenApp24h}</strong>
+          </div>
+          <div className='status-item'>
+            <span>Universos com share_open_app</span>
+            <strong>{status.ops24h.analytics.universesWithShareOpenApp}</strong>
+          </div>
+        </div>
+        <div className='stack'>
+          {status.ops24h.analytics.topUniversesByShareOpenApp.map((item) => (
+            <article key={item.universeId} className='core-node'>
+              <strong>{item.universeId}</strong>
+              <p className='muted' style={{ margin: 0 }}>
+                share_open_app: {item.shareOpenAppClicks}
+              </p>
+            </article>
+          ))}
+          {status.ops24h.analytics.topUniversesByShareOpenApp.length === 0 ? (
+            <p className='muted' style={{ margin: 0 }}>
+              Sem eventos share_open_app nas ultimas 24h.
+            </p>
+          ) : null}
         </div>
       </Card>
 

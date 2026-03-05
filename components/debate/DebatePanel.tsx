@@ -30,6 +30,9 @@ type AskResponse = {
   insufficientReason?: string | null;
   suggestions?: string[];
   threadId?: string | null;
+  confidence?: { score: number; label: 'forte' | 'media' | 'fraca' };
+  limitations?: string[];
+  divergence?: { flag: boolean; summary: string | null };
   citations: AskCitation[];
 };
 
@@ -266,6 +269,11 @@ export function DebatePanel({
         <Card className='stack' role='status' aria-live='polite'>
           <SectionHeader title='Resposta' />
           <div className='stack'>
+            {result.confidence ? (
+              <p className='muted' style={{ margin: 0 }}>
+                Confianca: {result.confidence.label} ({result.confidence.score}/100)
+              </p>
+            ) : null}
             {answerSections.length > 0 ? (
               answerSections.map((section) => (
                 <article key={section.title} className='core-node'>
@@ -283,6 +291,24 @@ export function DebatePanel({
               <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{result.answer}</p>
             )}
           </div>
+          {result.limitations && result.limitations.length > 0 ? (
+            <article className='core-node'>
+              <strong>Limitacoes</strong>
+              {result.limitations.slice(0, 4).map((item, index) => (
+                <p key={`ask-limit-${index}`} className='muted' style={{ margin: 0 }}>
+                  - {item}
+                </p>
+              ))}
+            </article>
+          ) : null}
+          {result.divergence?.flag ? (
+            <article className='core-node'>
+              <strong>Possivel divergencia entre fontes</strong>
+              <p className='muted' style={{ margin: 0 }}>
+                {result.divergence.summary ?? 'Ha sinais de resultados divergentes ou inconclusivos entre os documentos usados.'}
+              </p>
+            </article>
+          ) : null}
           {result.mode === 'insufficient' ? (
             <article className='core-node'>
               <strong>O que falta na base</strong>

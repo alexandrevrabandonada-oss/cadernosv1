@@ -1,5 +1,6 @@
 import 'server-only';
-import { getSupabaseServerClient } from '@/lib/supabase/server';
+import { canWriteAdminContent } from '@/lib/auth/requireRole';
+import { getSupabaseServerClient, getSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import type { ProvasFilters } from '@/lib/filters/provasFilters';
 
 export type ProvasItem = {
@@ -14,6 +15,7 @@ export type ProvasItem = {
   nodeIds: string[];
   nodeSlugs: string[];
   curated: boolean;
+  editorialStatus: 'draft' | 'review' | 'published' | 'rejected';
 };
 
 export type ProvasDetail = ProvasItem & {
@@ -45,13 +47,22 @@ async function getNodeScope(universeId: string, nodeSlug: string) {
   return node;
 }
 
+async function getProvasClient() {
+  const canReview = await canWriteAdminContent();
+  if (canReview) {
+    const service = getSupabaseServiceRoleClient();
+    if (service) return { db: service, canReview };
+  }
+  return { db: getSupabaseServerClient(), canReview: false };
+}
+
 export async function listEvidenceItems(input: {
   universeId: string;
   filters: ProvasFilters;
   limit: number;
   cursor?: number;
 }): Promise<ListResult> {
-  const db = getSupabaseServerClient();
+  const { db, canReview } = await getProvasClient();
   if (!db) return { items: [], nextCursor: null, total: 0 };
 
   const offset = input.cursor ?? 0;
@@ -71,11 +82,17 @@ export async function listEvidenceItems(input: {
 
   let query = db
     .from('evidences')
-    .select('id, title, summary, document_id, chunk_id, node_id, source_url, created_at, curated')
+    .select('id, title, summary, document_id, chunk_id, node_id, source_url, created_at, curated, status')
     .eq('universe_id', input.universeId)
     .eq('curated', true)
     .order('created_at', { ascending: false })
     .range(offset, offset + limit + 80);
+
+  if (canReview) {
+    if (input.filters.editorial !== 'all') query = query.eq('status', input.filters.editorial);
+  } else {
+    query = query.eq('status', 'published');
+  }
 
   if (input.filters.q) query = query.or(`title.ilike.%${input.filters.q}%,summary.ilike.%${input.filters.q}%`);
   if (nodeScope) {
@@ -139,6 +156,10 @@ export async function listEvidenceItems(input: {
         nodeIds: evidence.node_id ? [evidence.node_id] : [],
         nodeSlugs: node?.slug ? [node.slug] : [],
         curated: true,
+        editorialStatus:
+          evidence.status === 'draft' || evidence.status === 'review' || evidence.status === 'rejected'
+            ? evidence.status
+            : 'published',
       } satisfies ProvasItem;
     })
     .filter((item) => {
@@ -219,6 +240,7 @@ export async function listChunkItems(input: {
         nodeIds: [],
         nodeSlugs: [],
         curated: false,
+        editorialStatus: 'published',
       } satisfies ProvasItem;
     })
     .filter((item) => {
@@ -243,12 +265,18 @@ export async function getRelatedEvidence(input: {
   nodeIds?: string[];
   documentId?: string | null;
 }): Promise<ProvasItem[]> {
-  const db = getSupabaseServerClient();
+  const { db } = await getProvasClient();
   if (!db) return [];
   const nodeIds = input.nodeIds ?? [];
   const byNode =
     nodeIds.length > 0
-      ? await db.from('evidences').select('id').eq('universe_id', input.universeId).in('node_id', nodeIds).limit(12)
+      ? await db
+          .from('evidences')
+          .select('id')
+          .eq('universe_id', input.universeId)
+          .in('node_id', nodeIds)
+          .eq('status', 'published')
+          .limit(12)
       : { data: [] as Array<{ id: string }> };
   const byDoc =
     input.documentId
@@ -257,12 +285,14 @@ export async function getRelatedEvidence(input: {
           .select('id')
           .eq('universe_id', input.universeId)
           .eq('document_id', input.documentId)
+          .eq('status', 'published')
           .limit(12)
       : { data: [] as Array<{ id: string }> };
   const fallback = await db
     .from('evidences')
     .select('id')
     .eq('universe_id', input.universeId)
+    .eq('status', 'published')
     .order('created_at', { ascending: false })
     .limit(12);
   const ids = Array.from(
@@ -279,6 +309,7 @@ export async function getRelatedEvidence(input: {
     universeId: input.universeId,
     filters: {
       type: 'evidence',
+      editorial: 'published',
       yearFrom: null,
       yearTo: null,
       tags: [],
@@ -296,14 +327,15 @@ export async function getRelatedEvidence(input: {
 }
 
 export async function getEvidenceDetail(evidenceId: string): Promise<ProvasDetail | null> {
-  const db = getSupabaseServerClient();
+  const { db, canReview } = await getProvasClient();
   if (!db) return null;
   const { data: evidence } = await db
     .from('evidences')
-    .select('id, universe_id, title, summary, source_url, document_id, chunk_id, node_id, curated')
+    .select('id, universe_id, title, summary, source_url, document_id, chunk_id, node_id, curated, status')
     .eq('id', evidenceId)
     .maybeSingle();
   if (!evidence) return null;
+  if (!canReview && evidence.status !== 'published') return null;
 
   const [{ data: doc }, { data: chunk }, { data: linkedNodesRaw }] = await Promise.all([
     evidence.document_id
@@ -339,6 +371,10 @@ export async function getEvidenceDetail(evidenceId: string): Promise<ProvasDetai
     nodeIds: allNodeIds,
     nodeSlugs,
     curated: evidence.curated,
+    editorialStatus:
+      evidence.status === 'draft' || evidence.status === 'review' || evidence.status === 'rejected'
+        ? evidence.status
+        : 'published',
   };
 
   const related = await getRelatedEvidence({
@@ -407,6 +443,7 @@ export async function getChunkDetail(chunkId: string): Promise<ProvasDetail | nu
         nodeIds,
         nodeSlugs,
         curated: false,
+        editorialStatus: 'published',
       }) satisfies ProvasItem,
   );
 
@@ -422,6 +459,7 @@ export async function getChunkDetail(chunkId: string): Promise<ProvasDetail | nu
     nodeIds,
     nodeSlugs,
     curated: false,
+    editorialStatus: 'published',
     sourceUrl: doc?.source_url ?? null,
     related,
   };

@@ -2,6 +2,7 @@ import 'server-only';
 
 export type ProvasFilters = {
   type: 'evidence' | 'chunk';
+  editorial: 'published' | 'review' | 'draft' | 'rejected' | 'all';
   yearFrom: number | null;
   yearTo: number | null;
   tags: string[];
@@ -27,6 +28,11 @@ export function parseProvasFilters(
     return Array.isArray(value) ? value[0] ?? '' : (value ?? '');
   };
   const type = read('type') === 'chunk' ? 'chunk' : 'evidence';
+  const editorialRaw = read('editorial');
+  const editorial: ProvasFilters['editorial'] =
+    editorialRaw === 'review' || editorialRaw === 'draft' || editorialRaw === 'rejected' || editorialRaw === 'all'
+      ? editorialRaw
+      : 'published';
   const tags = read('tags')
     .split(',')
     .map((item) => item.trim().toLowerCase())
@@ -37,6 +43,7 @@ export function parseProvasFilters(
 
   return {
     type,
+    editorial,
     yearFrom: parseNumber(read('yearFrom')),
     yearTo: parseNumber(read('yearTo')),
     tags,
@@ -52,6 +59,7 @@ export function parseProvasFilters(
 export function serializeProvasFilters(filters: Partial<ProvasFilters>) {
   const qs = new URLSearchParams();
   if (filters.type && filters.type !== 'evidence') qs.set('type', filters.type);
+  if (filters.editorial && filters.editorial !== 'published') qs.set('editorial', filters.editorial);
   if (typeof filters.yearFrom === 'number') qs.set('yearFrom', String(filters.yearFrom));
   if (typeof filters.yearTo === 'number') qs.set('yearTo', String(filters.yearTo));
   if (filters.tags && filters.tags.length > 0) qs.set('tags', filters.tags.join(','));

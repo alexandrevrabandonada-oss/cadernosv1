@@ -120,8 +120,16 @@ export async function autoPickHighlights(universeId: string, updatedBy?: string 
     .order('pin_rank', { ascending: true })
     .limit(240);
 
+  const nodeEvidenceIds = Array.from(new Set((nodeEvidenceRaw ?? []).map((row) => row.evidence_id)));
+  const { data: evidenceStatusRaw } =
+    nodeEvidenceIds.length > 0
+      ? await db.from('evidences').select('id, status').in('id', nodeEvidenceIds)
+      : { data: [] as Array<{ id: string; status: string }> };
+  const evidenceStatusById = new Map((evidenceStatusRaw ?? []).map((row) => [row.id, row.status]));
+
   const evidenceByNode = new Map<string, Array<{ evidenceId: string; pinRank: number }>>();
   for (const row of nodeEvidenceRaw ?? []) {
+    if (evidenceStatusById.get(row.evidence_id) !== 'published') continue;
     const list = evidenceByNode.get(row.node_id) ?? [];
     list.push({ evidenceId: row.evidence_id, pinRank: row.pin_rank ?? 100 });
     evidenceByNode.set(row.node_id, list);
@@ -300,4 +308,3 @@ export async function publishShowcaseUniverse(input: {
         : 'Publicado como vitrine com sucesso.',
   };
 }
-

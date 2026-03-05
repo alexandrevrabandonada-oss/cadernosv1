@@ -214,5 +214,16 @@ export async function sendTutorChatMessage(input: {
     insufficient,
     insufficientReason,
     suggestions,
+    confidence:
+      ask.body && typeof ask.body === 'object' && ask.body.confidence && typeof ask.body.confidence === 'object'
+        ? (ask.body.confidence as { score: number; label: 'forte' | 'media' | 'fraca' })
+        : null,
+    limitations: Array.isArray(ask.body.limitations)
+      ? (ask.body.limitations as string[]).filter((item) => typeof item === 'string').slice(0, 4)
+      : [],
+    divergence:
+      ask.body && typeof ask.body === 'object' && ask.body.divergence && typeof ask.body.divergence === 'object'
+        ? (ask.body.divergence as { flag: boolean; summary: string | null })
+        : { flag: false, summary: null as string | null },
   };
 }

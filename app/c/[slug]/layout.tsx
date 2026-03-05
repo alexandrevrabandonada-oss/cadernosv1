@@ -1,4 +1,5 @@
 import { notFound } from 'next/navigation';
+import { AnalyticsBridge } from '@/components/analytics/AnalyticsBridge';
 import { QuickNav } from '@/components/QuickNav';
 import { CommandPalette } from '@/components/command/CommandPalette';
 import { Card } from '@/components/ui/Card';
@@ -30,6 +31,7 @@ export default async function UniversoLayout({ children, params }: UniversoLayou
     <UiPrefsProvider initialSettings={uiPrefs.settings} isLoggedIn={uiPrefs.isLoggedIn}>
       <WorkspaceProvider>
         <main className='split-layout' data-density={uiPrefs.settings.density} data-texture={uiPrefs.settings.texture}>
+          <AnalyticsBridge universeSlug={slug} />
           <QuickNav slug={slug} />
           <div className='stack'>
             {!access.published && access.canPreview ? (

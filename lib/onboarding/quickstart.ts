@@ -54,7 +54,11 @@ async function getTopEvidenceForCoreNodes(universeId: string, nodeIds: string[])
   const evidenceIds = Array.from(new Set(links.map((row) => row.evidence_id)));
   if (evidenceIds.length === 0) return [];
 
-  const { data: evidencesRaw } = await db.from('evidences').select('id, title').in('id', evidenceIds);
+  const { data: evidencesRaw } = await db
+    .from('evidences')
+    .select('id, title')
+    .in('id', evidenceIds)
+    .eq('status', 'published');
   const evidenceById = new Map((evidencesRaw ?? []).map((item) => [item.id, item]));
   return links
     .map((row) => {

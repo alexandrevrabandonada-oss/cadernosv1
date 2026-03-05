@@ -50,6 +50,23 @@ Nesse caso:
 
 `/admin/status` mostra média `docs_distintos` das asks (24h).
 
+## Camada epistemologica (confidence + divergencia)
+
+`/api/ask` agora publica metadados de confianca:
+- `confidence.score` (0..100)
+- `confidence.label` (`forte|media|fraca`)
+- `limitations[]` (bullets curtos)
+- `divergence.flag` e `divergence.summary`
+
+Heuristica de alto nivel:
+- mais documentos distintos, mais citacoes e melhor qualidade documental aumentam score;
+- concentracao excessiva em um unico documento reduz score;
+- `insufficient` limita score maximo e adiciona limitacoes explicitas.
+
+Divergencia:
+- marcada apenas com sinais minimos em docs distintos (marcadores de conflito/inconclusao);
+- prioriza evitar falso positivo (melhor omitir do que forcar alerta).
+
 ## Lentes no Debate (UI-only)
 
 As lentes de `/c/[slug]/debate` sao deterministicas e **nao** geram fatos novos.

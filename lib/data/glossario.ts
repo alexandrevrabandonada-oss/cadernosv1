@@ -266,6 +266,7 @@ async function getGlossaryEvidences(universeId: string, nodeId: string | null, e
     .from('evidences')
     .select('id, title, summary, document_id, chunk_id')
     .eq('universe_id', universeId)
+    .eq('status', 'published')
     .in('id', selectedEvidenceIds)
     .limit(8);
   const evs = evsRaw ?? [];

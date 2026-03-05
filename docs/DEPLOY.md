@@ -29,6 +29,7 @@ Sem esses valores o workflow de CD falha no passo de validacao inicial com mensa
 1. Garanta que o projeto Vercel esteja vinculado ao repositório.
 2. Garanta que as env vars da aplicacao estejam configuradas no Vercel.
    - inclua `NEXT_PUBLIC_SITE_URL` com a URL publica da aplicacao.
+   - inclua `CRON_SECRET` (usado para proteger endpoint de cron interno).
 3. Garanta que o projeto Supabase existe e aceita o token informado.
 4. Confirme que as migrations em `supabase/migrations/` estao em ordem.
 5. Configure Supabase Auth (Email/Password) e crie pelo menos um usuario admin em `public.profiles`.
@@ -62,6 +63,22 @@ Sem esses valores o workflow de CD falha no passo de validacao inicial com mensa
   - revisar SQL em `supabase/migrations`.
 - Falha em `Deploy to Vercel`:
   - validar `VERCEL_TOKEN`, `VERCEL_ORG_ID`, `VERCEL_PROJECT_ID`.
+
+## Cron semanal (Share Pack)
+
+### Configuracao
+1. Defina `CRON_SECRET` no ambiente Vercel.
+2. O projeto versiona `vercel.json` com cron:
+   - `path`: `/api/cron/weekly-pack`
+   - `schedule`: `0 12 * * 1` (segunda 12:00 UTC, equivalente aproximado a 09:00 BRT).
+3. Ative `weekly_pack_enabled` por universo em `/admin/universes/[id]/distribution`.
+
+### Teste local/manual
+- Exemplo PowerShell:
+```powershell
+curl -X POST http://localhost:3000/api/cron/weekly-pack -H "x-cron-secret: <CRON_SECRET>"
+```
+- Resposta esperada: JSON com `processed/skipped/results`.
 
 ## Seguranca de logs
 

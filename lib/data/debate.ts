@@ -52,12 +52,19 @@ export type DebateThreadItem = {
   docsUsed: number | null;
   chunksUsed: number | null;
   citationsCount: number;
+  confidenceScore: number | null;
+  confidenceLabel: 'forte' | 'media' | 'fraca' | null;
+  divergenceFlag: boolean;
 };
 
 export type DebateThreadDetail = {
   thread: DebateThreadItem & {
     answer: string;
     insufficientReason: string | null;
+    limitations: string[];
+    divergenceSummary: string | null;
+    docsDistinct: number | null;
+    avgDocQuality: number | null;
   };
   citations: Array<
     DocThreadCitation & {
@@ -114,6 +121,9 @@ function mockThreadList(slug: string): DebateThreadItem[] {
       docsUsed: 1 + (index % 3),
       chunksUsed: 2 + (index % 4),
       citationsCount: 2,
+      confidenceScore: index % 3 === 0 ? 38 : 74,
+      confidenceLabel: index % 3 === 0 ? 'fraca' : 'media',
+      divergenceFlag: index % 4 === 0,
     } satisfies DebateThreadItem;
   });
 }
@@ -129,6 +139,15 @@ function mockThreadDetail(slug: string, threadId: string): DebateThreadDetail | 
       answer:
         '## Achados\n- Evidencia 1 aponta concentracao local acima do esperado.\n- Evidencia 2 reforca recorrencia temporal.\n## Limitacoes\n- Base de documentos ainda pequena.\n- Falta triangulacao em mais bairros.',
       insufficientReason: thread.mode === 'insufficient' ? 'Amostra insuficiente em documentos do periodo.' : null,
+      limitations: [
+        'Base concentrada em poucos documentos.',
+        'Tipo de estudo nem sempre identificado.',
+      ],
+      divergenceSummary: thread.divergenceFlag
+        ? 'Ha sinais de resultados divergentes ou inconclusivos entre fontes.'
+        : null,
+      docsDistinct: thread.docsUsed ?? null,
+      avgDocQuality: 68,
     },
     citations: [
       {
@@ -214,6 +233,7 @@ export async function listThreads(input: {
       if (input.filters.q && !`${row.question} ${row.answerPreview}`.toLowerCase().includes(input.filters.q.toLowerCase())) return false;
       if (input.filters.status !== 'all' && row.mode !== input.filters.status) return false;
       if (input.filters.kind !== 'all' && row.source !== input.filters.kind) return false;
+      if (input.filters.confidence !== 'all' && row.confidenceLabel !== input.filters.confidence) return false;
       if (input.filters.node && row.node?.slug !== input.filters.node) return false;
       const year = parseYear(row.createdAt);
       if (typeof input.filters.yearFrom === 'number' && typeof year === 'number' && year < input.filters.yearFrom) return false;
@@ -257,7 +277,7 @@ export async function listThreads(input: {
 
   let query = db
     .from('qa_threads')
-    .select('id, question, answer, created_at, mode, source, node_id, docs_used, chunks_used')
+    .select('id, question, answer, created_at, mode, source, node_id, docs_used, chunks_used, confidence_score, confidence_label, divergence_flag')
     .eq('universe_id', universe.id)
     .order('created_at', { ascending: false })
     .range(cursor, cursor + limit + 120);
@@ -265,6 +285,7 @@ export async function listThreads(input: {
   if (input.filters.q) query = query.or(`question.ilike.%${input.filters.q}%,answer.ilike.%${input.filters.q}%`);
   if (input.filters.status !== 'all') query = query.eq('mode', input.filters.status);
   if (input.filters.kind !== 'all') query = query.eq('source', input.filters.kind);
+  if (input.filters.confidence !== 'all') query = query.eq('confidence_label', input.filters.confidence);
   if (input.filters.node) {
     const nodeId = nodeSlugToId.get(input.filters.node);
     if (!nodeId) {
@@ -291,6 +312,9 @@ export async function listThreads(input: {
       node_id: string | null;
       docs_used: number | null;
       chunks_used: number | null;
+      confidence_score: number | null;
+      confidence_label: string | null;
+      divergence_flag: boolean | null;
     }>) ?? [];
 
   const threadIds = rows.map((row) => row.id);
@@ -323,6 +347,12 @@ export async function listThreads(input: {
         docsUsed: row.docs_used ?? null,
         chunksUsed: row.chunks_used ?? null,
         citationsCount: citationCountByThread.get(row.id) ?? 0,
+        confidenceScore: row.confidence_score ?? null,
+        confidenceLabel:
+          row.confidence_label === 'forte' || row.confidence_label === 'media' || row.confidence_label === 'fraca'
+            ? row.confidence_label
+            : null,
+        divergenceFlag: Boolean(row.divergence_flag),
       } satisfies DebateThreadItem;
     });
 
@@ -350,7 +380,7 @@ export async function getThreadDetail(slug: string, threadId: string): Promise<D
 
   const { data: threadRaw } = await db
     .from('qa_threads')
-    .select('id, question, answer, created_at, mode, source, node_id, docs_used, chunks_used, insufficient_reason')
+    .select('id, question, answer, created_at, mode, source, node_id, docs_used, chunks_used, insufficient_reason, confidence_score, confidence_label, divergence_flag, divergence_summary, limitations, docs_distinct, avg_doc_quality')
     .eq('universe_id', universe.id)
     .eq('id', threadId)
     .maybeSingle();
@@ -438,6 +468,14 @@ export async function getThreadDetail(slug: string, threadId: string): Promise<D
     docsUsed: threadRaw.docs_used ?? null,
     chunksUsed: threadRaw.chunks_used ?? null,
     citationsCount: citations.length,
+    confidenceScore: threadRaw.confidence_score ?? null,
+    confidenceLabel:
+      threadRaw.confidence_label === 'forte' ||
+      threadRaw.confidence_label === 'media' ||
+      threadRaw.confidence_label === 'fraca'
+        ? threadRaw.confidence_label
+        : null,
+    divergenceFlag: Boolean(threadRaw.divergence_flag),
   };
 
   const related = await getThreadRelated(slug, threadRaw.id, {
@@ -450,6 +488,12 @@ export async function getThreadDetail(slug: string, threadId: string): Promise<D
       ...baseItem,
       answer: threadRaw.answer,
       insufficientReason: threadRaw.insufficient_reason ?? null,
+      limitations: Array.isArray(threadRaw.limitations)
+        ? (threadRaw.limitations as string[]).filter((item) => typeof item === 'string').slice(0, 4)
+        : [],
+      divergenceSummary: threadRaw.divergence_summary ?? null,
+      docsDistinct: threadRaw.docs_distinct ?? null,
+      avgDocQuality: threadRaw.avg_doc_quality ?? null,
     },
     citations,
     dominantDocumentId,
@@ -520,6 +564,7 @@ export async function getThreadRelated(
       node: '',
       kind: 'all',
       status: 'all',
+      confidence: 'all',
       q: '',
       yearFrom: null,
       yearTo: null,

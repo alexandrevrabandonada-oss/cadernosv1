@@ -237,6 +237,7 @@ export async function getShareEvidence(slug: string, id: string): Promise<ShareE
     .select('id, title, summary, document_id, chunk_id, node_id, universe_id')
     .eq('universe_id', universe.id)
     .eq('id', id)
+    .eq('status', 'published')
     .maybeSingle();
   if (!row) return null;
 

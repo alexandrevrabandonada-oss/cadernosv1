@@ -55,6 +55,17 @@ Observacao sobre no core:
 4. Adicionar perguntas sugeridas.
 5. Voltar ao checklist e confirmar melhora.
 
+## Workflow editorial de evidencias
+- Rota de revisao: `/admin/universes/[id]/review`
+- Regra operacional:
+1. Evidencia promovida entra em `draft`.
+2. Revisor move para `review` (se necessario) e depois `published`.
+3. Publico so enxerga `published`.
+4. Alteracoes ficam auditadas em `evidence_audit_logs`.
+- Consequencia:
+  - Checklist usa cobertura por evidencias publicadas para PASS real.
+  - Draft/review contam como backlog de revisao, nao como cobertura final.
+
 ## Provas v2 e operacao editorial
 - A tela publica `/c/[slug]/provas` agora e **evidence-first**.
 - Impacto operacional direto:

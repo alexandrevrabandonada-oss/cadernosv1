@@ -54,7 +54,15 @@ export default async function ShareEventPage({ params }: ShareEventPageProps) {
           {event.kind} | {dayLabel}
         </p>
         <div className='toolbar-row'>
-          <Link className='ui-button' href={appHref}>
+          <Link
+            className='ui-button'
+            href={appHref}
+            data-track-event='share_open_app'
+            data-track-cta='open_app_event'
+            data-track-section='share_event'
+            data-track-object-type='event'
+            data-track-object-id={id}
+          >
             Abrir no app
           </Link>
           <ShareButton url={shareUrl} title={event.title} text={event.summary} />
