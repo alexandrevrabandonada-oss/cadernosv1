@@ -67,7 +67,7 @@ export function DetailPanel({ title = 'Detalhes', children, empty, showSkeleton 
 
   return (
     <>
-      <aside className='workspace-detail desktop-only' aria-label='Painel de detalhe' data-testid='detail-panel'>
+      <aside className='workspace-detail desktop-only surface-panel' aria-label='Painel de detalhe' data-testid='detail-panel'>
         <header className='workspace-detail-head'>
           <strong>{title}</strong>
         </header>
@@ -77,7 +77,7 @@ export function DetailPanel({ title = 'Detalhes', children, empty, showSkeleton 
       <div className={`workspace-sheet-overlay ${mobileOpen ? 'is-open' : ''}`} onClick={onCloseMobile} aria-hidden='true' />
       <aside
         ref={mobileRef}
-        className={`workspace-sheet ${mobileOpen ? 'is-open' : ''}`}
+        className={`workspace-sheet surface-panel ${mobileOpen ? 'is-open' : ''}`}
         role='dialog'
         aria-modal='true'
         aria-label={title}

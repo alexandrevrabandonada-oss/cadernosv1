@@ -79,7 +79,7 @@ export function WorkspaceShell({
 
   return (
     <section className='workspace-shell stack' data-testid='workspace'>
-      <header className='workspace-head'>
+      <header className='workspace-head surface-panel'>
         <div>
           <h2 className='ui-section-title' style={{ margin: 0 }}>
             {sectionLabel}
@@ -103,11 +103,11 @@ export function WorkspaceShell({
       </header>
 
       <div className='workspace-grid'>
-        <aside className='workspace-filter desktop-only' aria-label='Filtros' data-testid='filter-rail'>
+        <aside className='workspace-filter desktop-only surface-blade' aria-label='Filtros' data-testid='filter-rail'>
           {filter}
         </aside>
 
-        <section className='workspace-content' aria-label='Conteudo principal'>
+        <section className='workspace-content surface-panel' aria-label='Conteudo principal'>
           {children}
         </section>
 
@@ -129,7 +129,7 @@ export function WorkspaceShell({
 
       <div className={`workspace-drawer-overlay ${panels.filtersOpen ? 'is-open' : ''}`} onClick={panels.closeFilters} aria-hidden='true' />
       <aside
-        className={`workspace-drawer ${panels.filtersOpen ? 'is-open' : ''}`}
+        className={`workspace-drawer surface-blade ${panels.filtersOpen ? 'is-open' : ''}`}
         role='dialog'
         aria-modal='true'
         aria-label='Filtros'

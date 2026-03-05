@@ -4,9 +4,9 @@
 }
 
 .workspace-head {
-  border: 1px solid var(--line-0);
+  border: 1px solid color-mix(in srgb, var(--line-0), #000 14%);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-0), white 22%);
+  background: linear-gradient(165deg, color-mix(in srgb, var(--surface-panel), white 20%), color-mix(in srgb, var(--surface-plate), white 6%));
   box-shadow: var(--shadow-1);
   display: flex;
   align-items: center;
@@ -25,9 +25,9 @@
 .workspace-filter,
 .workspace-content,
 .workspace-detail {
-  border: 1px solid var(--line-0);
+  border: 1px solid color-mix(in srgb, var(--line-0), #000 14%);
   border-radius: var(--radius-md);
-  background: color-mix(in srgb, var(--surface-0), white 20%);
+  background: linear-gradient(165deg, color-mix(in srgb, var(--surface-panel), white 18%), color-mix(in srgb, var(--surface-blade), white 4%));
   box-shadow: var(--shadow-1);
 }
 
@@ -48,6 +48,19 @@
 .workspace-content {
   overflow: auto;
   padding: var(--space-3);
+  position: relative;
+}
+
+.workspace-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(transparent 96%, rgba(20, 24, 27, 0.03)),
+    linear-gradient(90deg, transparent 96%, rgba(20, 24, 27, 0.03));
+  background-size: 26px 26px;
+  opacity: 0.55;
 }
 
 .workspace-rail {
@@ -59,6 +72,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  border-bottom: 1px dashed color-mix(in srgb, var(--line-soft), #000 20%);
+  padding-bottom: var(--space-2);
 }
 
 .workspace-rail-body {
@@ -76,7 +91,7 @@
   justify-content: space-between;
   gap: var(--space-2);
   padding: var(--space-3);
-  border-bottom: 1px solid var(--line-0);
+  border-bottom: 1px solid color-mix(in srgb, var(--line-0), #000 12%);
 }
 
 .workspace-detail-body {
@@ -87,7 +102,7 @@
 .workspace-drawer-overlay {
   position: fixed;
   inset: 0;
-  background: color-mix(in srgb, var(--bg-0), black 25%);
+  background: color-mix(in srgb, var(--bg-0), black 44%);
   backdrop-filter: blur(2px);
   opacity: 0;
   pointer-events: none;
@@ -112,7 +127,7 @@
   transition:
     transform var(--motion-base) var(--ease-standard),
     opacity var(--motion-base) var(--ease-standard);
-  background: color-mix(in srgb, var(--surface-0), white 18%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-panel), white 16%), color-mix(in srgb, var(--surface-blade), white 8%));
   border-top-left-radius: var(--radius-lg);
   border-top-right-radius: var(--radius-lg);
   border: 1px solid var(--line-0);
@@ -129,7 +144,7 @@
   width: 52px;
   height: 5px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--line-0), var(--text-1) 20%);
+  background: color-mix(in srgb, var(--line-0), var(--accent-editorial) 15%);
   margin: 10px auto 0;
 }
 
@@ -141,7 +156,7 @@
   transition: transform var(--motion-base) var(--ease-standard);
   z-index: 50;
   border-right: 1px solid var(--line-0);
-  background: color-mix(in srgb, var(--surface-0), white 16%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-panel), white 15%), color-mix(in srgb, var(--surface-blade), white 7%));
   box-shadow: var(--shadow-0);
 }
 
@@ -163,7 +178,7 @@
   z-index: 35;
   min-height: 58px;
   padding: 6px var(--space-2) calc(6px + env(safe-area-inset-bottom));
-  background: color-mix(in srgb, var(--surface-0), white 15%);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-panel), white 12%), color-mix(in srgb, var(--surface-blade), white 5%));
   border-top: 1px solid var(--line-0);
   box-shadow: var(--shadow-1);
   display: grid;
@@ -179,13 +194,15 @@
   justify-content: center;
   font-size: 0.78rem;
   text-align: center;
-  border: 1px solid transparent;
+  border: 1px solid color-mix(in srgb, var(--line-soft), transparent 45%);
+  color: var(--text-0);
 }
 
 .workspace-dock-item[aria-current='page'] {
-  border-color: var(--line-0);
-  background: var(--surface-1);
+  border-color: color-mix(in srgb, var(--accent-editorial), #000 18%);
+  background: color-mix(in srgb, var(--surface-plate), var(--accent-editorial) 16%);
   font-weight: 700;
+  box-shadow: var(--ring-selected);
 }
 
 .desktop-only {

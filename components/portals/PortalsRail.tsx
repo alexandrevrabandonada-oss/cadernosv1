@@ -37,7 +37,7 @@ export function PortalsRail({
       />
       <div className='layout-shell' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
         {items.map((item) => (
-          <Card key={item.id} className='stack'>
+          <Card key={item.id} className='stack' surface='plate'>
             <div className='toolbar-row'>
               <strong>{item.label}</strong>
               {item.badge ? <Carimbo>{item.badge}</Carimbo> : null}

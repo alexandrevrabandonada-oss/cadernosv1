@@ -1,4 +1,4 @@
-type BadgeVariant = 'default' | 'alert';
+type BadgeVariant = 'default' | 'alert' | 'ok' | 'warning';
 
 type BadgeProps = {
   children: React.ReactNode;

@@ -2,9 +2,19 @@
 
 ## Direcao visual
 
-- Estilo: urbano-industrial com base mineral clara e contraste alto.
-- Objetivo: leitura nítida, navegação direta e componentes compactos.
-- Textura: grade sutil via CSS puro (`--texture-grid`), sem imagens externas.
+- Tema: `Concreto Zen // Arquivo Vivo`.
+- Estilo: industrial-editorial contemporaneo, com atmosfera de arquivo navegavel.
+- Objetivo: sair do visual dashboard genérico e reforcar sensação de “portal de universo”.
+- Textura: grade cartografica suave em baixa opacidade, sem ruído excessivo.
+- Paleta base:
+  - grafite profundo
+  - cimento frio
+  - chumbo azulado
+  - off-white quente
+- Acentos:
+  - `accent-action` (verde sinal)
+  - `accent-editorial` (amarelo ferrugem-luz)
+  - vermelho restrito a alerta/contradicao
 
 ## Principios
 
@@ -12,12 +22,24 @@
 - Foco visível em links, botões e tabs via `:focus-visible`.
 - Área clicável mínima de 44px para interações primárias.
 - Componentes leves, sem framework visual pesado.
+- Hierarquia tipográfica marcada:
+  - headlines com presença editorial
+  - labels em micro caixa alta com tracking
+- Assinaturas visuais:
+  - halo de seleção forte (`data-selected`)
+  - superfícies por família (`panel`, `plate`, `blade`)
 
 ## Tokens
 
 Arquivo: `styles/tokens.css`
 
-- Cores: `--bg-*`, `--surface-*`, `--text-*`, `--line-*`, `--brand-*`, `--alert-0`.
+- Cores semânticas:
+  - `--surface-panel`
+  - `--surface-plate`
+  - `--surface-blade`
+  - `--accent-action`
+  - `--accent-editorial`
+  - `--status-warning`, `--status-danger`, `--status-ok`
 - Tipografia: `--font-sans`, `--font-mono`.
 - Forma: `--radius-sm`, `--radius-md`, `--radius-lg`.
 - Sombra: `--shadow-0`, `--shadow-1`.
@@ -28,13 +50,48 @@ Arquivo: `styles/tokens.css`
 Pasta: `components/ui`
 
 - `Button`: variantes `primary`, `neutral`, `ghost`; suporta `href` e `button`.
-- `Card` / `Placa`: bloco de superfície principal.
+- `Card` / `Placa`: superfícies com `surface='panel|plate|blade'`.
 - `Badge` / `Carimbo`: rótulo de estado curto.
 - `SectionHeader`: título de seção com descrição e tag opcional.
 - `Breadcrumb`: trilha de navegação com `aria-label`.
 - `PortalLink`: bloco navegável para entrada em áreas do produto.
 - `Segmented`: alternância de seções com semântica de tabs (`role='tablist'`).
 - `Skeleton` / `LoadingBlock`: placeholders visuais de carregamento.
+
+## Diferenca para VR Abandonada
+
+- Herdamos:
+  - densidade editorial
+  - contraste alto
+  - linguagem industrial
+- Nao copiamos literalmente:
+  - paleta identica da VR
+  - motivos visuais exclusivos da marca VR
+- Cadernos Vivos adota leitura mais “arquivo vivo”:
+  - atmosfera técnica e navegável
+  - menos manifesto visual, mais instrumento de exploração
+
+## Home e Hub como Portal
+
+- Home (`/`) deixa de ser catalogo seco e vira portal publico com 5 blocos:
+  - hero narrativo com CTA principal
+  - portas de entrada (Provas, Trilhas, Tutor)
+  - universos em destaque
+  - fios quentes (itens editoriais recentes)
+  - como funciona em 3 passos
+- Hub (`/c/[slug]`) vira entrada de universo com 6 blocos:
+  - hero escultural do universo
+  - metadados vivos (atualizado, nos, trilhas, provas)
+  - 3 portas principais grandes
+  - bloco Comece Aqui forte (trilha + perguntas prontas)
+  - destaques editoriais com principal + secundarios
+  - continuidade (portais e "continuar de onde parou")
+- Componentes reutilizaveis de portal:
+  - `HeroPanel`
+  - `UniverseMetaBar`
+  - `BigPortalCard`
+  - `HighlightsStrip`
+  - `ResumeJourneyCard`
 
 ## Exemplo rapido
 

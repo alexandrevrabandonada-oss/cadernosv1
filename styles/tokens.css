@@ -6,26 +6,34 @@
   --space-4: 1rem;
   --space-5: 1.5rem;
   --space-6: 2rem;
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 18px;
-  --font-sans: 'Bahnschrift', 'Arial Narrow', 'Segoe UI', Tahoma, sans-serif;
+  --radius-sm: 4px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --font-sans: 'Aptos', 'Segoe UI Variable Text', 'Segoe UI', Tahoma, sans-serif;
   --font-mono: 'Consolas', 'Cascadia Mono', 'Courier New', monospace;
-  --bg-0: #d7d8d3;
-  --bg-1: #c6c5be;
-  --bg-accent: rgba(56, 103, 87, 0.2);
-  --surface-0: #f2f2ef;
-  --surface-1: #e5e4de;
-  --surface-2: #cdccc5;
-  --text-0: #171b1a;
-  --text-1: #3b423f;
-  --line-0: #464c49;
-  --line-soft: #8f938e;
-  --brand-0: #0f7a59;
-  --brand-1: #055f45;
-  --alert-0: #9d2a1a;
-  --focus: #1e8876;
-  --focus-strong: #d6aa2f;
+  --bg-0: #1f2327;
+  --bg-1: #2a3036;
+  --bg-accent: rgba(102, 178, 145, 0.1);
+  --surface-0: #f3f0e7;
+  --surface-1: #dedad0;
+  --surface-2: #c6c2b8;
+  --text-0: #14181b;
+  --text-1: #3e464d;
+  --line-0: #3f474f;
+  --line-soft: #77808a;
+  --brand-0: #2d9b74;
+  --brand-1: #1f7054;
+  --alert-0: #b74335;
+  --focus: #57ac88;
+  --focus-strong: #d9b24f;
+  --accent-action: #2d9b74;
+  --accent-editorial: #d9b24f;
+  --status-warning: #d89f40;
+  --status-danger: #b74335;
+  --status-ok: #2f9c69;
+  --surface-panel: #f1ede4;
+  --surface-plate: #e1ddd3;
+  --surface-blade: #d3cec3;
   --motion-fast: 140ms;
   --motion-base: 220ms;
   --motion-slow: 320ms;
@@ -33,17 +41,19 @@
   --cv-card-pad: var(--space-3);
   --cv-card-gap: var(--space-2);
   --cv-font-sm: 0.9rem;
-  --shadow-0: 0 8px 26px rgba(0, 0, 0, 0.15);
-  --shadow-1: 0 2px 0 rgba(0, 0, 0, 0.55);
+  --shadow-0: 0 12px 32px rgba(0, 0, 0, 0.28);
+  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.62);
+  --shadow-blade: inset 0 0 0 1px rgba(20, 24, 27, 0.08);
+  --ring-selected: 0 0 0 2px color-mix(in srgb, var(--focus-strong), #000 8%);
   --texture-grid:
     repeating-linear-gradient(
       90deg,
       transparent 0,
-      transparent 29px,
-      rgba(0, 0, 0, 0.03) 30px
+      transparent 34px,
+      rgba(255, 255, 255, 0.06) 35px
     ),
-    repeating-linear-gradient(0deg, transparent 0, transparent 29px, rgba(0, 0, 0, 0.02) 30px);
-  --texture-opacity: 1;
+    repeating-linear-gradient(0deg, transparent 0, transparent 34px, rgba(255, 255, 255, 0.035) 35px);
+  --texture-opacity: 0.62;
 }
 
 @media (max-width: 720px) {

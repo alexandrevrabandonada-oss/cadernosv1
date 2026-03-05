@@ -2,100 +2,79 @@
 Data: 2026-03-05
 Commit (se possível): n/a
 
-## 1) O que mudou neste tijolo (PROD-13)
-- Tracking de produto/impacto implementado com endpoint server-side e helper client.
-- Dashboard por universo criado em `/admin/universes/[id]/analytics`.
-- Resumo global de analytics adicionado em `/admin/status`.
-- Instrumentação inicial de funil/CTAs/share aplicada em Hub, páginas de share e CTAs principais.
+## 1) O que mudou neste tijolo (VIZ-02)
+- Home (`/`) foi refeita como portal público editorial em 5 blocos.
+- Hub (`/c/[slug]`) foi reestruturado como entrada de universo em 6 blocos.
+- Hierarquia visual reforçada com hero escultural, portas grandes e ritmo de leitura (blocos largos + tiras + cards).
 
-## 2) Migration de analytics
-- `supabase/migrations/20260305050000_product_analytics.sql`
-  - nova tabela `public.analytics_events`:
-    - `universe_id`, `user_id`, `session_id`
-    - `event_name`, `route`, `referrer_route`
-    - `object_type`, `object_id`, `meta`
-    - `created_at`
-  - índices:
-    - `(universe_id, created_at desc)`
-    - `(event_name, created_at desc)`
-    - `(session_id, created_at desc)`
-    - `(object_type, object_id)`
-    - `(route)`
-  - RLS:
-    - select: apenas `editor/admin`
-    - insert direto bloqueado (`with check false`) para forçar escrita via servidor
+## 2) O que mudou em `/` (Home)
+- Hero novo com:
+  - headline forte
+  - subtítulo curto de posicionamento
+  - CTAs `Explorar universos` e `Entender como funciona`
+  - painel lateral de universo em foco
+- Portas de entrada:
+  - `Explorar Provas`
+  - `Seguir uma Trilha`
+  - `Entrar no Tutor`
+- Universos em destaque:
+  - cards editoriais com badges (`nos`, `trilhas`, `provas`) e CTA único
+  - destaque visual para universo com vitrine
+- Fios quentes:
+  - strip editorial com até 6 itens (evidence/event/question) baseado no universo em foco
+- Como funciona:
+  - bloco curto em 3 passos (entrar, explorar com prova, compartilhar)
 
-## 3) Endpoint `/api/track` + sessão anônima
-- Novo endpoint: `app/api/track/route.ts` (`POST`).
-- Validação estrita de payload com whitelist de eventos em `lib/analytics/schema.ts`.
-- Cookie de sessão anônima:
-  - `cv_sid` (30 dias, `SameSite=Lax`) via `lib/analytics/session.ts`.
-- Gating:
-  - `universeSlug` só aceita universo publicado, ou preview editor/admin.
-- Rate-limit:
-  - 60 req/min por sessão+evento (`prefix=cv:track`).
+## 3) O que mudou em `/c/[slug]` (Hub)
+- Hero do universo:
+  - título com presença
+  - subtítulo/missão
+  - meta bar viva (`atualizado`, `nos`, `trilhas`, `provas`)
+  - badge de visibilidade e estado de vitrine
+- 3 portas principais:
+  - Provas
+  - Mapa
+  - Debate
+- Comece Aqui fortalecido:
+  - bloco dedicado com CTA de trilha/tutor
+  - 3 perguntas prontas em cartões
+- Destaques editoriais:
+  - 1 destaque principal + grade secundária
+  - links para Provas/Linha/Debate conforme tipo
+- Portais/próximas portas:
+  - strip editorial + `PortalsRail` integrado
+- Continuar de onde parou:
+  - card de retomada forte para usuário logado
 
-## 4) Dashboard por universo
-- Nova rota:
-  - `/admin/universes/[id]/analytics`
-- Agregações em `lib/analytics/dashboard.ts`:
-  - últimas 24h:
-    - `page_view`
-    - `share_view`
-    - `share_open_app`
-    - taxa `share_open_app / share_view`
-    - top 5 CTAs
-  - últimos 7 dias:
-    - funil `hub -> provas -> debate -> tutor -> share`
-    - top 5 nós (`node_select`)
-    - top 5 evidências (`evidence_click`)
-    - nós com maior `insufficient` via `qa_threads.mode` por `node_id`
+## 4) Novos componentes criados
+- `components/universe/HeroPanel.tsx`
+- `components/universe/UniverseMetaBar.tsx`
+- `components/universe/BigPortalCard.tsx`
+- `components/universe/HighlightsStrip.tsx`
+- `components/universe/ResumeJourneyCard.tsx`
 
-## 5) Instrumentação aplicada (nível inicial)
-- Layout de universo:
-  - `components/analytics/AnalyticsBridge.tsx`
-  - `page_view` (e `share_view` nas rotas `/s/*`) por mudança de rota
-  - tracking por delegação em elementos com `data-track-event`
-  - `evidence_click`/`node_select` por `selected=` em Provas/Mapa
-- CTAs com atributos de tracking:
-  - Hub (`comecar_aqui`, `explorar_provas`, `abrir_tutor`, etc.)
-  - Linha e Mapa (CTAs “Ver Provas/Linha/Debate”)
-  - Share pages (`Abrir no app` e download de export)
-- `ShareButton` passou a registrar `cta_click` (`compartilhar`) além do comportamento anterior.
+## 5) Arquivos principais alterados
+- Home:
+  - `app/page.tsx`
+- Hub:
+  - `app/c/[slug]/page.tsx`
+- Estilos de composição/editorial/mobile:
+  - `app/globals.css`
+- Documentação de UI:
+  - `docs/UI.md`
 
-## 6) Admin status (global)
-- `/admin/status` ganhou card de analytics 24h:
-  - page views
-  - share views
-  - share open app
-  - universos com share open app
-  - top universos por `share_open_app` (ids)
+## 6) Como testar (manual)
+1. Abrir a Home e validar hero + portas + universos + fios quentes + como funciona.
+2. Abrir o Hub de um universo e validar hero do universo + 3 portas + Comece Aqui + Destaques.
+3. Comparar desktop e mobile:
+  - hero compacto no mobile
+  - cards em coluna única
+  - CTA principal acima da dobra.
 
-## 7) Testes adicionados/ajustados
-- Unit:
-  - `tests/analytics-track.test.ts`
-    - validação de payload do tracking
-    - geração/reuso de `cv_sid`
-- E2E smoke:
-  - teste novo para `POST /api/track`
-  - teste de share page validando atributo de tracking + navegação “Abrir no app”
-
-## 8) Docs
-- Novo:
-  - `docs/ANALYTICS.md`
-- Atualizados:
-  - `docs/API.md` (`POST /api/track`)
-  - `docs/SECURITY.md` (seção de privacidade de analytics)
-
-## 9) Como testar (manual)
-1. Abrir um universo publicado e navegar por 3 telas (`/c/[slug]`, `/provas`, `/mapa`).
-2. Abrir uma share page (`/c/[slug]/s/evidence/[id]`) e clicar em “Abrir no app”.
-3. Acessar `/admin/universes/[id]/analytics` e verificar eventos no painel (24h/7d).
-
-## 10) Verificações
+## 7) Verificações
 - ✅ Verify passou
   - `npm run verify`
 - ✅ E2E passou
-  - `npm run test:e2e:ci` (executado com porta alternativa para evitar conflito local)
+  - `npm run test:e2e:ci`
 - ✅ Visual passou
-  - `npm run test:ui:ci` (executado com porta alternativa)
+  - `npm run test:ui:ci`

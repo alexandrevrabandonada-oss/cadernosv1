@@ -2,19 +2,34 @@ import { Card } from '@/components/ui/Card';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { PortalsRail } from '@/components/portals/PortalsRail';
 import { ShareButton } from '@/components/share/ShareButton';
-import { Carimbo } from '@/components/ui/Badge';
-import { SectionHeader } from '@/components/ui/SectionHeader';
+import { Badge, Carimbo } from '@/components/ui/Badge';
 import { getHubData } from '@/lib/data/universe';
 import { getUniverseAccessBySlug } from '@/lib/data/universes';
 import { buildUniverseHref } from '@/lib/universeNav';
 import { UniverseVisibilityBadge } from '@/components/universe/UniverseVisibilityBadge';
 import { getUserUiSettings } from '@/lib/user/settings';
+import { HeroPanel } from '@/components/universe/HeroPanel';
+import { UniverseMetaBar } from '@/components/universe/UniverseMetaBar';
+import { BigPortalCard } from '@/components/universe/BigPortalCard';
+import { HighlightsStrip } from '@/components/universe/HighlightsStrip';
+import { ResumeJourneyCard } from '@/components/universe/ResumeJourneyCard';
 
 type UniversoPageProps = {
   params: Promise<{
     slug: string;
   }>;
 };
+
+function formatDaysAgo(isoDate: string | null | undefined) {
+  if (!isoDate) return 'sem registro';
+  const target = new Date(isoDate);
+  const diffMs = Date.now() - target.getTime();
+  if (Number.isNaN(diffMs) || diffMs < 0) return target.toLocaleDateString('pt-BR');
+  const days = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+  if (days === 0) return 'hoje';
+  if (days === 1) return 'ha 1 dia';
+  return `ha ${days} dias`;
+}
 
 export default async function UniversoHubPage({ params }: UniversoPageProps) {
   const { slug } = await params;
@@ -33,165 +48,65 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
     tutor: 'Tutor',
   };
   const lastSection = uiPrefs.settings.last_section;
+  const updatedAgo = formatDaysAgo(access.universe?.published_at);
+  const isShowcase = universe.highlights.enabled;
+
+  const highlightItems = [
+    ...universe.highlights.evidences.map((item) => ({
+      id: `ev-${item.id}`,
+      label: 'Evidencia',
+      title: item.title,
+      description: item.summary,
+      href: buildUniverseHref(
+        slug,
+        `provas?selected=${encodeURIComponent(item.id)}&panel=detail${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
+      ),
+    })),
+    ...universe.highlights.events.map((item) => ({
+      id: `event-${item.id}`,
+      label: 'Linha',
+      title: item.title,
+      description: `${item.kind ?? 'evento'}${item.day ? ` - ${new Date(item.day).toLocaleDateString('pt-BR')}` : ''}`,
+      href: buildUniverseHref(slug, `linha?selected=${encodeURIComponent(item.id)}&panel=detail`),
+    })),
+    ...universe.highlights.questions.map((item, index) => ({
+      id: `q-${index}`,
+      label: 'Debate',
+      title: item.question,
+      description: 'Pergunta editorial pronta para entrada no debate.',
+      href: buildUniverseHref(
+        slug,
+        `debate?q=${encodeURIComponent(item.question)}${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
+      ),
+    })),
+  ];
+
+  const primaryHighlight = highlightItems[0] ?? null;
+  const secondaryHighlights = highlightItems.slice(1, 7);
 
   return (
     <div className='stack'>
       <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Hub' />
 
-      <Card className='stack'>
-        <SectionHeader
-          title='Comece Aqui'
-          description='Entrada rapida em 20s: entenda o universo, inicie a trilha e faca perguntas guiadas.'
-          tag='Quick Start'
-        />
-        <p className='muted' style={{ margin: 0 }}>
-          {universe.summary}
-        </p>
-        <div className='toolbar-row'>
-          <Carimbo>{`docs processados:${universe.quickStart.docsProcessed}`}</Carimbo>
-          <Carimbo>{`nos:${universe.quickStart.nodesTotal}`}</Carimbo>
-          <Carimbo>{`evidencias:${universe.quickStart.evidencesTotal}`}</Carimbo>
-        </div>
-        <div className='toolbar-row'>
-          <a
-            className='ui-button'
-            href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}
-            data-track-event='cta_click'
-            data-track-cta='comecar_aqui'
-            data-track-section='hub'
-          >
-            Iniciar trilha &quot;Comece Aqui&quot;
-          </a>
-          <a
-            className='ui-button'
-            data-variant='ghost'
-            href={buildUniverseHref(slug, 'debate')}
-            data-track-event='cta_click'
-            data-track-cta='abrir_debate'
-            data-track-section='hub'
-          >
-            Abrir Debate
-          </a>
-          {uiPrefs.isLoggedIn && lastSection ? (
-            <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, lastSection)}>
-              Continuar de onde parou: {sectionLabels[lastSection] ?? lastSection}
-            </a>
-          ) : null}
-        </div>
-        <SectionHeader title='Perguntas prontas' description='Clique para abrir o Debate com contexto ja definido.' />
-        <div className='toolbar-row' role='list' aria-label='Perguntas prontas de onboarding'>
-          {universe.quickStart.questions.map((item, index) => (
+      <HeroPanel
+        className='hub-hero'
+        eyebrow='Entrada de Universo'
+        title={universe.title}
+        subtitle={universe.summary}
+        actions={
+          <>
             <a
-              key={`${item.question}-${index}`}
+              className='ui-button'
+              href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}
+              data-track-event='cta_click'
+              data-track-cta='comecar_aqui'
+              data-track-section='hub'
+            >
+              Comecar em 5 minutos
+            </a>
+            <a
               className='ui-button'
               data-variant='ghost'
-              href={buildUniverseHref(
-                slug,
-                `debate?q=${encodeURIComponent(item.question)}${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
-              )}
-            >
-              {item.label}: {item.question}
-            </a>
-          ))}
-        </div>
-      </Card>
-
-      {universe.highlights.enabled ? (
-        <Card className='stack' id='destaques'>
-          <SectionHeader
-            title='Destaques'
-            description='Kit de vitrine com evidencias, perguntas e marcos da linha para iniciar a jornada publica.'
-            tag='Vitrine'
-          />
-
-          <section className='stack'>
-            <h3 style={{ margin: 0 }}>Evidencias destacadas</h3>
-            <div className='stack'>
-              {universe.highlights.evidences.map((item) => (
-                <article key={item.id} className='core-node stack'>
-                  <strong>{item.title}</strong>
-                  <p className='muted' style={{ margin: 0 }}>
-                    {item.summary}
-                  </p>
-                  <div className='toolbar-row'>
-                    <a
-                      className='ui-button'
-                      href={buildUniverseHref(
-                        slug,
-                        `provas?selected=${encodeURIComponent(item.id)}&panel=detail${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
-                      )}
-                      data-track-event='evidence_click'
-                      data-track-cta='hub_evidence'
-                      data-track-section='hub_highlights'
-                    >
-                      Abrir evidencia
-                    </a>
-                    <ShareButton
-                      url={`/c/${slug}/s/evidence/${item.id}`}
-                      title={item.title}
-                      text={item.summary}
-                      label='Compartilhar'
-                    />
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <section className='stack'>
-            <h3 style={{ margin: 0 }}>Perguntas destacadas</h3>
-            <div className='toolbar-row'>
-              {universe.highlights.questions.map((item, index) => (
-                <span key={`${item.question}-${index}`} className='toolbar-row'>
-                  <a
-                    className='ui-button'
-                    data-variant='ghost'
-                    href={buildUniverseHref(
-                      slug,
-                      `debate?q=${encodeURIComponent(item.question)}${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
-                    )}
-                  >
-                    {item.question}
-                  </a>
-                  <ShareButton
-                    url={`/c/${slug}/s`}
-                    title={`Pergunta em destaque - ${slug}`}
-                    text={item.question}
-                    label='Compartilhar'
-                  />
-                </span>
-              ))}
-            </div>
-          </section>
-
-          <section className='stack'>
-            <h3 style={{ margin: 0 }}>Linha em destaque</h3>
-            <div className='stack'>
-              {universe.highlights.events.map((item) => (
-                <article key={item.id} className='core-node stack'>
-                  <strong>{item.title}</strong>
-                  <p className='muted' style={{ margin: 0 }}>
-                    {item.day ? new Date(item.day).toLocaleDateString('pt-BR') : 's/data'} | {item.kind ?? 'evento'}
-                  </p>
-                  <div className='toolbar-row'>
-                    <a className='ui-button' href={buildUniverseHref(slug, `linha?selected=${encodeURIComponent(item.id)}&panel=detail`)}>
-                      Abrir evento
-                    </a>
-                    <ShareButton
-                      url={`/c/${slug}/s/event/${item.id}`}
-                      title={item.title}
-                      text={`${item.kind ?? 'evento'} em ${item.day ?? 's/data'}`}
-                      label='Compartilhar'
-                    />
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
-
-          <div className='toolbar-row'>
-            <a
-              className='ui-button'
               href={buildUniverseHref(slug, 'provas')}
               data-track-event='cta_click'
               data-track-cta='explorar_provas'
@@ -199,106 +114,157 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
             >
               Explorar Provas
             </a>
-            <a
-              className='ui-button'
-              data-variant='ghost'
-              href={buildUniverseHref(slug, 'tutor')}
-              data-track-event='cta_click'
-              data-track-cta='abrir_tutor'
-              data-track-section='hub'
-            >
-              Comecar Tutor
-            </a>
-            <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'linha')}>
-              Ver Linha
-            </a>
-          </div>
-        </Card>
-      ) : null}
+          </>
+        }
+        meta={
+          <UniverseMetaBar
+            items={[
+              { label: 'Atualizado', value: updatedAgo },
+              { label: 'Nos', value: String(universe.quickStart.nodesTotal) },
+              { label: 'Trilhas', value: String(Math.max(universe.featuredTrails.length, 1)) },
+              { label: 'Provas', value: String(universe.quickStart.evidencesTotal) },
+            ]}
+          />
+        }
+        aside={
+          <article className='feature-universe-card surface-plate'>
+            <div className='toolbar-row'>
+              <UniverseVisibilityBadge published={Boolean(access.published)} preview={Boolean(access.canPreview)} />
+              {isShowcase ? <Badge variant='ok'>Vitrine</Badge> : null}
+            </div>
+            <h2>Estado do universo</h2>
+            <p className='muted'>Nucleo curado para leitura publica com portas de prova, mapa e debate.</p>
+            <div className='toolbar-row'>
+              <Carimbo>{`docs:${universe.quickStart.docsProcessed}`}</Carimbo>
+              <Carimbo>{`nos:${universe.quickStart.nodesTotal}`}</Carimbo>
+              <Carimbo>{`evidencias:${universe.quickStart.evidencesTotal}`}</Carimbo>
+            </div>
+          </article>
+        }
+      />
 
-      <Card className='stack'>
-        <SectionHeader title={universe.title} description={universe.summary} tag='Hub do Universo' />
-        <div className='toolbar-row'>
-          <UniverseVisibilityBadge published={Boolean(access.published)} preview={Boolean(access.canPreview)} />
+      <section className='big-portal-grid' aria-label='Portas principais do universo'>
+        <BigPortalCard
+          href={buildUniverseHref(slug, 'provas')}
+          title='Provas'
+          description='Evidencias curadas com relacionados e links compartilhaveis.'
+          cta='Entrar em Provas'
+          badge='Porta 1'
+          track={{ event: 'cta_click', cta: 'porta_provas', section: 'hub_portas' }}
+        />
+        <BigPortalCard
+          href={buildUniverseHref(slug, 'mapa')}
+          title='Mapa'
+          description='Veja o nucleo do universo, cobertura por no e conexoes.'
+          cta='Entrar no Mapa'
+          badge='Porta 2'
+          track={{ event: 'cta_click', cta: 'porta_mapa', section: 'hub_portas' }}
+        />
+        <BigPortalCard
+          href={buildUniverseHref(slug, 'debate')}
+          title='Debate'
+          description='Perguntas rastreaveis com citacoes, confianca e limitacoes.'
+          cta='Entrar no Debate'
+          badge='Porta 3'
+          track={{ event: 'cta_click', cta: 'porta_debate', section: 'hub_portas' }}
+        />
+      </section>
+
+      <Card className='stack surface-panel quickstart-block'>
+        <header className='stack' style={{ gap: '0.35rem' }}>
+          <Badge variant='warning'>Comece Aqui</Badge>
+          <h2 style={{ margin: 0 }}>Comece em 5 minutos</h2>
           <p className='muted' style={{ margin: 0 }}>
-            Slug tecnico: <strong>{slug}</strong>
+            Trilha guiada + perguntas prontas para abrir o debate com contexto de no.
           </p>
-          <Carimbo>{universe.source === 'db' ? 'dados:db' : 'dados:mock'}</Carimbo>
+        </header>
+        <div className='toolbar-row'>
+          <a className='ui-button' href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}>
+            Iniciar trilha
+          </a>
+          <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
+            Abrir Tutor
+          </a>
+        </div>
+        <div className='quick-questions-grid'>
+          {universe.quickStart.questions.slice(0, 3).map((item, index) => (
+            <a
+              key={`${item.question}-${index}`}
+              className='quick-question-card surface-blade'
+              href={buildUniverseHref(
+                slug,
+                `debate?q=${encodeURIComponent(item.question)}${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
+              )}
+            >
+              <small>{item.label}</small>
+              <strong>{item.question}</strong>
+            </a>
+          ))}
         </div>
       </Card>
 
-      <Card className='stack'>
-        <SectionHeader
-          title='Nucleo'
-          description='Nucleo com nos para orientar exploracao, investigacao e conexoes.'
-          tag='5-9 nos'
-        />
-        <div className='core-grid'>
-          {universe.coreNodes.map((node) => (
-            <article className='core-node' key={node.id}>
-              <strong>{node.label}</strong>
+      <Card className='stack surface-plate' id='destaques'>
+        <header className='stack' style={{ gap: '0.35rem' }}>
+          <h2 style={{ margin: 0 }}>Destaques editoriais</h2>
+          <p className='muted' style={{ margin: 0 }}>
+            Painel vivo com evidencias, perguntas e marcos de linha para navegar o universo.
+          </p>
+        </header>
+        <div className='hub-highlights-layout'>
+          {primaryHighlight ? (
+            <article className='highlight-primary surface-panel'>
+              <Badge>{primaryHighlight.label}</Badge>
+              <h3>{primaryHighlight.title}</h3>
+              <p className='muted'>{primaryHighlight.description}</p>
               <div className='toolbar-row'>
-                <Carimbo>{node.type}</Carimbo>
-                {typeof node.docsCount === 'number' && node.docsCount > 0 ? <Carimbo>{`docs:${node.docsCount}`}</Carimbo> : null}
-                {typeof node.evidencesCount === 'number' && node.evidencesCount > 0 ? (
-                  <Carimbo>{`evidencias:${node.evidencesCount}`}</Carimbo>
+                <a className='ui-button' href={primaryHighlight.href}>
+                  Abrir destaque
+                </a>
+                {primaryHighlight.label === 'Evidencia' ? (
+                  <ShareButton
+                    url={`/c/${slug}/s/evidence/${primaryHighlight.id.replace('ev-', '')}`}
+                    title={primaryHighlight.title}
+                    text={primaryHighlight.description}
+                    label='Compartilhar'
+                  />
                 ) : null}
               </div>
             </article>
-          ))}
-        </div>
-      </Card>
-
-      <Card className='stack'>
-        <SectionHeader title='Trilhas em destaque' description='Entradas sugeridas para iniciar o percurso.' />
-        <div className='stack'>
-          {universe.featuredTrails.map((trail) => (
-            <article key={trail.id} className='core-node'>
-              <strong>{trail.title}</strong>
-              <p className='muted' style={{ margin: 0 }}>
-                {trail.summary}
-              </p>
+          ) : (
+            <article className='highlight-primary surface-panel'>
+              <h3>Painel em atualizacao</h3>
+              <p className='muted'>Curadoria de destaques ainda em montagem. Use Provas, Linha e Debate para iniciar.</p>
             </article>
-          ))}
-          {universe.featuredTrails.length === 0 ? (
-            <p className='muted' style={{ margin: 0 }}>
-              Sem trilhas em destaque por enquanto.
-            </p>
-          ) : null}
+          )}
+          <div className='highlight-secondary-grid'>
+            {secondaryHighlights.slice(0, 6).map((item) => (
+              <a key={item.id} className='highlight-secondary-item surface-blade' href={item.href}>
+                <Badge>{item.label}</Badge>
+                <strong>{item.title}</strong>
+              </a>
+            ))}
+          </div>
         </div>
       </Card>
 
-      <Card className='stack'>
-        <SectionHeader title='Provas recentes' description='Evidencias curadas para leitura inicial.' />
-        <div className='stack'>
-          {universe.featuredEvidences.map((evidence) => (
-            <article key={evidence.id} className='core-node'>
-              <strong>{evidence.title}</strong>
-              <p className='muted' style={{ margin: 0 }}>
-                {evidence.summary}
-              </p>
-            </article>
-          ))}
-          {universe.featuredEvidences.length === 0 ? (
-            <p className='muted' style={{ margin: 0 }}>
-              Sem evidencias em destaque por enquanto.
-            </p>
-          ) : null}
-        </div>
+      <Card className='stack surface-panel'>
+        <HighlightsStrip
+          title='Proximas portas'
+          description='Continue pela mesma linha de investigacao sem perder contexto.'
+          items={highlightItems.slice(0, 4)}
+          emptyLabel='Use as portas principais para iniciar e construir destaques.'
+        />
+        <PortalsRail universeSlug={slug} context={{ type: 'none' }} variant='footer' title='Portais contextuais' />
       </Card>
 
-      <Card className='stack'>
-        <SectionHeader title='Perguntar ao universo' description='Avance para o Debate e envie sua pergunta com base nas provas.' />
-        <div className='toolbar-row'>
-          <a className='ui-button' href={buildUniverseHref(slug, 'debate')}>
-            Perguntar ao universo
-          </a>
-        </div>
-      </Card>
-
-      <Card className='stack'>
-        <PortalsRail universeSlug={slug} context={{ type: 'none' }} variant='footer' title='Proximas portas' />
-      </Card>
+      {uiPrefs.isLoggedIn && lastSection ? (
+        <ResumeJourneyCard
+          title={`Continuar no ${sectionLabels[lastSection] ?? lastSection}`}
+          description='Retome o ponto onde voce parou com filtros e contexto preservados.'
+          href={buildUniverseHref(slug, lastSection)}
+          cta='Continuar de onde parei'
+        />
+      ) : null}
     </div>
   );
 }

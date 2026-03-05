@@ -23,7 +23,7 @@ export function DockNav({ slug }: DockNavProps) {
   const pathname = usePathname();
   const uiPrefs = useUiPrefsContext();
   return (
-    <nav className='workspace-dock' aria-label='Navegacao rapida mobile' data-testid='dock-nav'>
+    <nav className='workspace-dock surface-blade' aria-label='Navegacao rapida mobile' data-testid='dock-nav'>
       {ITEMS.map((item) => {
         const href = buildUniverseHref(slug, item.key);
         const isActive = pathname === href;

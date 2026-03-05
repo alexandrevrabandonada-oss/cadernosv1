@@ -9,7 +9,11 @@ type SectionHeaderProps = {
 export function SectionHeader({ title, description, tag }: SectionHeaderProps) {
   return (
     <header className='stack' style={{ gap: '0.45rem' }}>
-      {tag ? <Badge>{tag}</Badge> : null}
+      {tag ? (
+        <span className='ui-eyebrow'>
+          <Badge>{tag}</Badge>
+        </span>
+      ) : null}
       <h1 className='ui-section-title'>{title}</h1>
       {description ? (
         <p className='muted' style={{ margin: 0 }}>
