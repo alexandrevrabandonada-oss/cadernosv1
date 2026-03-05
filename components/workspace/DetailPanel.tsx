@@ -9,6 +9,7 @@ type DetailPanelProps = {
   children?: ReactNode;
   empty?: ReactNode;
   showSkeleton?: boolean;
+  headerActions?: ReactNode;
   mobileOpen: boolean;
   onCloseMobile: () => void;
 };
@@ -22,7 +23,15 @@ function focusables(root: HTMLElement | null) {
   );
 }
 
-export function DetailPanel({ title = 'Detalhes', children, empty, showSkeleton = false, mobileOpen, onCloseMobile }: DetailPanelProps) {
+export function DetailPanel({
+  title = 'Detalhes',
+  children,
+  empty,
+  showSkeleton = false,
+  headerActions,
+  mobileOpen,
+  onCloseMobile,
+}: DetailPanelProps) {
   const mobileRef = useRef<HTMLDivElement | null>(null);
   const content =
     showSkeleton ? (
@@ -67,17 +76,18 @@ export function DetailPanel({ title = 'Detalhes', children, empty, showSkeleton 
 
   return (
     <>
-      <aside className='workspace-detail desktop-only surface-panel' aria-label='Painel de detalhe' data-testid='detail-panel'>
+      <aside className='workspace-detail desktop-only surface-panel cv-panel-enter' aria-label='Painel de detalhe' data-testid='detail-panel'>
         <header className='workspace-detail-head'>
           <strong>{title}</strong>
+          {headerActions ? <div className='toolbar-row'>{headerActions}</div> : null}
         </header>
         <div className='workspace-detail-body stack'>{content}</div>
       </aside>
 
-      <div className={`workspace-sheet-overlay ${mobileOpen ? 'is-open' : ''}`} onClick={onCloseMobile} aria-hidden='true' />
+      <div className={`workspace-sheet-overlay cv-panel-exit ${mobileOpen ? 'is-open' : ''}`} onClick={onCloseMobile} aria-hidden='true' />
       <aside
         ref={mobileRef}
-        className={`workspace-sheet surface-panel ${mobileOpen ? 'is-open' : ''}`}
+        className={`workspace-sheet surface-panel cv-panel-enter ${mobileOpen ? 'is-open' : ''}`}
         role='dialog'
         aria-modal='true'
         aria-label={title}
@@ -86,9 +96,12 @@ export function DetailPanel({ title = 'Detalhes', children, empty, showSkeleton 
         <div className='workspace-sheet-handle' aria-hidden='true' />
         <header className='workspace-detail-head'>
           <strong>{title}</strong>
-          <button type='button' className='ui-button' data-variant='ghost' onClick={onCloseMobile} aria-label='Fechar detalhe'>
-            Fechar
-          </button>
+          <div className='toolbar-row'>
+            {headerActions}
+            <button type='button' className='ui-button' data-variant='ghost' onClick={onCloseMobile} aria-label='Fechar detalhe'>
+              Fechar
+            </button>
+          </div>
         </header>
         <div className='workspace-detail-body stack'>{content}</div>
       </aside>

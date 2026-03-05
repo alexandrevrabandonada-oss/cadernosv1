@@ -15,6 +15,7 @@
   padding: var(--space-3);
   position: relative;
   overflow: hidden;
+  min-height: 112px;
 }
 
 .workspace-head::after {
@@ -58,8 +59,8 @@
   opacity: 1;
   transform: translateX(0);
   transition:
-    transform var(--motion-base) var(--ease-standard),
-    opacity var(--motion-base) var(--ease-standard);
+    transform var(--dur-3) var(--ease-emphasized),
+    opacity var(--dur-3) var(--ease-standard);
 }
 
 .workspace-filter,
@@ -95,7 +96,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px dashed color-mix(in srgb, var(--line-soft), #000 20%);
+  border-bottom: 1px solid color-mix(in srgb, var(--stroke-2), #000 8%);
   padding-bottom: var(--space-2);
 }
 
@@ -153,7 +154,7 @@
   backdrop-filter: blur(2px);
   opacity: 0;
   pointer-events: none;
-  transition: opacity var(--motion-base) var(--ease-standard);
+  transition: opacity var(--dur-3) var(--ease-standard);
   z-index: 45;
 }
 
@@ -172,8 +173,8 @@
   transform: translateY(105%);
   opacity: 0.95;
   transition:
-    transform var(--motion-base) var(--ease-standard),
-    opacity var(--motion-base) var(--ease-standard);
+    transform var(--dur-4) var(--ease-emphasized),
+    opacity var(--dur-3) var(--ease-standard);
   background: linear-gradient(180deg, color-mix(in srgb, var(--surface-panel), white 16%), color-mix(in srgb, var(--surface-blade), white 8%));
   border-top-left-radius: var(--radius-lg);
   border-top-right-radius: var(--radius-lg);
@@ -200,7 +201,7 @@
   inset: 0 auto 0 0;
   width: min(82vw, 340px);
   transform: translateX(-105%);
-  transition: transform var(--motion-base) var(--ease-standard);
+  transition: transform var(--dur-4) var(--ease-emphasized);
   z-index: 50;
   border-right: 1px solid var(--line-0);
   background: linear-gradient(180deg, color-mix(in srgb, var(--surface-panel), white 15%), color-mix(in srgb, var(--surface-blade), white 7%));
@@ -229,7 +230,7 @@
   border-top: 1px solid var(--line-0);
   box-shadow: var(--shadow-1);
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(8, minmax(0, 1fr));
   gap: 6px;
 }
 
@@ -245,6 +246,15 @@
   text-align: center;
   border: 1px solid color-mix(in srgb, var(--line-soft), transparent 45%);
   color: var(--text-0);
+  transition:
+    transform var(--dur-2) var(--ease-standard),
+    background var(--dur-2) var(--ease-standard),
+    border-color var(--dur-2) var(--ease-standard),
+    box-shadow var(--dur-2) var(--ease-standard);
+}
+
+.workspace-dock-item:hover {
+  transform: translateY(-1px);
 }
 
 .workspace-dock-item-icon {

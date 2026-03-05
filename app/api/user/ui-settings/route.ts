@@ -9,6 +9,9 @@ function sanitizePayload(raw: unknown): Payload {
   const payload: Payload = {};
   if (source.density === 'normal' || source.density === 'compact') payload.density = source.density;
   if (source.texture === 'normal' || source.texture === 'low') payload.texture = source.texture;
+  if (typeof source.focus_mode === 'boolean') payload.focus_mode = source.focus_mode;
+  if (typeof source.haptics === 'boolean') payload.haptics = source.haptics;
+  if (typeof source.sound_cues === 'boolean') payload.sound_cues = source.sound_cues;
   if (typeof source.last_section === 'string') payload.last_section = source.last_section as UiSettings['last_section'];
   return payload;
 }

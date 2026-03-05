@@ -30,13 +30,13 @@ export function HighlightsStrip({ title, description, items, emptyLabel = 'Sem d
           {emptyLabel}
         </p>
       ) : (
-        <div className='hot-strip' role='list' aria-label={title}>
+        <div className='hot-strip cv-snap-row cv-scroll-cue' role='list' aria-label={title}>
           {items.map((item) => (
-            <article key={item.id} className='hot-strip-item surface-blade' role='listitem'>
+            <article key={item.id} className='hot-strip-item surface-blade cv-motion cv-hover' role='listitem'>
               <Badge>{item.label}</Badge>
               <strong>{item.title}</strong>
               <p className='muted'>{item.description}</p>
-              <Link className='ui-button' data-variant='ghost' href={item.href}>
+              <Link className='ui-button cv-press' data-variant='ghost' href={item.href}>
                 Abrir
               </Link>
             </article>

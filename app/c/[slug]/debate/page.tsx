@@ -306,6 +306,8 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
                 slug={slug}
                 universeId={list.universeId}
                 threadId={selectedDetail.thread.id}
+                question={selectedDetail.thread.question}
+                answer={selectedDetail.thread.answer}
                 nodeSlug={selectedDetail.thread.node?.slug ?? ''}
                 provasHref={getProvasHref()}
                 firstEvidenceHref={firstEvidenceHref}

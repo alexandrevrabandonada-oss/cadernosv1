@@ -2,7 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useToast } from '@/components/ui/Toast';
+import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { CopyPackTextButton } from '@/components/share/CopyPackTextButton';
+import { feedback } from '@/lib/feedback/feedback';
 import type { SharePackChecklistChecks } from '@/lib/share/checklist';
 
 type SharePackOpsClientProps = {
@@ -47,6 +49,7 @@ export function SharePackOpsClient({
   captions,
 }: SharePackOpsClientProps) {
   const toast = useToast();
+  const prefs = useUiPrefsContext();
   const [checks, setChecks] = useState<SharePackChecklistChecks>(checklist);
   const [saving, setSaving] = useState(false);
 
@@ -78,10 +81,12 @@ export function SharePackOpsClient({
       });
       if (!response.ok) throw new Error('persist_failed');
       toast.success('Checklist salvo');
+      feedback('success', prefs?.settings);
     } catch {
       const local = readLocal(packId, next);
       setChecks(local);
       toast.error('Sem conexao com DB. Checklist salvo localmente.');
+      feedback('warning', prefs?.settings);
     } finally {
       setSaving(false);
     }

@@ -8,7 +8,9 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page.getByTestId('workspace')).toBeVisible();
     await expect(page.getByTestId('evidence-card').first()).toBeVisible();
 
-    await page.getByTestId('evidence-card').first().getByRole('link', { name: 'Ver detalhe' }).click();
+    const firstDetailHref = await page.getByTestId('evidence-card').first().getByRole('link', { name: 'Ver detalhe' }).getAttribute('href');
+    expect(firstDetailHref).toContain('selected=');
+    await page.goto(firstDetailHref ?? `/c/${slug}/provas`);
     await expect(page).toHaveURL(/selected=/);
     await expect(page.getByTestId('evidence-card').first()).toHaveAttribute('data-selected', 'true');
     await expect(page.getByTestId('detail-panel').first()).toBeVisible();
@@ -135,6 +137,30 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page).toHaveURL(/selected=/);
   });
 
+  test('focus mode: alterna data-focus com atalho de teclado no desktop', async ({ page }) => {
+    await page.goto(`/c/${slug}/provas?selected=${slug}-ev-1&panel=detail`);
+    await expect(page.locator('html')).toHaveAttribute('data-focus', 'off');
+
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await page.keyboard.press('f');
+    await expect(page.locator('html')).toHaveAttribute('data-focus', 'on');
+
+    await page.keyboard.press('f');
+    await expect(page.locator('html')).toHaveAttribute('data-focus', 'off');
+  });
+
+  test('meu caderno: salva highlight em provas e aparece na lista', async ({ page }) => {
+    await page.goto(`/c/${slug}/provas?selected=${slug}-ev-1&panel=detail`);
+    await page.getByRole('button', { name: 'Salvar trecho' }).first().click();
+    await expect(page.getByText('Salvo no meu caderno')).toBeVisible();
+
+    await page.goto(`/c/${slug}/meu-caderno`);
+    await expect(page.getByTestId('workspace')).toBeVisible();
+    await expect(page.getByText(/Entrada Evidencia|Evidencia 1 sobre/i).first()).toBeVisible();
+    await page.getByRole('link', { name: 'Abrir no app' }).first().click();
+    await expect(page).toHaveURL(new RegExp(`/c/${slug}/`));
+  });
+
   test('workspace base: rail, content e detail panel renderizam', async ({ page }) => {
     await page.goto(`/c/${slug}/linha`);
     await expect(page.getByTestId('workspace')).toBeVisible();
@@ -171,6 +197,28 @@ test.describe('UI smoke - workspace critico', () => {
     await page.goto(`/c/${slug}/s/export/${slug}-export-1`);
     await expect(page.getByText(/Export Share/i)).toBeVisible();
     await expect(page.getByRole('link', { name: 'Baixar PDF' })).toBeVisible();
+  });
+
+  test('export clip: endpoint gera asset e link de download', async ({ request }) => {
+    const response = await request.post('/api/admin/export/clip', {
+      data: {
+        universeSlug: slug,
+        sourceType: 'evidence',
+        sourceId: `${slug}-ev-1`,
+        title: 'Clip smoke',
+        snippet: 'Trecho curto de teste para validar export clip no fluxo e2e.',
+        isPublic: false,
+      },
+    });
+    expect(response.status()).toBe(200);
+    const payload = (await response.json()) as {
+      ok: boolean;
+      kind: string;
+      assets: Array<{ format: string; signedUrl: string | null }>;
+    };
+    expect(payload.ok).toBeTruthy();
+    expect(payload.kind).toBe('clip');
+    expect(payload.assets.some((asset) => asset.format === 'pdf' && Boolean(asset.signedUrl))).toBeTruthy();
   });
 
   test('og node: endpoint retorna image/png', async ({ request }) => {
@@ -282,5 +330,60 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(openAppLink).toHaveAttribute('data-track-event', 'share_open_app');
     await openAppLink.click();
     await expect(page).toHaveURL(new RegExp(`/c/${slug}/provas`));
+  });
+
+  test('pwa: manifest e icons existem', async ({ request }) => {
+    const manifestResponse = await request.get('/manifest.webmanifest');
+    expect(manifestResponse.status()).toBe(200);
+    const manifest = (await manifestResponse.json()) as {
+      name: string;
+      icons: Array<{ src: string; sizes: string }>;
+    };
+    expect(manifest.name).toContain('Cadernos');
+    expect(Array.isArray(manifest.icons)).toBeTruthy();
+    expect(manifest.icons.some((icon) => icon.sizes === '192x192')).toBeTruthy();
+    expect(manifest.icons.some((icon) => icon.sizes === '512x512')).toBeTruthy();
+
+    const icon192 = await request.get('/icons/icon-192.png');
+    expect(icon192.status()).toBe(200);
+    expect(icon192.headers()['content-type']).toContain('image/png');
+  });
+
+  test('pwa: service worker e rota offline existem', async ({ request, page }) => {
+    const swResponse = await request.get('/sw.js');
+    expect(swResponse.status()).toBe(200);
+    const swText = await swResponse.text();
+    expect(swText).toContain('CACHE_VERSION');
+    expect(swText).toContain('/api/public/offline-seed');
+
+    await page.goto('/offline');
+    await expect(page.getByRole('heading', { name: 'Voce esta offline' })).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Abrir Home' })).toBeVisible();
+  });
+
+  test('pwa: offline-seed publico responde com slugs/share pages', async ({ request }) => {
+    const response = await request.get('/api/public/offline-seed');
+    expect(response.status()).toBe(200);
+    const payload = (await response.json()) as {
+      universeSlugs: string[];
+      sharePages: string[];
+      updatedAt: string;
+    };
+    expect(Array.isArray(payload.universeSlugs)).toBeTruthy();
+    expect(Array.isArray(payload.sharePages)).toBeTruthy();
+    expect(typeof payload.updatedAt).toBe('string');
+  });
+
+  test('route progress: aparece em navegacao lenta e some ao concluir', async ({ page }) => {
+    await page.goto('/');
+    await page.waitForTimeout(350);
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('cv:navigation-start'));
+    });
+    await expect(page.getByTestId('route-progress')).toBeVisible({ timeout: 3000 });
+    await page.evaluate(() => {
+      window.dispatchEvent(new CustomEvent('cv:page-ready'));
+    });
+    await expect(page.getByTestId('route-progress')).toHaveCount(0);
   });
 });

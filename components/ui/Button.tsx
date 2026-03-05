@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 
 type Variant = 'primary' | 'neutral' | 'ghost';
 
@@ -13,9 +13,9 @@ type ButtonProps = {
 export function Button({ children, variant = 'neutral', href, ariaLabel, type = 'button' }: ButtonProps) {
   if (href) {
     return (
-      <Link className='ui-button' data-variant={variant} href={href} aria-label={ariaLabel}>
+      <PrefetchLink className='ui-button' data-variant={variant} href={href} aria-label={ariaLabel}>
         {children}
-      </Link>
+      </PrefetchLink>
     );
   }
 

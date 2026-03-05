@@ -33,6 +33,10 @@ const portalDescriptions: Record<string, { description: string; cta: string }> =
     description: 'Reuna evidencias, fontes e niveis de confianca.',
     cta: 'Ver provas',
   },
+  'meu-caderno': {
+    description: 'Reveja highlights e notas pessoais deste universo.',
+    cta: 'Abrir meu caderno',
+  },
   glossario: {
     description: 'Explore conceitos, siglas e entidades chave do universo.',
     cta: 'Abrir glossario',

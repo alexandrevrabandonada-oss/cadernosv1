@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { BrandIcon, type BrandIconName } from '@/components/brand/icons/BrandIcon';
 import { buildUniverseHref } from '@/lib/universeNav';
@@ -12,6 +13,7 @@ type DockNavProps = {
 
 const ITEMS = [
   { key: 'provas', label: 'Provas', icon: 'provas' as BrandIconName },
+  { key: 'meu-caderno', label: 'Caderno', icon: 'caderno' as BrandIconName },
   { key: 'linha', label: 'Linha', icon: 'linha' as BrandIconName },
   { key: 'glossario', label: 'Glossario', icon: 'glossario' as BrandIconName },
   { key: 'trilhas', label: 'Trilhas', icon: 'trilhas' as BrandIconName },
@@ -25,6 +27,7 @@ export function DockNav({ slug }: DockNavProps) {
   const uiPrefs = useUiPrefsContext();
   return (
     <nav className='workspace-dock surface-blade' aria-label='Navegacao rapida mobile' data-testid='dock-nav'>
+      <InstallPrompt compact className='workspace-dock-item' />
       {ITEMS.map((item) => {
         const href = buildUniverseHref(slug, item.key);
         const isActive = pathname === href;
@@ -34,7 +37,7 @@ export function DockNav({ slug }: DockNavProps) {
             href={href}
             className='workspace-dock-item'
             aria-current={isActive ? 'page' : undefined}
-            onClick={() => uiPrefs?.setLastSection(item.key)}
+            onClick={() => uiPrefs?.setLastSection(item.key === 'meu-caderno' ? 'provas' : (item.key as 'mapa' | 'provas' | 'linha' | 'debate' | 'glossario' | 'trilhas' | 'tutor'))}
           >
             <span className='workspace-dock-item-icon' aria-hidden='true'>
               <BrandIcon name={item.icon} size={16} tone={isActive ? 'editorial' : 'default'} />

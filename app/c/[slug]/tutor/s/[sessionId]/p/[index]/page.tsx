@@ -1,8 +1,10 @@
 import { notFound } from 'next/navigation';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Card } from '@/components/ui/Card';
+import { FocusToggle } from '@/components/ui/FocusToggle';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { TutorPointLab } from '@/components/tutor/TutorPointLab';
+import { canWriteAdminContent } from '@/lib/auth/requireRole';
 import {
   getTutorPlanPreview,
   getTutorSessionById,
@@ -35,6 +37,7 @@ export default async function TutorPointPage({ params }: TutorPointPageProps) {
   const { slug, sessionId, index } = await params;
   const currentPath = buildUniverseHref(slug, 'tutor');
   const universe = await getUniverseIdBySlug(slug);
+  const canExportClip = await canWriteAdminContent();
   if (!universe) notFound();
 
   const parsedIndex = Math.max(0, Number(index) || 0);
@@ -120,13 +123,18 @@ export default async function TutorPointPage({ params }: TutorPointPageProps) {
           description='Mini-lab do ponto: evidencia obrigatoria, pergunta guiada e checkpoint.'
           tag='Tutor Point'
         />
+        <div className='toolbar-row'>
+          <FocusToggle compactLabel />
+        </div>
       </Card>
 
-      <Card className='stack'>
+      <Card className='stack tutor-focus-shell'>
         <TutorPointLab
           slug={slug}
+          universeId={universe.id}
           sessionId={sessionId}
           mode={mode}
+          canExportClip={canExportClip}
           points={points}
           initialIndex={currentIndex}
           evidenceMap={evidenceMap}

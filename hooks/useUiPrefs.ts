@@ -27,8 +27,13 @@ function writeLocal(settings: UiSettings) {
 }
 
 function applyAttrs(settings: UiSettings) {
+  const snapshotQuery =
+    typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('snapshot') === '1';
+  const motionOff = document.documentElement.getAttribute('data-motion') === 'off';
+  const forceOff = motionOff || snapshotQuery;
   document.documentElement.setAttribute('data-density', settings.density);
   document.documentElement.setAttribute('data-texture', settings.texture);
+  document.documentElement.setAttribute('data-focus', !forceOff && settings.focus_mode ? 'on' : 'off');
 }
 
 export function useUiPrefs({ initial, isLoggedIn }: UseUiPrefsInput) {
@@ -75,6 +80,10 @@ export function useUiPrefs({ initial, isLoggedIn }: UseUiPrefsInput) {
       settings,
       setDensity: (density: UiDensity) => setSettings((prev) => ({ ...prev, density })),
       setTexture: (texture: UiTexture) => setSettings((prev) => ({ ...prev, texture })),
+      setFocusMode: (focus_mode: boolean) => setSettings((prev) => ({ ...prev, focus_mode })),
+      toggleFocusMode: () => setSettings((prev) => ({ ...prev, focus_mode: !prev.focus_mode })),
+      setHaptics: (haptics: boolean) => setSettings((prev) => ({ ...prev, haptics })),
+      setSoundCues: (sound_cues: boolean) => setSettings((prev) => ({ ...prev, sound_cues })),
       setLastSection: (last_section: UiSection) => setSettings((prev) => ({ ...prev, last_section })),
     }),
     [settings],

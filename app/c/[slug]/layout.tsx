@@ -3,6 +3,7 @@ import { AnalyticsBridge } from '@/components/analytics/AnalyticsBridge';
 import { QuickNav } from '@/components/QuickNav';
 import { CommandPalette } from '@/components/command/CommandPalette';
 import { Card } from '@/components/ui/Card';
+import { MotionModeSync } from '@/components/ui/MotionModeSync';
 import { UiPrefsProvider } from '@/components/ui/UiPrefsProvider';
 import { UniverseVisibilityBadge } from '@/components/universe/UniverseVisibilityBadge';
 import { WorkspaceProvider } from '@/components/workspace/WorkspaceContext';
@@ -18,6 +19,7 @@ export default async function UniversoLayout({ children, params }: UniversoLayou
   const { slug } = await params;
   const access = await getUniverseAccessBySlug(slug);
   const uiPrefs = await getUserUiSettings();
+  const snapshotMode = process.env.UI_SNAPSHOT === '1' || process.env.NEXT_PUBLIC_UI_SNAPSHOT === '1';
 
   if (!access.universe) {
     notFound();
@@ -30,7 +32,13 @@ export default async function UniversoLayout({ children, params }: UniversoLayou
   return (
     <UiPrefsProvider initialSettings={uiPrefs.settings} isLoggedIn={uiPrefs.isLoggedIn}>
       <WorkspaceProvider>
-        <main className='split-layout' data-density={uiPrefs.settings.density} data-texture={uiPrefs.settings.texture}>
+        <MotionModeSync />
+        <main
+          className='split-layout'
+          data-density={uiPrefs.settings.density}
+          data-texture={uiPrefs.settings.texture}
+          data-focus={uiPrefs.settings.focus_mode && !snapshotMode ? 'on' : 'off'}
+        >
           <AnalyticsBridge universeSlug={slug} />
           <QuickNav slug={slug} />
           <div className='stack'>

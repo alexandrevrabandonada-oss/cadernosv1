@@ -9,6 +9,7 @@ type UseShortcutsInput = {
   openPalette: () => void;
   closePalette: () => void;
   closePanels: () => void;
+  toggleFocusMode?: () => void;
   enabled?: boolean;
 };
 
@@ -31,6 +32,7 @@ export function useShortcuts({
   openPalette,
   closePalette,
   closePanels,
+  toggleFocusMode,
   enabled = true,
 }: UseShortcutsInput) {
   const prefixAtRef = useRef<number>(0);
@@ -60,6 +62,12 @@ export function useShortcuts({
       }
 
       if (typing) return;
+
+      if (key === 'f' && !isPaletteOpen) {
+        event.preventDefault();
+        toggleFocusMode?.();
+        return;
+      }
 
       if (event.key === '/') {
         event.preventDefault();
@@ -93,5 +101,5 @@ export function useShortcuts({
 
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [closePalette, closePanels, enabled, isPaletteOpen, openPalette, universeSlug]);
+  }, [closePalette, closePanels, enabled, isPaletteOpen, openPalette, toggleFocusMode, universeSlug]);
 }

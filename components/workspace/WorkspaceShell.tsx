@@ -2,7 +2,9 @@
 
 import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { PageReadyMarker } from '@/components/nav/PageReadyMarker';
 import { Carimbo } from '@/components/ui/Badge';
+import { FocusToggle } from '@/components/ui/FocusToggle';
 import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { UiPreferencesMenu } from '@/components/ui/UiPreferencesMenu';
 import { EmptyState } from '@/components/ui/EmptyState';
@@ -15,7 +17,7 @@ import { buildUniverseHref } from '@/lib/universeNav';
 
 type WorkspaceShellProps = {
   slug: string;
-  section: 'provas' | 'linha' | 'debate' | 'trilhas' | 'glossario' | 'mapa';
+  section: 'provas' | 'linha' | 'debate' | 'trilhas' | 'glossario' | 'mapa' | 'caderno';
   title?: string;
   subtitle?: string;
   filter: ReactNode;
@@ -45,6 +47,7 @@ export function WorkspaceShell({
     trilhas: 'trilhas',
     glossario: 'glossario',
     mapa: 'mapa',
+    caderno: 'caderno',
   };
   const panels = useWorkspacePanels();
   const workspace = useWorkspaceContext();
@@ -57,7 +60,7 @@ export function WorkspaceShell({
   useEffect(() => {
     if (!selectedId) return;
     setDetailLoading(true);
-    const timer = window.setTimeout(() => setDetailLoading(false), 180);
+    const timer = window.setTimeout(() => setDetailLoading(false), 140);
     return () => window.clearTimeout(timer);
   }, [selectedId]);
 
@@ -82,12 +85,13 @@ export function WorkspaceShell({
   }, [panels.filtersOpen, workspace]);
 
   useEffect(() => {
-    const normalized = section === 'trilhas' ? 'trilhas' : section;
+    const normalized = section === 'caderno' ? 'provas' : section;
     uiPrefs?.setLastSection(normalized);
   }, [section, uiPrefs]);
 
   return (
     <section className='workspace-shell stack' data-testid='workspace' data-room={section}>
+      <PageReadyMarker id={`workspace:${section}`} />
       <header className='workspace-head surface-panel'>
         <div>
           <p className='workspace-kicker'>{section}</p>
@@ -102,6 +106,7 @@ export function WorkspaceShell({
           ) : null}
         </div>
         <div className='toolbar-row'>
+          <FocusToggle compactLabel />
           <UiPreferencesMenu compact />
           {preview ? <Carimbo>Preview</Carimbo> : null}
           <button type='button' className='ui-button mobile-only' onClick={panels.openFilters} aria-label='Abrir filtros'>
@@ -127,6 +132,7 @@ export function WorkspaceShell({
           mobileOpen={detailOpen}
           onCloseMobile={panels.closeDetail}
           showSkeleton={detailLoading && hasDetail}
+          headerActions={<FocusToggle compactLabel />}
           empty={
             <EmptyState
               title='Selecione um item'
@@ -138,9 +144,9 @@ export function WorkspaceShell({
         </DetailPanel>
       </div>
 
-      <div className={`workspace-drawer-overlay ${panels.filtersOpen ? 'is-open' : ''}`} onClick={panels.closeFilters} aria-hidden='true' />
+      <div className={`workspace-drawer-overlay cv-panel-exit ${panels.filtersOpen ? 'is-open' : ''}`} onClick={panels.closeFilters} aria-hidden='true' />
       <aside
-        className={`workspace-drawer surface-blade ${panels.filtersOpen ? 'is-open' : ''}`}
+        className={`workspace-drawer surface-blade cv-panel-enter ${panels.filtersOpen ? 'is-open' : ''}`}
         role='dialog'
         aria-modal='true'
         aria-label='Filtros'
@@ -149,6 +155,7 @@ export function WorkspaceShell({
         <header className='workspace-detail-head'>
           <strong>Filtros</strong>
           <div className='toolbar-row'>
+            <FocusToggle compactLabel />
             <UiPreferencesMenu compact />
             <button type='button' className='ui-button' data-variant='ghost' onClick={panels.closeFilters} aria-label='Fechar filtros'>
               Fechar

@@ -70,6 +70,12 @@ const screens: Screen[] = [
   },
 ];
 
+function withSnapshot(url: string) {
+  if (process.env.UI_SNAPSHOT !== '1') return url;
+  const separator = url.includes('?') ? '&' : '?';
+  return `${url}${separator}snapshot=1`;
+}
+
 async function runVisualMatrix(page: Page, params: { viewport: 'desktop' | 'mobile'; density: 'normal' | 'compact'; texture: 'normal' | 'low' }) {
   if (params.viewport === 'desktop') {
     await setViewportDesktop(page);
@@ -79,7 +85,7 @@ async function runVisualMatrix(page: Page, params: { viewport: 'desktop' | 'mobi
   await applyUiPrefsViaLocalStorage(page, params.density, params.texture);
 
   for (const screen of screens) {
-    await page.goto(screen.path);
+    await page.goto(withSnapshot(screen.path));
     await disableMotion(page);
     await waitForAppReady(page, { requireWorkspace: screen.requireWorkspace ?? true });
     if (screen.openDetail) {

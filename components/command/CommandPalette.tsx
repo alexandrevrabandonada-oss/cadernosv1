@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useShortcuts } from '@/hooks/useShortcuts';
+import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { useWorkspaceContext } from '@/components/workspace/WorkspaceContext';
 import { buildUniverseHref } from '@/lib/universeNav';
 
@@ -23,6 +24,7 @@ type PaletteItem = {
 const SECTION_ITEMS = [
   { id: 'sec-mapa', label: 'Ir para Mapa', subtitle: 'Explorar nos e clusters', path: 'mapa' },
   { id: 'sec-provas', label: 'Ir para Provas', subtitle: 'Evidencias e trechos', path: 'provas' },
+  { id: 'sec-caderno', label: 'Ir para Meu Caderno', subtitle: 'Highlights e notas', path: 'meu-caderno' },
   { id: 'sec-linha', label: 'Ir para Linha', subtitle: 'Timeline e eventos', path: 'linha' },
   { id: 'sec-debate', label: 'Ir para Debate', subtitle: 'Perguntas e respostas', path: 'debate' },
   { id: 'sec-glossario', label: 'Ir para Glossario', subtitle: 'Conceitos do universo', path: 'glossario' },
@@ -42,6 +44,7 @@ function useDebouncedValue(value: string, delayMs = 160) {
 export function CommandPalette({ universeSlug }: { universeSlug: string }) {
   const router = useRouter();
   const workspace = useWorkspaceContext();
+  const uiPrefs = useUiPrefsContext();
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
   const [cursor, setCursor] = useState(0);
@@ -58,6 +61,7 @@ export function CommandPalette({ universeSlug }: { universeSlug: string }) {
     openPalette: () => setOpen(true),
     closePalette: () => setOpen(false),
     closePanels,
+    toggleFocusMode: () => uiPrefs?.toggleFocusMode(),
     enabled: true,
   });
 

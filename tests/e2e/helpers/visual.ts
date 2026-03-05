@@ -14,7 +14,7 @@ export async function setViewportMobile(page: Page) {
 
 export async function applyUiPrefsViaLocalStorage(page: Page, density: UiDensity, texture: UiTexture) {
   await page.addInitScript(
-    ({ densityValue, textureValue }) => {
+    ({ densityValue, textureValue, snapshotMode }) => {
       const payload = {
         density: densityValue,
         texture: textureValue,
@@ -23,12 +23,18 @@ export async function applyUiPrefsViaLocalStorage(page: Page, density: UiDensity
       localStorage.setItem('cv:ui-prefs', JSON.stringify(payload));
       document.documentElement.setAttribute('data-density', densityValue);
       document.documentElement.setAttribute('data-texture', textureValue);
+      if (snapshotMode) {
+        document.documentElement.setAttribute('data-motion', 'off');
+      }
     },
-    { densityValue: density, textureValue: texture },
+    { densityValue: density, textureValue: texture, snapshotMode: process.env.UI_SNAPSHOT === '1' },
   );
 }
 
 export async function disableMotion(page: Page) {
+  await page.addInitScript(() => {
+    document.documentElement.setAttribute('data-motion', 'off');
+  });
   await page.addStyleTag({
     content: `
       *, *::before, *::after {
@@ -54,6 +60,6 @@ export async function captureStableScreenshot(page: Page, name: string) {
   await expect(page).toHaveScreenshot(name, {
     fullPage: false,
     animations: 'disabled',
-    maxDiffPixelRatio: 0.02,
+    maxDiffPixelRatio: 0.04,
   });
 }

@@ -1,11 +1,14 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import Link from 'next/link';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { GenerateExportButton } from '@/components/export/GenerateExportButton';
 import { ShareButton } from '@/components/share/ShareButton';
 import { Card } from '@/components/ui/Card';
+import { SaveToNotebookButton } from '@/components/notes/SaveToNotebookButton';
+import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { useToast } from '@/components/ui/Toast';
+import { feedback } from '@/lib/feedback/feedback';
 
 type Citation = {
   citationId: string;
@@ -43,6 +46,8 @@ type Props = {
   slug: string;
   universeId: string;
   threadId: string;
+  question: string;
+  answer: string;
   nodeSlug: string;
   provasHref: string;
   firstEvidenceHref: string | null;
@@ -60,6 +65,8 @@ export function ThreadDetailActions({
   slug,
   universeId,
   threadId,
+  question,
+  answer,
   nodeSlug,
   provasHref,
   firstEvidenceHref,
@@ -73,6 +80,7 @@ export function ThreadDetailActions({
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<AskResponse | null>(null);
   const toast = useToast();
+  const prefs = useUiPrefsContext();
 
   const documentIds = useMemo(() => Array.from(new Set(citations.map((citation) => citation.docId))), [citations]);
 
@@ -81,10 +89,12 @@ export function ThreadDetailActions({
       await navigator.clipboard.writeText(currentUrl);
       setCopied(true);
       toast.success('Link copiado');
+      feedback('tap', prefs?.settings);
       setTimeout(() => setCopied(false), 1400);
     } catch {
       setCopied(false);
       toast.error('Falha ao copiar link');
+      feedback('warning', prefs?.settings);
     }
   }
 
@@ -131,7 +141,7 @@ export function ThreadDetailActions({
   return (
     <div className='stack'>
       <div className='toolbar-row'>
-        <Link
+        <PrefetchLink
           className='ui-button'
           href={provasHref}
           data-track-event='cta_click'
@@ -139,13 +149,28 @@ export function ThreadDetailActions({
           data-track-section='debate_detail'
         >
           Ver Provas
-        </Link>
+        </PrefetchLink>
         {firstEvidenceHref ? (
-          <Link className='ui-button' data-variant='ghost' href={firstEvidenceHref}>
+          <PrefetchLink className='ui-button' data-variant='ghost' href={firstEvidenceHref} smartPrefetch='hover'>
             Abrir 1a evidencia
-          </Link>
+          </PrefetchLink>
         ) : null}
         <ShareButton url={shareUrl} title='Thread do Debate' text='Debate com evidencias no Cadernos Vivos' />
+        <SaveToNotebookButton
+          universeSlug={slug}
+          kind='highlight'
+          title={`Thread: ${question}`}
+          text={`${question}\n\n${clip(answer, 520)}`}
+          sourceType='thread'
+          sourceId={threadId}
+          sourceMeta={{
+            threadId,
+            nodeSlug: nodeSlug || null,
+            docIds: documentIds,
+          }}
+          label='Salvar pergunta + achado'
+          compact
+        />
         <button className='ui-button' type='button' data-variant='ghost' onClick={onCopyLink}>
           {copied ? 'Link copiado' : 'Copiar link'}
         </button>
@@ -176,6 +201,39 @@ export function ThreadDetailActions({
           </p>
         ) : null}
       </Card>
+
+      {citations.length > 0 ? (
+        <Card className='stack'>
+          <strong>Salvar citacao</strong>
+          <div className='stack'>
+            {citations.slice(0, 4).map((citation) => (
+              <article key={citation.citationId} className='core-node stack'>
+                <p className='muted' style={{ margin: 0 }}>
+                  {citation.docTitle} {citation.year ? `(${citation.year})` : ''} | p.{citation.pageStart ?? citation.pageEnd ?? 's/p'}
+                </p>
+                <p style={{ margin: 0 }}>{clip(citation.quote, 180)}</p>
+                <SaveToNotebookButton
+                  universeSlug={slug}
+                  kind='highlight'
+                  title={`Citacao: ${citation.docTitle}`}
+                  text={citation.quote}
+                  sourceType='citation'
+                  sourceId={citation.citationId}
+                  sourceMeta={{
+                    citationId: citation.citationId,
+                    threadId: citation.threadId,
+                    docId: citation.docId,
+                    pageStart: citation.pageStart,
+                    pageEnd: citation.pageEnd,
+                  }}
+                  label='Salvar citacao'
+                  compact
+                />
+              </article>
+            ))}
+          </div>
+        </Card>
+      ) : null}
 
       {result ? (
         <Card className='stack' role='status' aria-live='polite'>

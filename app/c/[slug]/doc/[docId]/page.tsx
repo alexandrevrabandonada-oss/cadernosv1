@@ -2,9 +2,13 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { CopyCitationButton } from '@/components/provas/CopyCitationButton';
+import { GenerateExportButton } from '@/components/export/GenerateExportButton';
+import { SaveToNotebookButton } from '@/components/notes/SaveToNotebookButton';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { FocusToggle } from '@/components/ui/FocusToggle';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { canWriteAdminContent } from '@/lib/auth/requireRole';
 import { getDocumentViewData, getThreadCitationsForDocument, type DocThreadCitation } from '@/lib/data/debate';
 import { buildUniverseHref } from '@/lib/universeNav';
 
@@ -83,6 +87,7 @@ export default async function UniverseDocPage({ params, searchParams }: DocPageP
   const { slug, docId } = await params;
   const { p, thread, cite } = await searchParams;
   const currentPath = buildUniverseHref(slug, '');
+  const canExportClip = await canWriteAdminContent();
   const doc = await getDocumentViewData(slug, docId);
 
   if (!doc) {
@@ -102,10 +107,10 @@ export default async function UniverseDocPage({ params, searchParams }: DocPageP
     `/c/${slug}/doc/${docId}?thread=${encodeURIComponent(threadId)}&cite=${encodeURIComponent(citationId)}`;
 
   return (
-    <div className='stack'>
+    <div className='stack doc-reader-shell'>
       <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Documento' />
 
-      <Card className='stack'>
+      <Card className='stack doc-reader-card'>
         <SectionHeader
           title={doc.title}
           description='Visualizacao simples do documento referenciado nas evidencias.'
@@ -118,6 +123,7 @@ export default async function UniverseDocPage({ params, searchParams }: DocPageP
           Autor(es): {doc.authors || 'n/d'} {doc.year ? `| Ano: ${doc.year}` : ''}
         </p>
         <div className='toolbar-row'>
+          <FocusToggle compactLabel />
           {doc.signedUrl ? (
             <Link className='ui-button' href={doc.signedUrl} target='_blank' rel='noreferrer'>
               Abrir PDF no Storage
@@ -135,14 +141,14 @@ export default async function UniverseDocPage({ params, searchParams }: DocPageP
       </Card>
 
       {threadId ? (
-        <Card className='stack'>
+        <Card className='stack doc-reader-card'>
           <SectionHeader
             title='Citacoes desta resposta'
             description={`Thread ${threadId} | ${citations.length} citacao(oes) para este documento.`}
             tag='Thread'
           />
 
-          <div className='layout-shell' style={{ gridTemplateColumns: 'minmax(240px, 320px) minmax(0, 1fr)' }}>
+          <div className='layout-shell doc-reader-grid' style={{ gridTemplateColumns: 'minmax(240px, 320px) minmax(0, 1fr)' }}>
             <div className='stack'>
               {citations.map((citation) => (
                 <article key={citation.citationId} className='core-node'>
@@ -208,6 +214,46 @@ export default async function UniverseDocPage({ params, searchParams }: DocPageP
                         </Link>
                       ) : null}
                       <CopyCitationButton citation={formatCitationLine(selected)} />
+                      <div className='focus-only'>
+                        <SaveToNotebookButton
+                          universeSlug={slug}
+                          kind='highlight'
+                          title={`Citacao: ${doc.title}`}
+                          text={selected.quote}
+                          sourceType='citation'
+                          sourceId={selected.citationId}
+                          sourceMeta={{
+                            docId: doc.id,
+                            pageStart: selected.pageStart,
+                            pageEnd: selected.pageEnd,
+                            threadId: selected.threadId,
+                            citationId: selected.citationId,
+                          }}
+                          tags={[]}
+                          label='Salvar citacao'
+                          compact
+                        />
+                      </div>
+                      {canExportClip ? (
+                        <div className='focus-only'>
+                          <GenerateExportButton
+                            endpoint='/api/admin/export/clip'
+                            label='Exportar trecho'
+                            payload={{
+                              universeSlug: slug,
+                              sourceType: 'doc_cite',
+                              sourceId: selected.citationId,
+                              title: `Clip: ${doc.title}`,
+                              snippet: selected.quote,
+                              docId: doc.id,
+                              pageStart: selected.pageStart,
+                              pageEnd: selected.pageEnd,
+                              sourceUrl: doc.sourceUrl,
+                              isPublic: false,
+                            }}
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   </>
                 ) : (

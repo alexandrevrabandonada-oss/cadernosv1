@@ -108,8 +108,9 @@ function isTestSeedEnabled() {
 
 function mockThreadList(slug: string): DebateThreadItem[] {
   const mock = getUniverseMock(slug);
+  const baseDate = new Date('2025-01-15T12:00:00.000Z').getTime();
   return mock.coreNodes.slice(0, 8).map((node, index) => {
-    const createdAt = new Date(Date.now() - index * 86_400_000).toISOString();
+    const createdAt = new Date(baseDate - index * 86_400_000).toISOString();
     return {
       id: `${slug}-thread-${index + 1}`,
       question: `O que as evidencias mostram sobre ${node.label}?`,

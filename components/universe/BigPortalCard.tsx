@@ -1,5 +1,5 @@
-import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { Badge } from '@/components/ui/Badge';
 
 type BigPortalCardProps = {
@@ -23,16 +23,18 @@ export function BigPortalCard({ href, title, description, cta = 'Entrar', badge,
       <h3>{title}</h3>
       <p className='muted'>{description}</p>
       {preview ? <div className='big-portal-preview'>{preview}</div> : null}
-      <Link
+      <PrefetchLink
         className='ui-button'
         href={href}
+        prefetchOnVisible
+        smartPrefetch='all'
         data-variant='primary'
         data-track-event={track?.event}
         data-track-cta={track?.cta}
         data-track-section={track?.section}
       >
         {cta}
-      </Link>
+      </PrefetchLink>
     </article>
   );
 }

@@ -6,17 +6,37 @@
   --space-4: 1rem;
   --space-5: 1.5rem;
   --space-6: 2rem;
-  --radius-sm: 4px;
-  --radius-md: 10px;
-  --radius-lg: 16px;
+  --space-7: 3rem;
+  --space-8: 4rem;
+  --radius-sm: 12px;
+  --radius-md: 16px;
+  --radius-lg: 20px;
   --font-sans: 'Aptos', 'Segoe UI Variable Text', 'Segoe UI', Tahoma, sans-serif;
   --font-mono: 'Consolas', 'Cascadia Mono', 'Courier New', monospace;
+  --font-display: 'Bahnschrift', 'Aptos Narrow', 'Segoe UI Semibold', 'Aptos', 'Segoe UI', sans-serif;
+  --font-head: 'Aptos', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  --font-body: 'Aptos', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  --font-ui: 'Aptos', 'Segoe UI Variable Text', 'Segoe UI', sans-serif;
+  --fs-display-1: clamp(3.5rem, 6vw, 4rem);
+  --fs-display-2: clamp(2.5rem, 4vw, 3rem);
+  --fs-h1: clamp(2rem, 3.2vw, 2.25rem);
+  --fs-h2: clamp(1.5rem, 2.2vw, 1.75rem);
+  --fs-h3: clamp(1.125rem, 1.5vw, 1.25rem);
+  --fs-body: clamp(1rem, 1.1vw, 1.0625rem);
+  --fs-ui: 0.875rem;
+  --fs-micro: 0.75rem;
+  --lh-tight: 1.12;
+  --lh-normal: 1.5;
+  --lh-roomy: 1.64;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0.015em;
+  --tracking-wide: 0.08em;
   --bg-0: #1f2327;
   --bg-1: #2a3036;
   --bg-accent: rgba(102, 178, 145, 0.1);
-  --surface-0: #f3f0e7;
-  --surface-1: #dedad0;
-  --surface-2: #c6c2b8;
+  --surface-0: #171b21;
+  --surface-1: #20262d;
+  --surface-2: #283039;
   --text-0: #14181b;
   --text-1: #3e464d;
   --line-0: #3f474f;
@@ -31,19 +51,34 @@
   --status-warning: #d89f40;
   --status-danger: #b74335;
   --status-ok: #2f9c69;
-  --surface-panel: #f1ede4;
-  --surface-plate: #e1ddd3;
-  --surface-blade: #d3cec3;
+  --surface-panel: rgba(242, 236, 226, 0.9);
+  --surface-plate: rgba(232, 226, 214, 0.86);
+  --surface-blade: rgba(219, 212, 200, 0.82);
+  --stroke-1: rgba(226, 216, 199, 0.22);
+  --stroke-2: rgba(226, 216, 199, 0.14);
+  --radius-1: 12px;
+  --radius-2: 16px;
+  --radius-3: 20px;
+  --blur-1: 8px;
+  --halo-action: 0 0 0 1px rgba(45, 155, 116, 0.45), 0 8px 26px rgba(45, 155, 116, 0.22);
+  --halo-editorial: 0 0 0 1px rgba(217, 178, 79, 0.45), 0 8px 26px rgba(217, 178, 79, 0.2);
   --motion-fast: 140ms;
   --motion-base: 220ms;
   --motion-slow: 320ms;
   --ease-standard: cubic-bezier(0.2, 0, 0.15, 1);
+  --ease-emphasized: cubic-bezier(0.22, 0.06, 0.1, 1);
+  --dur-1: 120ms;
+  --dur-2: 180ms;
+  --dur-3: 240ms;
+  --dur-4: 320ms;
+  --motion-ok: 1;
   --cv-card-pad: var(--space-3);
   --cv-card-gap: var(--space-2);
   --cv-font-sm: 0.9rem;
-  --shadow-0: 0 12px 32px rgba(0, 0, 0, 0.28);
-  --shadow-1: 0 1px 0 rgba(0, 0, 0, 0.62);
-  --shadow-blade: inset 0 0 0 1px rgba(20, 24, 27, 0.08);
+  --shadow-0: 0 14px 40px rgba(5, 8, 12, 0.32);
+  --shadow-1: 0 2px 14px rgba(10, 14, 19, 0.24);
+  --shadow-2: 0 18px 50px rgba(4, 6, 10, 0.35);
+  --shadow-blade: inset 0 0 0 1px rgba(241, 233, 221, 0.04);
   --ring-selected: 0 0 0 2px color-mix(in srgb, var(--focus-strong), #000 8%);
   --texture-grid:
     repeating-linear-gradient(
@@ -59,5 +94,12 @@
 @media (max-width: 720px) {
   :root {
     --header-height: 56px;
+    --fs-display-1: clamp(2.5rem, 9vw, 2.75rem);
+    --fs-display-2: clamp(2.05rem, 8vw, 2.3rem);
+    --fs-h1: clamp(1.75rem, 6vw, 2rem);
+    --fs-h2: clamp(1.35rem, 5vw, 1.55rem);
+    --fs-h3: 1.125rem;
+    --fs-body: 1rem;
+    --fs-ui: 0.8125rem;
   }
 }

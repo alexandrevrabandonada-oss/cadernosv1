@@ -8,6 +8,7 @@ export type BrandIconName =
   | 'glossario'
   | 'trilhas'
   | 'tutor'
+  | 'caderno'
   | 'share'
   | 'export'
   | 'confidence_strong'
@@ -34,6 +35,7 @@ const ICONS: Record<BrandIconName, string> = {
   glossario: 'M5 4h10a4 4 0 014 4v12H9a4 4 0 00-4 4V4z',
   trilhas: 'M4 5h6v6H4zM14 13h6v6h-6zM10 8l4 4',
   tutor: 'M4 7l8-4 8 4-8 4-8-4zm2 5v4l6 3 6-3v-4',
+  caderno: 'M6 4h10a3 3 0 013 3v13H9a3 3 0 00-3 3V4zm0 0v19',
   share: 'M15 6l5 4-5 4M20 10H8M4 4h4v12H4z',
   export: 'M12 3v11M8 10l4 4 4-4M4 18h16',
   confidence_strong: 'M4 17l4-5 3 3 5-8 4 4',

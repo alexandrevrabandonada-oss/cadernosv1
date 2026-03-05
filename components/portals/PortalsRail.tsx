@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -35,9 +35,9 @@ export function PortalsRail({
         description='Portas de continuidade para manter contexto e ritmo de investigacao.'
         tag='Contextual'
       />
-      <div className='layout-shell portals-grid' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+      <div className='layout-shell portals-grid cv-snap-row cv-scroll-cue'>
         {items.map((item) => (
-          <Card key={item.id} className='stack portal-tile' surface='plate'>
+          <Card key={item.id} className='stack portal-tile cv-motion cv-hover' surface='plate'>
             <div className='toolbar-row portal-tile-head'>
               <strong>{item.label}</strong>
               {item.badge ? <Carimbo>{item.badge}</Carimbo> : null}
@@ -45,9 +45,15 @@ export function PortalsRail({
             <p className='muted portal-tile-reason' style={{ margin: 0 }}>
               {item.description}
             </p>
-            <Link className='ui-button portal-tile-cta' href={item.href} aria-label={`Abrir portal ${item.label}`}>
+            <PrefetchLink
+              className='ui-button portal-tile-cta cv-press'
+              href={item.href}
+              prefetchOnVisible
+              smartPrefetch='all'
+              aria-label={`Abrir portal ${item.label}`}
+            >
               Abrir porta
-            </Link>
+            </PrefetchLink>
           </Card>
         ))}
       </div>

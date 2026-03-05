@@ -4,6 +4,9 @@ import { Badge } from '@/components/ui/Badge';
 import { HeroPanel } from '@/components/universe/HeroPanel';
 import { BigPortalCard } from '@/components/universe/BigPortalCard';
 import { HighlightsStrip, type HighlightStripItem } from '@/components/universe/HighlightsStrip';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
+import { MiniPreviewDebate, MiniPreviewLinha, MiniPreviewMapa, MiniPreviewProvas } from '@/components/universe/PortalPreviews';
+import { PageReadyMarker } from '@/components/nav/PageReadyMarker';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { UniverseSeal } from '@/components/brand/UniverseSeal';
 import { EditorialMediaFrame } from '@/components/brand/EditorialMediaFrame';
@@ -82,21 +85,25 @@ export default async function HomePage({ searchParams }: HomePageProps) {
   const targetSlug = featuredHub?.slug ?? universes[0]?.slug ?? 'exemplo';
 
   return (
-    <main className='stack'>
+    <main className='stack stack-editorial'>
+      <PageReadyMarker id='home' />
       <HeroPanel
         className='home-hero'
         eyebrow='Portal Publico'
         title='Universos de prova, memoria e disputa'
-        subtitle='Cadernos Vivos organiza evidencias, linha do tempo, mapa e debate em percursos editoriais para leitura publica.'
+        subtitle='Entre em salas conectadas por evidencias rastreaveis, marcos historicos e perguntas publicas em modo de leitura guiada.'
         meta={<Wordmark variant='hero' />}
         actions={
           <>
-            <a className='ui-button' href='#universos'>
+            <PrefetchLink className='ui-button' href='#universos' smartPrefetch='off'>
               Explorar universos
-            </a>
-            <a className='ui-button' data-variant='ghost' href='#como-funciona'>
-              Entender como funciona
-            </a>
+            </PrefetchLink>
+            <PrefetchLink className='ui-button' href={buildUniverseHref(targetSlug, 'tutor')} data-variant='primary'>
+              Comecar no Tutor
+            </PrefetchLink>
+            <PrefetchLink className='ui-button' data-variant='ghost' href='#como-funciona' smartPrefetch='off'>
+              Como ler este universo
+            </PrefetchLink>
           </>
         }
         aside={
@@ -112,7 +119,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               </div>
               <EditorialMediaFrame
                 title='Arquivo ativo'
-                subtitle='Entrada editorial para leitura rapida'
+                subtitle='Leitura orientada por provas, linha e debate'
                 label='FOCO'
                 accent='editorial'
               />
@@ -131,23 +138,34 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           description='Entre por evidencias curadas, relacionados e citações rastreaveis.'
           cta='Abrir Provas'
           badge='Evidence-first'
-          preview={<EditorialMediaFrame title='Provas' subtitle='Trechos, citacoes e rastreio' label='SALA' accent='action' />}
+          preview={<MiniPreviewProvas />}
         />
         <BigPortalCard
-          href={buildUniverseHref(targetSlug, 'trilhas')}
-          title='Seguir uma Trilha'
-          description='Percursos guiados para leitura progressiva do acervo.'
-          cta='Abrir Trilhas'
-          badge='Curadoria'
-          preview={<EditorialMediaFrame title='Trilhas' subtitle='Percursos por investigacao' label='SALA' accent='editorial' />}
+          href={buildUniverseHref(targetSlug, 'linha')}
+          title='Seguir a Linha'
+          description='Leia marcos cronologicos e abra provas relacionadas no mesmo fluxo.'
+          cta='Abrir Linha'
+          badge='Cronologia'
+          preview={<MiniPreviewLinha />}
         />
         <BigPortalCard
-          href={buildUniverseHref(targetSlug, 'tutor')}
-          title='Entrar no Tutor'
-          description='Sessões por pontos de conhecimento com checkpoint e evidencias obrigatorias.'
-          cta='Abrir Tutor'
-          badge='Tutor Mode'
-          preview={<EditorialMediaFrame title='Tutor' subtitle='Sessao guiada por pontos' label='SALA' accent='editorial' />}
+          href={buildUniverseHref(targetSlug, 'debate')}
+          title='Abrir Debate'
+          description='Perguntas com citacoes, confianca e limitacoes em modo estrito.'
+          cta='Abrir Debate'
+          badge='Perguntas'
+          preview={<MiniPreviewDebate />}
+        />
+      </section>
+
+      <section className='big-portal-grid' aria-label='Portas complementares'>
+        <BigPortalCard
+          href={buildUniverseHref(targetSlug, 'mapa')}
+          title='Explorar Mapa'
+          description='Veja cobertura por no e lacunas de curadoria no universo.'
+          cta='Abrir Mapa'
+          badge='Explorer'
+          preview={<MiniPreviewMapa />}
         />
       </section>
 
@@ -155,7 +173,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <header className='stack' style={{ gap: '0.35rem' }}>
           <h2 style={{ margin: 0 }}>Universos em destaque</h2>
           <p className='muted' style={{ margin: 0 }}>
-            Entradas publicas para explorar dados, provas e narrativas em cada territorio.
+            Cada universo abre um recorte territorial com provas, trilhas e perguntas prontas para uso publico.
           </p>
         </header>
         <div className='universe-doors-grid'>
@@ -172,9 +190,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 <Badge>{`trilhas:${universe.trails}`}</Badge>
                 <Badge>{`provas:${universe.evidences}`}</Badge>
               </div>
-              <Link className='ui-button' href={buildUniverseHref(universe.slug, '')} data-variant='primary'>
+              <PrefetchLink className='ui-button' href={buildUniverseHref(universe.slug, '')} data-variant='primary' prefetchOnVisible={index === 0}>
                 Entrar no universo
-              </Link>
+              </PrefetchLink>
             </article>
           ))}
           {universoCards.length === 0 ? (
@@ -182,9 +200,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               <h3>Nenhum universo publicado</h3>
               <p className='muted'>O catalogo publico esta em preparacao. Volte em breve.</p>
               {session ? (
-                <Link className='ui-button' href='/admin/universes'>
-                  Ir para /admin
-                </Link>
+                <div className='toolbar-row'>
+                  <Link className='ui-button' href='/admin/universes'>
+                    Criar/ativar vitrine
+                  </Link>
+                  <Link className='ui-button' data-variant='ghost' href='/c/poluicao-vr'>
+                    Abrir demo em preview
+                  </Link>
+                </div>
               ) : null}
             </article>
           ) : null}
@@ -194,7 +217,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <Card className='stack surface-blade'>
         <HighlightsStrip
           title='Fios quentes'
-          description='Sinalizacao editorial do que esta mais ativo no universo em foco.'
+          description='Sinais editoriais do que merece leitura agora: provas fortes, marcos e perguntas acionaveis.'
           items={hotItems.slice(0, 6).map((item) => ({
             ...item,
             label: item.label === 'Evidencia' ? 'Evidencia' : item.label,
@@ -205,9 +228,9 @@ export default async function HomePage({ searchParams }: HomePageProps) {
 
       <Card className='stack surface-plate' id='como-funciona'>
         <header className='stack' style={{ gap: '0.35rem' }}>
-          <h2 style={{ margin: 0 }}>Como funciona</h2>
+          <h2 style={{ margin: 0 }}>Como ler este universo</h2>
           <p className='muted' style={{ margin: 0 }}>
-            Leitura publica orientada por prova, contexto e continuidade.
+            Fluxo curto para sair da curiosidade e chegar em leitura rastreavel.
           </p>
         </header>
         <div className='how-it-works-grid'>

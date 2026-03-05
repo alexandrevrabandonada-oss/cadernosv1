@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { Carimbo } from '@/components/ui/Badge';
+import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
+import { feedback } from '@/lib/feedback/feedback';
 import { useTrailProgress } from '@/hooks/useTrailProgress';
 import type { TrailView } from '@/lib/data/learning';
 
@@ -40,6 +42,7 @@ export function TrailPlayer({
     }
   });
   const [error, setError] = useState('');
+  const prefs = useUiPrefsContext();
 
   const progress = useTrailProgress({
     universeSlug: slug,
@@ -74,10 +77,12 @@ export function TrailPlayer({
     if (!activeStep) return;
     if (activeStep.requiresQuestion && !asked[activeStep.id]) {
       setError('Execute a pergunta guiada antes de concluir este passo.');
+      feedback('warning', prefs?.settings);
       return;
     }
     setError('');
     await progress.markDone(activeStep.id);
+    feedback('success', prefs?.settings);
   }
 
   if (!activeStep) {
@@ -91,7 +96,7 @@ export function TrailPlayer({
   const done = progress.getStepStatus(activeStep.id) === 'done';
 
   return (
-    <div className='stack'>
+    <div className='stack trail-focus-shell'>
       <div className='toolbar-row'>
         <Carimbo>{`passo:${activeStep.order}/${trail.steps.length}`}</Carimbo>
         <Carimbo>{`progresso:${progress.completedCount}/${progress.total}`}</Carimbo>
@@ -112,7 +117,7 @@ export function TrailPlayer({
       </article>
 
       {activeStep.requiredEvidences.length > 0 ? (
-        <article className='core-node stack trail-player-card'>
+        <article className='core-node stack trail-player-card trail-focus-reading'>
           <strong>Leituras obrigatorias</strong>
           {activeStep.requiredEvidences.map((evidence) => (
             <div key={evidence.id} className='stack'>
@@ -128,6 +133,7 @@ export function TrailPlayer({
                       ? `/c/${slug}/doc/${evidence.documentId}${evidence.pageStart ? `?p=${evidence.pageStart}` : ''}`
                       : `/c/${slug}/provas`
                   }
+                  onClick={() => feedback('tap', prefs?.settings)}
                 >
                   Abrir evidencia
                 </Link>
@@ -138,7 +144,7 @@ export function TrailPlayer({
       ) : null}
 
       {activeStep.guidedQuestion ? (
-        <article className='core-node stack trail-player-card'>
+        <article className='core-node stack trail-player-card trail-focus-reading'>
           <strong>Pergunta guiada</strong>
           <p style={{ margin: 0 }}>{activeStep.guidedQuestion}</p>
           <div className='toolbar-row'>

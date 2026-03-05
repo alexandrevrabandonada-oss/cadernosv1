@@ -5,10 +5,11 @@ import { captureException } from '@/lib/obs/sentry';
 import { getSupabaseServerClient, getSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { renderThreadMarkdown, renderTrailMarkdown, renderTutorSessionMarkdown } from '@/lib/export/md';
 import { renderConcretoZenPdf } from '@/lib/export/pdf';
+import { renderClipMarkdown } from '@/lib/export/clip';
 import { buildTutorSessionSummary, upsertTutorSessionSummary } from '@/lib/tutor/summary';
 
 type ExportFormat = 'md' | 'pdf';
-type ExportKind = 'thread' | 'trail' | 'tutor_session';
+type ExportKind = 'thread' | 'trail' | 'tutor_session' | 'clip';
 
 type StoredExport = {
   id: string;
@@ -20,6 +21,8 @@ type StoredExport = {
   title: string;
   format: ExportFormat;
   storage_path: string;
+  source_type: 'evidence' | 'thread' | 'doc_cite' | null;
+  source_id: string | null;
   is_public: boolean;
   created_by: string | null;
   created_at: string;
@@ -114,6 +117,8 @@ async function insertExportRow(input: {
   threadId: string | null;
   trailId: string | null;
   sessionId?: string | null;
+  sourceType?: 'evidence' | 'thread' | 'doc_cite' | null;
+  sourceId?: string | null;
   title: string;
   format: ExportFormat;
   storagePath: string;
@@ -130,6 +135,8 @@ async function insertExportRow(input: {
       thread_id: input.threadId,
       trail_id: input.trailId,
       session_id: input.sessionId ?? null,
+      source_type: input.sourceType ?? null,
+      source_id: input.sourceId ?? null,
       title: input.title,
       format: input.format,
       storage_path: input.storagePath,
@@ -140,6 +147,14 @@ async function insertExportRow(input: {
     .maybeSingle();
   if (error || !data) throw new Error('insert_export_failed');
   return data as StoredExport;
+}
+
+type ClipSourceType = 'evidence' | 'thread' | 'doc_cite';
+
+function pageRangeLabel(pageStart: number | null, pageEnd: number | null) {
+  if (!pageStart && !pageEnd) return null;
+  if (pageStart && pageEnd && pageStart !== pageEnd) return `p.${pageStart}-${pageEnd}`;
+  return `p.${pageStart ?? pageEnd}`;
 }
 
 async function logExportMetric(input: {
@@ -783,6 +798,197 @@ export async function createTutorSessionDossier(input: {
   }
 }
 
+export async function createClipExport(input: {
+  universeId: string;
+  sourceType: ClipSourceType;
+  sourceId: string;
+  snippet: string;
+  title?: string;
+  docId?: string | null;
+  pageStart?: number | null;
+  pageEnd?: number | null;
+  sourceUrl?: string | null;
+  isPublic?: boolean;
+}) {
+  const startedAt = Date.now();
+  const session = await getCurrentSession();
+  if (!session || !(session.role === 'admin' || session.role === 'editor')) {
+    throw new Error('forbidden');
+  }
+  if (process.env.TEST_SEED === '1') {
+    const fakeId = `${input.sourceId}-clip`;
+    return {
+      title: input.title?.trim() || 'Clip de evidência',
+      kind: 'clip' as const,
+      assets: [
+        { id: `${fakeId}-md`, format: 'md' as const, path: `/mock/${fakeId}.md`, signedUrl: `https://example.local/${fakeId}.md` },
+        { id: `${fakeId}-pdf`, format: 'pdf' as const, path: `/mock/${fakeId}.pdf`, signedUrl: `https://example.local/${fakeId}.pdf` },
+      ],
+    } satisfies CreatedExport;
+  }
+  const db = getAdminService();
+  if (!db) throw new Error('db_not_configured');
+
+  try {
+    const { data: universe } = await db.from('universes').select('id, title').eq('id', input.universeId).maybeSingle();
+    if (!universe) throw new Error('universe_not_found');
+
+    const cleanSnippet = clampQuote(String(input.snippet ?? ''), 1200);
+    if (!cleanSnippet || cleanSnippet.length < 16) {
+      throw new Error('invalid_snippet');
+    }
+
+    let docTitle: string | null = null;
+    let threadId: string | null = null;
+    if (input.sourceType === 'thread') {
+      threadId = input.sourceId;
+      const { data: thread } = await db.from('qa_threads').select('question').eq('id', input.sourceId).maybeSingle();
+      if (thread?.question && !input.title) {
+        input.title = `Clip: ${thread.question}`;
+      }
+    }
+
+    if (input.docId) {
+      const { data: doc } = await db.from('documents').select('title').eq('id', input.docId).maybeSingle();
+      docTitle = doc?.title ?? null;
+    }
+
+    const title = clampQuote(input.title?.trim() || 'Clip de evidência', 120);
+    const generatedAt = new Date().toISOString();
+    const pages = pageRangeLabel(input.pageStart ?? null, input.pageEnd ?? null);
+
+    const markdown = renderClipMarkdown({
+      universeTitle: universe.title,
+      title,
+      snippet: cleanSnippet,
+      sourceType: input.sourceType,
+      sourceDocTitle: docTitle,
+      pages,
+      sourceUrl: input.sourceUrl ?? null,
+      createdAt: generatedAt,
+    });
+
+    const pdfBuffer = await renderConcretoZenPdf({
+      title: 'Clip de Leitura',
+      subtitle: title,
+      universeTitle: universe.title,
+      generatedAt,
+      summary: 'Trecho curto exportado em modo de leitura, com fonte e referencia de pagina.',
+      sections: [
+        {
+          title: 'Trecho',
+          body: [cleanSnippet],
+        },
+        {
+          title: 'Fonte',
+          body: [
+            `Tipo: ${input.sourceType}`,
+            `Documento: ${docTitle ?? 'n/d'}`,
+            `Paginas: ${pages ?? 's/p'}`,
+            `URL: ${input.sourceUrl ?? 'n/d'}`,
+          ],
+        },
+      ],
+    });
+
+    const mdPath = buildPath({
+      universeId: input.universeId,
+      kind: 'clip',
+      sourceId: input.sourceId,
+      extension: 'md',
+    });
+    const pdfPath = buildPath({
+      universeId: input.universeId,
+      kind: 'clip',
+      sourceId: input.sourceId,
+      extension: 'pdf',
+    });
+
+    await uploadExportFile({ path: mdPath, contentType: 'text/markdown; charset=utf-8', body: markdown });
+    await uploadExportFile({ path: pdfPath, contentType: 'application/pdf', body: pdfBuffer });
+
+    const [mdRow, pdfRow] = await Promise.all([
+      insertExportRow({
+        universeId: input.universeId,
+        kind: 'clip',
+        threadId,
+        trailId: null,
+        sessionId: null,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+        title,
+        format: 'md',
+        storagePath: mdPath,
+        isPublic: Boolean(input.isPublic),
+        createdBy: session.userId,
+      }),
+      insertExportRow({
+        universeId: input.universeId,
+        kind: 'clip',
+        threadId,
+        trailId: null,
+        sessionId: null,
+        sourceType: input.sourceType,
+        sourceId: input.sourceId,
+        title,
+        format: 'pdf',
+        storagePath: pdfPath,
+        isPublic: Boolean(input.isPublic),
+        createdBy: session.userId,
+      }),
+    ]);
+
+    const latency = Date.now() - startedAt;
+    await Promise.all([
+      logExportMetric({
+        exportId: mdRow.id,
+        universeId: input.universeId,
+        format: 'md',
+        ok: true,
+        latencyMs: latency,
+        statusCode: 200,
+        details: { kind: 'clip', source_type: input.sourceType },
+      }),
+      logExportMetric({
+        exportId: pdfRow.id,
+        universeId: input.universeId,
+        format: 'pdf',
+        ok: true,
+        latencyMs: latency,
+        statusCode: 200,
+        details: { kind: 'clip', source_type: input.sourceType },
+      }),
+    ]);
+
+    return {
+      title,
+      kind: 'clip' as const,
+      assets: [
+        { id: mdRow.id, format: 'md' as const, path: mdRow.storage_path, signedUrl: await createSignedUrl(mdRow.storage_path) },
+        { id: pdfRow.id, format: 'pdf' as const, path: pdfRow.storage_path, signedUrl: await createSignedUrl(pdfRow.storage_path) },
+      ],
+    } satisfies CreatedExport;
+  } catch (error) {
+    const latency = Date.now() - startedAt;
+    await logExportMetric({
+      universeId: input.universeId,
+      format: 'both',
+      ok: false,
+      latencyMs: latency,
+      statusCode: 500,
+      details: { kind: 'clip', source_type: input.sourceType },
+    });
+    captureException(error, {
+      route: 'export_clip',
+      universe_id: input.universeId,
+      source_type: input.sourceType,
+      source_id: input.sourceId,
+      latency_ms: latency,
+    });
+    throw error;
+  }
+}
+
 export async function listUniverseExports(universeId: string) {
   const db = getAdminService();
   if (!db) return [] as StoredExport[];
@@ -821,7 +1027,7 @@ export async function getExportViewBySlug(slug: string, exportId: string): Promi
   const { data: row } = await db
     .from('exports')
     .select(
-      'id, universe_id, kind, thread_id, trail_id, session_id, title, format, storage_path, is_public, created_by, created_at, universes!inner(title, slug, published, published_at)',
+      'id, universe_id, kind, thread_id, trail_id, session_id, source_type, source_id, title, format, storage_path, is_public, created_by, created_at, universes!inner(title, slug, published, published_at)',
     )
     .eq('id', exportId)
     .eq('universes.slug', slug)
@@ -839,6 +1045,8 @@ export async function getExportViewBySlug(slug: string, exportId: string): Promi
     title: row.title,
     format: row.format,
     storage_path: row.storage_path,
+    source_type: row.source_type ?? null,
+    source_id: row.source_id ?? null,
     is_public: row.is_public,
     created_by: row.created_by,
     created_at: row.created_at,

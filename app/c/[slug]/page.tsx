@@ -1,6 +1,8 @@
 import { Card } from '@/components/ui/Card';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { PortalsRail } from '@/components/portals/PortalsRail';
+import { PageReadyMarker } from '@/components/nav/PageReadyMarker';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { ShareButton } from '@/components/share/ShareButton';
 import { Badge, Carimbo } from '@/components/ui/Badge';
 import { getHubData } from '@/lib/data/universe';
@@ -13,6 +15,7 @@ import { UniverseMetaBar } from '@/components/universe/UniverseMetaBar';
 import { BigPortalCard } from '@/components/universe/BigPortalCard';
 import { HighlightsStrip } from '@/components/universe/HighlightsStrip';
 import { ResumeJourneyCard } from '@/components/universe/ResumeJourneyCard';
+import { MiniPreviewDebate, MiniPreviewMapa, MiniPreviewProvas } from '@/components/universe/PortalPreviews';
 import { Wordmark } from '@/components/brand/Wordmark';
 import { UniverseSeal } from '@/components/brand/UniverseSeal';
 import { EditorialMediaFrame } from '@/components/brand/EditorialMediaFrame';
@@ -89,17 +92,18 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
   const secondaryHighlights = highlightItems.slice(1, 7);
 
   return (
-    <div className='stack'>
+    <div className='stack stack-editorial'>
+      <PageReadyMarker id={`hub:${slug}`} />
       <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Hub' />
 
       <HeroPanel
         className='hub-hero'
         eyebrow='Entrada de Universo'
         title={universe.title}
-        subtitle={universe.summary}
+        subtitle={universe.summary || 'Leitura viva do territorio com portas de prova, linha, mapa e debate.'}
         actions={
           <>
-            <a
+            <PrefetchLink
               className='ui-button'
               href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}
               data-track-event='cta_click'
@@ -107,8 +111,8 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               data-track-section='hub'
             >
               Comecar em 5 minutos
-            </a>
-            <a
+            </PrefetchLink>
+            <PrefetchLink
               className='ui-button'
               data-variant='ghost'
               href={buildUniverseHref(slug, 'provas')}
@@ -117,7 +121,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               data-track-section='hub'
             >
               Explorar Provas
-            </a>
+            </PrefetchLink>
           </>
         }
         meta={
@@ -140,7 +144,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               {isShowcase ? <UniverseSeal kind='showcase' /> : <UniverseSeal kind='published' />}
             </div>
             <h2>Estado do universo</h2>
-            <p className='muted'>Nucleo curado para leitura publica com portas de prova, mapa e debate.</p>
+            <p className='muted'>Nucleo editorial pronto para leitura publica com trilha inicial e portas contextuais.</p>
             <div className='toolbar-row'>
               <Carimbo>{`docs:${universe.quickStart.docsProcessed}`}</Carimbo>
               <Carimbo>{`nos:${universe.quickStart.nodesTotal}`}</Carimbo>
@@ -163,7 +167,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           description='Evidencias curadas com relacionados e links compartilhaveis.'
           cta='Entrar em Provas'
           badge='Porta 1'
-          preview={<BrandIcon name='provas' size={22} tone='action' />}
+          preview={<MiniPreviewProvas />}
           track={{ event: 'cta_click', cta: 'porta_provas', section: 'hub_portas' }}
         />
         <BigPortalCard
@@ -172,7 +176,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           description='Veja o nucleo do universo, cobertura por no e conexoes.'
           cta='Entrar no Mapa'
           badge='Porta 2'
-          preview={<BrandIcon name='mapa' size={22} tone='editorial' />}
+          preview={<MiniPreviewMapa />}
           track={{ event: 'cta_click', cta: 'porta_mapa', section: 'hub_portas' }}
         />
         <BigPortalCard
@@ -181,7 +185,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           description='Perguntas rastreaveis com citacoes, confianca e limitacoes.'
           cta='Entrar no Debate'
           badge='Porta 3'
-          preview={<BrandIcon name='debate' size={22} tone='editorial' />}
+          preview={<MiniPreviewDebate />}
           track={{ event: 'cta_click', cta: 'porta_debate', section: 'hub_portas' }}
         />
       </section>
@@ -194,20 +198,20 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           </span>
           <h2 style={{ margin: 0 }}>Comece em 5 minutos</h2>
           <p className='muted' style={{ margin: 0 }}>
-            Trilha guiada + perguntas prontas para abrir o debate com contexto de no.
+            Uma trilha curta para abrir contexto, ler provas-chave e iniciar debate com foco.
           </p>
         </header>
         <div className='toolbar-row'>
-          <a className='ui-button' href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}>
+          <PrefetchLink className='ui-button' href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}>
             Iniciar trilha
-          </a>
-          <a className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
+          </PrefetchLink>
+          <PrefetchLink className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
             Abrir Tutor
-          </a>
+          </PrefetchLink>
         </div>
         <div className='quick-questions-grid'>
           {universe.quickStart.questions.slice(0, 3).map((item, index) => (
-            <a
+            <PrefetchLink
               key={`${item.question}-${index}`}
               className='quick-question-card surface-blade'
               href={buildUniverseHref(
@@ -218,7 +222,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               <small>{item.label}</small>
               <BrandIcon name='debate' size={14} tone='editorial' />
               <strong>{item.question}</strong>
-            </a>
+            </PrefetchLink>
           ))}
         </div>
       </Card>
@@ -227,7 +231,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
         <header className='stack' style={{ gap: '0.35rem' }}>
           <h2 style={{ margin: 0 }}>Destaques editoriais</h2>
           <p className='muted' style={{ margin: 0 }}>
-            Painel vivo com evidencias, perguntas e marcos de linha para navegar o universo.
+            Ponto de entrada com prova principal, marcos e perguntas para aprofundar por sala.
           </p>
         </header>
         <div className='hub-highlights-layout'>
@@ -237,9 +241,9 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               <h3>{primaryHighlight.title}</h3>
               <p className='muted'>{primaryHighlight.description}</p>
               <div className='toolbar-row'>
-                <a className='ui-button' href={primaryHighlight.href}>
+                <PrefetchLink className='ui-button' href={primaryHighlight.href}>
                   Abrir destaque
-                </a>
+                </PrefetchLink>
                 {primaryHighlight.label === 'Evidencia' ? (
                   <ShareButton
                     url={`/c/${slug}/s/evidence/${primaryHighlight.id.replace('ev-', '')}`}
@@ -256,12 +260,12 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               <p className='muted'>Curadoria de destaques ainda em montagem. Use Provas, Linha e Debate para iniciar.</p>
             </article>
           )}
-          <div className='highlight-secondary-grid'>
+          <div className='highlight-secondary-grid cv-snap-row cv-scroll-cue'>
             {secondaryHighlights.slice(0, 6).map((item) => (
-              <a key={item.id} className='highlight-secondary-item surface-blade' href={item.href}>
+              <PrefetchLink key={item.id} className='highlight-secondary-item surface-blade cv-motion cv-hover' href={item.href}>
                 <Badge>{item.label}</Badge>
                 <strong>{item.title}</strong>
-              </a>
+              </PrefetchLink>
             ))}
           </div>
         </div>
@@ -270,7 +274,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
       <Card className='stack surface-panel'>
         <HighlightsStrip
           title='Proximas portas'
-          description='Continue pela mesma linha de investigacao sem perder contexto.'
+          description='Continue a investigacao com filtros e contexto preservados entre salas.'
           items={highlightItems.slice(0, 4)}
           emptyLabel='Use as portas principais para iniciar e construir destaques.'
         />

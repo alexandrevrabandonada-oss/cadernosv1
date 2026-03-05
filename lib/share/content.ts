@@ -62,7 +62,7 @@ export type ShareExportCard = {
   slug: string;
   universeTitle: string;
   title: string;
-  kind: 'thread' | 'trail' | 'tutor_session';
+  kind: 'thread' | 'trail' | 'tutor_session' | 'clip';
   format: 'md' | 'pdf';
   createdAt: string;
   subtitle: string;
@@ -378,6 +378,16 @@ export async function getShareExport(slug: string, id: string): Promise<ShareExp
     const firstFinding = findings.find((item) => typeof item?.text === 'string')?.text ?? '';
     snippet = clip(firstFinding || 'Resumo consolidado de sessao de tutor com achados e proximos passos.', 280);
     appHref = `/c/${slug}/tutor/s/${view.item.session_id}/done`;
+  } else if (view.item.kind === 'clip') {
+    subtitle = 'Clip de leitura';
+    snippet = clip(view.item.title, 280);
+    if (view.item.source_type === 'thread' && view.item.source_id) {
+      appHref = `/c/${slug}/debate?selected=${view.item.source_id}&panel=detail`;
+    } else if (view.item.source_type === 'evidence' && view.item.source_id) {
+      appHref = `/c/${slug}/provas?selected=${view.item.source_id}&panel=detail`;
+    } else if (view.item.source_type === 'doc_cite' && view.item.source_id) {
+      appHref = `/c/${slug}/provas?selected=${view.item.source_id}&panel=detail`;
+    }
   }
 
   let downloadUrl = view.signedUrl;

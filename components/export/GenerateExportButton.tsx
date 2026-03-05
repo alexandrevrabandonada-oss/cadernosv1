@@ -2,7 +2,9 @@
 
 import { useState } from 'react';
 import { ShareButton } from '@/components/share/ShareButton';
+import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { useToast } from '@/components/ui/Toast';
+import { feedback } from '@/lib/feedback/feedback';
 
 type ExportAsset = {
   id: string;
@@ -17,7 +19,7 @@ type ExportResponse = {
 };
 
 type Props = {
-  endpoint: '/api/admin/export/thread' | '/api/admin/export/trail';
+  endpoint: '/api/admin/export/thread' | '/api/admin/export/trail' | '/api/admin/export/session' | '/api/admin/export/clip';
   label: string;
   payload: Record<string, unknown>;
   disabled?: boolean;
@@ -29,6 +31,7 @@ export function GenerateExportButton({ endpoint, label, payload, disabled = fals
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<ExportResponse | null>(null);
   const toast = useToast();
+  const prefs = useUiPrefsContext();
 
   async function onGenerate() {
     setLoading(true);
@@ -52,10 +55,12 @@ export function GenerateExportButton({ endpoint, label, payload, disabled = fals
       }
       setResult(json);
       toast.success('Export gerado');
+      feedback('success', prefs?.settings);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Erro inesperado.';
       setError(message);
       toast.error(message);
+      feedback('warning', prefs?.settings);
     } finally {
       setLoading(false);
     }

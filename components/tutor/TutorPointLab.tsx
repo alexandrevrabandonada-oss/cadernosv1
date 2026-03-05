@@ -3,7 +3,11 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { GenerateExportButton } from '@/components/export/GenerateExportButton';
+import { SaveToNotebookButton } from '@/components/notes/SaveToNotebookButton';
 import { Carimbo } from '@/components/ui/Badge';
+import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
+import { feedback } from '@/lib/feedback/feedback';
 import { useTutorSession } from '@/hooks/useTutorSession';
 
 type TutorPoint = {
@@ -56,8 +60,10 @@ type AskResponse = {
 
 type TutorPointLabProps = {
   slug: string;
+  universeId: string;
   sessionId: string;
   mode: 'visitor' | 'logged';
+  canExportClip: boolean;
   points: TutorPoint[];
   initialIndex: number;
   evidenceMap: Record<string, TutorEvidence>;
@@ -114,8 +120,10 @@ function chatStorageKey(slug: string, sessionId: string, pointId: string) {
 
 export function TutorPointLab({
   slug,
+  universeId,
   sessionId,
   mode,
+  canExportClip,
   points,
   initialIndex,
   evidenceMap,
@@ -141,6 +149,7 @@ export function TutorPointLab({
     })),
   );
   const [error, setError] = useState<string | null>(null);
+  const prefs = useUiPrefsContext();
 
   const tutor = useTutorSession({
     slug,
@@ -236,8 +245,10 @@ export function TutorPointLab({
       if (!response.ok) throw new Error(data.message ?? 'Falha ao consultar o tutor.');
       setResult(data);
       tutor.markAsked(point.id, data.threadId ?? null);
+      feedback('success', prefs?.settings);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
+      feedback('warning', prefs?.settings);
     } finally {
       setLoading(false);
     }
@@ -276,6 +287,7 @@ export function TutorPointLab({
           divergence: response.divergence,
         };
         setChatMessages((current) => [...current, tutorMessage]);
+        feedback('success', prefs?.settings);
       } else {
         const response = await fetch('/api/ask', {
           method: 'POST',
@@ -306,9 +318,11 @@ export function TutorPointLab({
         };
         setChatThreadId(data.threadId ?? chatThreadId);
         setChatMessages((current) => [...current, tutorMessage]);
+        feedback('success', prefs?.settings);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Falha no tutor chat.');
+      feedback('warning', prefs?.settings);
     } finally {
       setChatLoading(false);
     }
@@ -318,6 +332,7 @@ export function TutorPointLab({
     if (!point) return;
     const done = await tutor.completePoint(point);
     if (!done.ok) return;
+    feedback('success', prefs?.settings);
     const last = point.orderIndex >= points.length - 1;
     if (last || done.doneSession) {
       router.push(`/c/${slug}/tutor/s/${sessionId}/done`);
@@ -338,7 +353,7 @@ export function TutorPointLab({
   }
 
   return (
-    <div className='stack'>
+    <div className='stack tutor-focus-shell'>
       <div className='toolbar-row'>
         <Carimbo>{`progresso:${tutor.completedCount}/${tutor.total}`}</Carimbo>
         <Carimbo>{`ponto:${point.orderIndex + 1}/${points.length}`}</Carimbo>
@@ -350,7 +365,7 @@ export function TutorPointLab({
       </article>
 
       {requiredEvidences.length > 0 ? (
-        <section className='stack'>
+        <section className='stack tutor-focus-reading'>
           <strong>Evidencias obrigatorias</strong>
           {requiredEvidences.map((evidence) => (
             <article key={evidence.id} className='core-node tutor-panel-card'>
@@ -367,7 +382,10 @@ export function TutorPointLab({
                       : `/c/${slug}/provas`
                   }
                   target='_blank'
-                  onClick={() => tutor.markEvidenceOpened(point.id, evidence.id)}
+                  onClick={() => {
+                    tutor.markEvidenceOpened(point.id, evidence.id);
+                    feedback('tap', prefs?.settings);
+                  }}
                 >
                   Abrir evidencia
                 </Link>
@@ -378,7 +396,7 @@ export function TutorPointLab({
       ) : null}
 
       {point.guidedQuestions.length > 0 ? (
-        <section className='stack'>
+        <section className='stack tutor-focus-reading'>
           <strong>Pergunta guiada</strong>
           <textarea
             value={question}
@@ -427,12 +445,45 @@ export function TutorPointLab({
                   {citation.doc} {citation.year ? `(${citation.year})` : ''} | {citation.pages}
                 </p>
               ))}
+              {canExportClip && result.threadId ? (
+                <div className='focus-only toolbar-row'>
+                  <SaveToNotebookButton
+                    universeSlug={slug}
+                    kind='highlight'
+                    title={`Tutor: ${point.title}`}
+                    text={result.answer}
+                    sourceType='thread'
+                    sourceId={result.threadId}
+                    sourceMeta={{
+                      threadId: result.threadId,
+                      nodeSlug: point.nodeSlug ?? null,
+                      confidence: result.confidence ?? null,
+                      divergence: result.divergence ?? null,
+                    }}
+                    tags={[...(point.nodeSlug ? [point.nodeSlug] : []), 'tutor']}
+                    label='Salvar resposta'
+                    compact
+                  />
+                  <GenerateExportButton
+                    endpoint='/api/admin/export/clip'
+                    label='Exportar trecho'
+                    payload={{
+                      universeId,
+                      sourceType: 'thread',
+                      sourceId: result.threadId,
+                      title: `Clip tutor: ${point.title}`,
+                      snippet: result.answer,
+                      isPublic: false,
+                    }}
+                  />
+                </div>
+              ) : null}
             </article>
           ) : null}
         </section>
       ) : null}
 
-      <section className='stack'>
+      <section className='stack tutor-chat-block'>
         <strong>Tutor Chat</strong>
         <p className='muted' style={{ margin: 0 }}>
           Pergunte ao tutor sobre este ponto (escopo: evidencias obrigatorias e docs do no).

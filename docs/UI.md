@@ -78,6 +78,18 @@ Pasta: `components/ui`
   - portas de entrada (Provas, Trilhas, Tutor)
   - universos em destaque
   - fios quentes (itens editoriais recentes)
+
+## Meu Caderno
+
+- Rota: `/c/[slug]/meu-caderno`.
+- Funcao: consolidar highlights e notas pessoais por universo com abertura da origem.
+- Captura de notas (V1):
+  - Provas detail (focus): salvar trecho de evidence/chunk.
+  - Debate detail: salvar pergunta+achado e citacoes.
+  - Tutor point lab: salvar resposta guiada.
+  - Doc viewer: salvar citacao.
+- Visitante: localStorage offline-first.
+- Logado: sync best-effort com `user_notes` (RLS owner-only).
   - como funciona em 3 passos
 - Hub (`/c/[slug]`) vira entrada de universo com 6 blocos:
   - hero escultural do universo
@@ -464,3 +476,99 @@ Rota: `/c/[slug]/mapa`
   - share pages e OG cards com assinatura compacta
 - Referencia de marca:
   - ver `docs/BRAND.md`
+
+## De-GeoCities Pass (VIZ-05)
+
+- Objetivo:
+  - remover linguagem visual de site antigo e consolidar shell PWA 2026.
+- Mudancas de base:
+  - tokens de superficie/raio/sombra/blur modernizados
+  - neutralizacao de bordas tracejadas e bevels pesados
+  - botoes e segmented com estados contemporaneos (halo, pressed, hover)
+  - header/nav com shell translucido + blur
+- Portas com preview real:
+  - componentes:
+    - `MiniPreviewProvas`
+    - `MiniPreviewMapa`
+    - `MiniPreviewLinha`
+    - `MiniPreviewDebate`
+  - aplicados em Home e Hub para eliminar placeholders vazios.
+- Home:
+  - hero com contraste mais forte
+  - portas editoriais com previews reais
+  - fallback quando nao ha universo publicado com CTA de operacao.
+- Hub:
+  - hero reforcado + metadados vivos
+  - portas principais com preview real
+  - destaque editorial principal + secundarios preservados.
+- Compatibilidade:
+  - mantido suporte de `texture=low`
+  - mantido `prefers-reduced-motion`.
+
+## Tipografia + Ritmo (VIZ-06)
+
+- Escala tipografica semantica introduzida em `styles/tokens.css`:
+  - familias: `--font-display`, `--font-head`, `--font-body`, `--font-ui`
+  - tamanhos: `--fs-display-1/2`, `--fs-h1/h2/h3`, `--fs-body`, `--fs-ui`, `--fs-micro`
+  - ritmo: `--lh-tight/normal/roomy`
+  - tracking: `--tracking-tight/normal/wide`
+- Spacing editorial:
+  - novos tokens `--space-7`, `--space-8`
+  - classe `stack-editorial` para blocos de entrada (Home/Hub) com mais respiro.
+- Density:
+  - `data-density="compact"` reduz UI/micro e line-height sem perder legibilidade.
+- Microcopy revisada:
+  - Home e Hub com linguagem menos genérica e mais orientada a leitura por salas.
+  - Provas e Mapa com subtítulos mais funcionais/editoriais.
+
+## Motion Premium (VIZ-07)
+
+- Sistema de motion tokenizado:
+  - `--ease-standard`, `--ease-emphasized`
+  - `--dur-1`, `--dur-2`, `--dur-3`, `--dur-4`
+- Utilitarios em `styles/motion.css`:
+  - `.cv-motion`, `.cv-hover`, `.cv-press`
+  - `.cv-panel-enter`, `.cv-panel-exit`
+  - `.cv-snap-row`, `.cv-scroll-cue`
+- Aplicacoes principais:
+  - `DetailPanel`, drawer e bottom-sheet com transicoes unificadas (transform/opacity)
+  - `HighlightsStrip` e `PortalsRail` com `scroll-snap` no mobile + cue visual de arraste
+  - cards e CTAs com micro deslocamento de hover/press (1px)
+- Reduced motion:
+  - `prefers-reduced-motion` remove animacoes e snap agressivo.
+- Modo snapshot:
+  - `data-motion='off'` desativa transicoes globalmente.
+  - Ativado por:
+    - `UI_SNAPSHOT=1` (env)
+    - `?snapshot=1` (query)
+  - Playwright aplica `data-motion='off'` no helper visual para reduzir flake.
+
+## App-grade navigation (VIZ-09)
+
+- Feedback de rota:
+  - `RouteProgress` no topo global com atraso curto (evita flicker)
+  - conclui por evento `cv:page-ready` emitido por `PageReadyMarker`.
+- Prefetch inteligente:
+  - `PrefetchLink` unifica prefetch por hover/focus e opcional por visibilidade
+  - `useSmartPrefetch` usa `IntersectionObserver` para Portals/Portas principais.
+- Guardrails de prefetch:
+  - desabilita para `admin`, `login`, `api` e links externos
+  - desliga com rede lenta (`saveData`, `2g/slow-2g`)
+  - desliga em snapshot mode (`data-motion='off'`).
+
+## Modo Imersao (VIZ-11)
+
+- Preferencia global:
+  - `ui_settings.focus_mode` (default `false`)
+  - aplicada em `html[data-focus='on|off']`
+- Toggle:
+  - `FocusToggle` no header do `WorkspaceShell`, no header do `DetailPanel` e em telas de leitura (Doc/Trilhas/Tutor).
+- Atalho:
+  - tecla `f` (desktop), quando o foco nao esta em campo de digitacao e a palette nao esta aberta.
+- Efeito visual:
+  - reduz ruido/textura automaticamente
+  - aumenta tamanho e entrelinha de leitura
+  - oculta distracoes (DockNav, trilho de filtros e Portais contextuais quando aplicavel)
+  - Provas detail prioriza bloco principal (Relacionados/Portais colapsados por padrao em foco)
+- Snapshot mode:
+  - `data-motion='off'` ou `?snapshot=1` forca `data-focus='off'` para estabilidade de screenshots.

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { Button } from '@/components/ui/Button';
 import { Wordmark } from '@/components/brand/Wordmark';
 
@@ -6,15 +7,15 @@ export function Header() {
   return (
     <header
       style={{
-        position: 'fixed',
+        position: 'sticky',
         top: 0,
         left: 0,
         right: 0,
         height: 'var(--header-height)',
-        zIndex: 20,
-        borderBottom: '1px solid var(--line-0)',
-        backdropFilter: 'blur(10px)',
-        background: 'color-mix(in srgb, var(--surface-0), transparent 12%)',
+        zIndex: 40,
+        borderBottom: '1px solid var(--stroke-2)',
+        backdropFilter: 'blur(var(--blur-1))',
+        background: 'rgba(18, 22, 27, 0.58)',
       }}
     >
       <div className='header-wrap'>
@@ -22,6 +23,7 @@ export function Header() {
           <Wordmark variant='nav' />
         </Link>
         <nav className='top-nav' aria-label='Navegacao principal'>
+          <InstallPrompt compact className='desktop-only' />
           <Button href='/' variant='ghost'>
             Home
           </Button>

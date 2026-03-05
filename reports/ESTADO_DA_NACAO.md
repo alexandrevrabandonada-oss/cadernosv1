@@ -2,111 +2,101 @@
 Data: 2026-03-05
 Commit (se possivel): n/a
 
-## 1) O que mudou neste tijolo (VIZ-04)
-- Implementada a camada de identidade de marca operacional do produto:
-  - wordmark oficial
-  - sistema de icones proprietario
-  - selos/carimbos editoriais
-  - moldura de midia editorial
-- Aplicacao feita nas superficies mais visiveis:
-  - header global
-  - Home (`/`)
-  - Hub (`/c/[slug]`)
-  - headers de salas via `WorkspaceShell`
-  - DockNav mobile
-  - Provas (selos de evidencia)
-  - Debate (selos de confianca/divergencia)
-  - share pages (`/c/[slug]/s/*`)
-  - OG cards (`/api/og`)
+## 1) O que mudou neste tijolo (VIZ-12)
+- Feedback app-grade opcional implementado com `haptics` + `sound_cues` (opt-in).
+- Export 1-tap de trecho (`clip`) implementado no pipeline de exports.
+- Botao `Exportar trecho` aplicado no reader/focus de Provas, Documento e Tutor.
+- Fluxos de copiar/compartilhar/concluir agora disparam feedback fisico/sonoro quando habilitado.
 
-## 2) Novo wordmark
-- Componente novo: `components/brand/Wordmark.tsx`
-- Variantes:
-  - `hero`
-  - `nav`
-  - `compact`
-  - `mono`
-- Uso principal:
-  - `Header` usa wordmark oficial
-  - Home/Hub usam assinatura hero/compact
-  - share pages usam assinatura compacta
+## 2) Novos settings (haptics/sound)
+Arquivos:
+- `lib/user/uiSettings.ts`
+- `hooks/useUiPrefs.ts`
+- `components/ui/UiPrefsProvider.tsx`
+- `app/api/user/ui-settings/route.ts`
+- `components/ui/HapticsToggle.tsx`
+- `components/ui/SoundCuesToggle.tsx`
+- `components/ui/UiPreferencesMenu.tsx`
 
-## 3) Sistema de icones
-- Componente novo: `components/brand/icons/BrandIcon.tsx`
-- Set de icones criado para:
-  - salas: Provas, Linha, Debate, Mapa, Glossario, Trilhas, Tutor
-  - distribuicao: Share, Export
-  - estados: confianca forte/media/fraca, divergencia, review, publicado, vitrine
-- Aplicado em:
-  - Workspace headers
-  - DockNav
-  - Home/Hub
-  - share pages
+Detalhes:
+- `ui_settings` agora inclui:
+  - `haptics: boolean` (default `false`)
+  - `sound_cues: boolean` (default `false`)
+- Persistencia:
+  - visitante: `localStorage`
+  - logado: PATCH `/api/user/ui-settings` (perfil)
 
-## 4) Selos/carimbos
-- Componentes novos:
-  - `components/brand/UniverseSeal.tsx`
-  - `components/brand/EvidenceSeal.tsx`
-  - `components/brand/ConfidenceSeal.tsx`
-- Aplicacao:
-  - Universe seal em Home/Hub
-  - Evidence seal em Provas e share de node/term/evidence
-  - Confidence seal em Debate
+## 3) Feedback engine
+Arquivos:
+- `lib/feedback/feedback.ts`
+- `tests/feedback.test.ts`
 
-## 5) Padrao de imagens/editorial
-- Componente novo:
-  - `components/brand/EditorialMediaFrame.tsx`
-- Uso:
-  - Home e Hub (cards editoriais/portas)
-  - base pronta para expandir em cards de outras salas
+Implementado:
+- `canVibrate()`
+- `vibrate(type)` com padroes curtos (`tap/success/warning`)
+- `playCue(type)` via WebAudio (beep curto)
+- `feedback(type, settings)` com no-op seguro em ambiente sem suporte
 
-## 6) Onde a marca foi aplicada
-- Header/Nav:
-  - `components/Header.tsx`
-- Home/Hub:
-  - `app/page.tsx`
-  - `app/c/[slug]/page.tsx`
-- Workspace:
-  - `components/workspace/WorkspaceShell.tsx`
-  - `components/workspace/DockNav.tsx`
-  - `styles/workspace.css`
-- Salas:
-  - `app/c/[slug]/provas/page.tsx`
-  - `app/c/[slug]/debate/page.tsx`
-- Share/OG:
-  - `app/c/[slug]/s/page.tsx`
-  - `app/c/[slug]/s/evidence/[id]/page.tsx`
-  - `app/c/[slug]/s/thread/[id]/page.tsx`
-  - `app/c/[slug]/s/event/[id]/page.tsx`
-  - `app/c/[slug]/s/export/[id]/page.tsx`
-  - `app/c/[slug]/s/node/[id]/page.tsx`
-  - `app/c/[slug]/s/term/[id]/page.tsx`
-  - `app/api/og/route.tsx`
-- Estilos globais:
-  - `app/globals.css`
+Aplicacoes:
+- `components/share/ShareButton.tsx`
+- `components/provas/CopyCitationButton.tsx`
+- `components/export/GenerateExportButton.tsx`
+- `components/trilhas/TrailPlayer.tsx`
+- `components/tutor/TutorPointLab.tsx`
+- `components/debate/ThreadDetailActions.tsx`
+- `components/share/SharePackOpsClient.tsx` (opcional admin)
 
-## 7) Documentacao
-- Novo guia:
-  - `docs/BRAND.md`
-- Atualizado:
-  - `docs/UI.md` (secao de identidade de marca)
+## 4) Export clip (kind + limites)
+Migration:
+- `supabase/migrations/20260305070000_export_clip_support.sql`
+  - adiciona `exports.source_type`, `exports.source_id`
+  - expande `exports_kind_check` para incluir `clip`
+  - indice `idx_exports_source_type_source_id`
 
-## 8) Como testar
-1. Abrir Home e Header:
-  - validar wordmark oficial e assinatura visual do hero.
-2. Abrir Hub de um universo:
-  - validar selos de vitrine/publicado, icones de portas e frame editorial.
-3. Abrir Provas/Linha/Debate:
-  - validar headers assinados por icone e selos em evidencia/confianca.
-4. Abrir uma share page (`/c/[slug]/s/evidence/<id>` por exemplo):
-  - validar assinatura compacta, CTA e estilo editorial.
-5. Abrir `/api/og?type=universe&u=<slug>`:
-  - validar card OG com assinatura compacta.
+Backend:
+- `lib/export/clip.ts` (renderer markdown curto)
+- `lib/export/service.ts`
+  - novo `createClipExport(...)`
+  - suporte `kind='clip'` em tipo/insert/view
+  - fallback `TEST_SEED=1` para e2e
+- `app/api/admin/export/clip/route.ts`
+  - endpoint para gerar clip
+  - aceita `universeId` ou `universeSlug`
 
-## 9) Verificacoes
-- ✅ Verify passou
-  - `npm run verify`
-- ✅ E2E passou
-  - `npm run test:e2e:ci`
-- ✅ Visual passou
-  - `npm run test:ui:ci`
+UI Reader/Focus:
+- `app/c/[slug]/provas/page.tsx`
+- `app/c/[slug]/doc/[docId]/page.tsx`
+- `components/tutor/TutorPointLab.tsx`
+- `app/c/[slug]/tutor/s/[sessionId]/p/[index]/page.tsx`
+- `app/globals.css` (`.focus-only` + visibilidade em `data-focus='on'`)
+
+Limites:
+- snippet truncado (~800–1200 chars, clamp 1200)
+- PDF curto (1–2 paginas, estrutura enxuta)
+- default de visibilidade: `is_public=false`
+
+## 5) Docs atualizadas
+- `docs/PWA.md` (feedback app-grade: haptics/sound)
+- `docs/EXPORTS.md` (tipo `clip`, endpoint e fluxo)
+
+## 6) Testes / ajustes CI
+Atualizacoes:
+- `tests/e2e/ui-smoke.spec.ts`
+  - novo teste: `export clip: endpoint gera asset e link de download`
+  - robustez no fluxo de selecao de Provas (usa href direto para evitar flake)
+- `tests/e2e/helpers/visual.ts`
+  - ajuste de tolerancia visual `maxDiffPixelRatio: 0.04`
+- snapshots atualizados em `tests/e2e/screenshots/visual.spec.ts/*`
+
+Como testar manualmente:
+1. Abrir `/c/demo/provas`, selecionar evidencia e ativar `Imersao`.
+2. Em Preferencias, ligar `Haptics` e/ou `Som`.
+3. Clicar `Copiar citacao` / `Compartilhar` e validar feedback.
+4. Em foco, clicar `Exportar trecho` e baixar PDF.
+5. Repetir em `/c/demo/doc/<docId>` com citacao selecionada.
+6. Repetir no Tutor (`/c/demo/tutor/s/local/p/0`) apos resposta guiada.
+
+## 7) Verificacoes finais
+- `npm run verify`: ✅ PASSOU
+- `npm run test:e2e:ci`: ✅ PASSOU
+- `npm run test:ui:ci`: ✅ PASSOU

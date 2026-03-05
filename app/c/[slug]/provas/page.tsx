@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { revalidatePath } from 'next/cache';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
@@ -6,11 +7,13 @@ import { PortalsRail } from '@/components/portals/PortalsRail';
 import { EvidenceSeal } from '@/components/brand/EvidenceSeal';
 import { CopyCitationButton } from '@/components/provas/CopyCitationButton';
 import { ShareButton } from '@/components/share/ShareButton';
+import { SaveToNotebookButton } from '@/components/notes/SaveToNotebookButton';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { CardHeader } from '@/components/ui/CardHeader';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { GenerateExportButton } from '@/components/export/GenerateExportButton';
 import { FilterRail } from '@/components/workspace/FilterRail';
 import { ListKeyboardNavigator } from '@/components/workspace/ListKeyboardNavigator';
 import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
@@ -209,7 +212,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
           slug={slug}
           section='provas'
           title={`Evidencias de ${seed.universe.title}`}
-          subtitle='Arquivo vivo de prova: sinais curados, rastreabilidade e leitura comparada.'
+          subtitle='Sala de evidencias curadas para comparar sinais, fonte e contexto em leitura rastreavel.'
           selectedId={filters.selected}
           detailTitle='Detalhe da evidencia'
           filter={
@@ -406,7 +409,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
         slug={slug}
         section='provas'
         title={`Evidencias de ${universe.title}`}
-        subtitle='Arquivo vivo de evidencias: curadoria primeiro, trechos tecnicos como apoio.'
+        subtitle='Evidencias primeiro: curadoria publica, trechos tecnicos como apoio e continuidade por portais.'
         selectedId={filters.selected}
         detailTitle='Detalhe da evidencia'
         filter={
@@ -497,12 +500,12 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                 </p>
                 <div className='toolbar-row'>
                   {selectedDetail.document?.id ? (
-                    <Link
+                    <PrefetchLink
                       className='ui-button'
                       href={`/c/${slug}/doc/${selectedDetail.document.id}${selectedDetail.pages.start ? `?p=${selectedDetail.pages.start}` : ''}`}
                     >
                       Ver no Documento
-                    </Link>
+                    </PrefetchLink>
                   ) : null}
                   <CopyCitationButton
                     citation={citationFormat(
@@ -522,6 +525,42 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                   ) : (
                     <CopyCitationButton citation={currentShareUrl} label='Copiar link' />
                   )}
+                  <SaveToNotebookButton
+                    universeSlug={slug}
+                    kind='highlight'
+                    title={selectedDetail.title}
+                    text={selectedDetail.snippet}
+                    sourceType={selectedDetail.kind === 'evidence' ? 'evidence' : 'chunk'}
+                    sourceId={selectedDetail.id}
+                    sourceMeta={{
+                      docId: selectedDetail.document?.id ?? null,
+                      pageStart: selectedDetail.pages.start,
+                      pageEnd: selectedDetail.pages.end,
+                      nodeSlug: selectedDetail.nodeSlugs[0] ?? null,
+                    }}
+                    tags={selectedDetail.tags}
+                    label='Salvar trecho'
+                    compact
+                  />
+                  {adminCanWrite ? (
+                    <div className='focus-only'>
+                      <GenerateExportButton
+                        endpoint='/api/admin/export/clip'
+                        label='Exportar trecho'
+                        payload={{
+                          universeId: universe.id,
+                          sourceType: selectedDetail.kind === 'evidence' ? 'evidence' : 'doc_cite',
+                          sourceId: selectedDetail.id,
+                          title: selectedDetail.title,
+                          snippet: selectedDetail.snippet,
+                          docId: selectedDetail.document?.id ?? null,
+                          pageStart: selectedDetail.pages.start,
+                          pageEnd: selectedDetail.pages.end,
+                          isPublic: false,
+                        }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               </article>
 
@@ -536,7 +575,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                 </div>
               </article>
 
-              <article className='core-node stack'>
+              <article className='core-node stack provas-related-block'>
                 <strong>Relacionados</strong>
                 {selectedDetail.related.map((item) => (
                   <Link
@@ -552,24 +591,26 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                 {selectedDetail.related.length === 0 ? <p className='muted' style={{ margin: 0 }}>Sem relacionados por enquanto.</p> : null}
               </article>
 
-              <PortalsRail
-                universeSlug={slug}
-                variant='detail'
-                context={
-                  selectedDetail.nodeSlugs[0]
-                    ? {
-                        type: 'node',
-                        nodeSlug: selectedDetail.nodeSlugs[0],
-                        tags: selectedDetail.tags,
-                        docId: selectedDetail.document?.id ?? '',
-                      }
-                    : {
-                        type: 'tag',
-                        tags: selectedDetail.tags,
-                        docId: selectedDetail.document?.id ?? '',
-                      }
-                }
-              />
+              <div className='provas-portals-block'>
+                <PortalsRail
+                  universeSlug={slug}
+                  variant='detail'
+                  context={
+                    selectedDetail.nodeSlugs[0]
+                      ? {
+                          type: 'node',
+                          nodeSlug: selectedDetail.nodeSlugs[0],
+                          tags: selectedDetail.tags,
+                          docId: selectedDetail.document?.id ?? '',
+                        }
+                      : {
+                          type: 'tag',
+                          tags: selectedDetail.tags,
+                          docId: selectedDetail.document?.id ?? '',
+                        }
+                  }
+                />
+              </div>
             </div>
           ) : null
         }

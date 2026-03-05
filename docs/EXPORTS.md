@@ -12,14 +12,18 @@ Os exports sao curtos e focados em trechos citados. Nao fazem dump de documentos
 
 - `thread`: Dossie de debate (pergunta, resposta, evidencias).
 - `trail`: Caderno de estudo (trilha, passos e evidencias recomendadas).
+- `tutor_session`: Dossie de fechamento da sessao do tutor.
+- `clip`: export rapido de trecho (reader/focus mode), curto e privado por padrao.
 
 ## Fluxo
 
 1. Usuario `editor/admin` clica em:
    - Debate: `Gerar Dossie (MD+PDF)`
    - Trilhas: `Gerar Caderno de Estudo (MD+PDF)`
+   - Reader/Focus (Provas, Doc e Tutor): `Exportar trecho`
 2. API server-side gera:
    - Markdown (`lib/export/md.ts`)
+   - Markdown de clip (`lib/export/clip.ts`)
    - PDF (`lib/export/pdf.ts`)
 3. Arquivos sao enviados ao bucket `cv-exports`.
 4. Metadados sao salvos em `public.exports` (uma linha por formato).
@@ -38,11 +42,14 @@ Os exports sao curtos e focados em trechos citados. Nao fazem dump de documentos
 - Citacoes e evidencias sao truncadas para trechos curtos.
 - PDF possui secoes resumidas, sem texto bruto massivo.
 - Objetivo: material publicavel e auditavel, nao backup bruto da base.
+- `clip` limita o trecho para ~800-1200 caracteres e PDF curto (1-2 paginas).
 
 ## Rotas e endpoints
 
 - `POST /api/admin/export/thread`
 - `POST /api/admin/export/trail`
+- `POST /api/admin/export/session`
+- `POST /api/admin/export/clip`
 - `GET /c/[slug]/exports/[exportId]` (pagina com preview + download)
 
 ## Admin

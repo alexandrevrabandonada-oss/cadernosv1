@@ -1,0 +1,118 @@
+.cv-motion {
+  transition:
+    transform var(--dur-2) var(--ease-standard),
+    opacity var(--dur-2) var(--ease-standard),
+    box-shadow var(--dur-2) var(--ease-standard),
+    border-color var(--dur-2) var(--ease-standard),
+    background-color var(--dur-2) var(--ease-standard);
+}
+
+.cv-hover:hover {
+  transform: translateY(-1px);
+}
+
+.cv-press:active {
+  transform: translateY(1px);
+}
+
+.cv-panel-enter {
+  transition:
+    transform var(--dur-3) var(--ease-emphasized),
+    opacity var(--dur-3) var(--ease-standard);
+  will-change: transform, opacity;
+}
+
+.cv-panel-exit {
+  transition:
+    transform var(--dur-2) var(--ease-standard),
+    opacity var(--dur-2) var(--ease-standard);
+}
+
+.cv-snap-row {
+  position: relative;
+}
+
+.cv-snap-row > * {
+  scroll-snap-align: start;
+}
+
+.cv-scroll-cue {
+  position: relative;
+}
+
+.cv-scroll-cue::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 44px;
+  pointer-events: none;
+  background: linear-gradient(90deg, rgba(18, 22, 27, 0), rgba(18, 22, 27, 0.22));
+}
+
+.cv-scroll-cue::before {
+  content: '>';
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  font-size: var(--fs-micro);
+  letter-spacing: var(--tracking-wide);
+  color: color-mix(in srgb, var(--text-1), #fff 18%);
+  pointer-events: none;
+}
+
+@media (min-width: 1024px) {
+  .cv-scroll-cue::after,
+  .cv-scroll-cue::before {
+    display: none;
+  }
+}
+
+@media (max-width: 1023px) {
+  .cv-snap-row {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(220px, 82vw);
+    gap: var(--space-2);
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    padding-bottom: var(--space-1);
+  }
+
+  .cv-snap-row::-webkit-scrollbar {
+    height: 7px;
+  }
+
+  .cv-snap-row::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--line-soft), var(--accent-editorial) 12%);
+    border-radius: 999px;
+  }
+}
+
+:root[data-motion='off'] *,
+:root[data-motion='off'] *::before,
+:root[data-motion='off'] *::after {
+  animation: none !important;
+  transition: none !important;
+  scroll-behavior: auto !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cv-motion,
+  .cv-panel-enter,
+  .cv-panel-exit {
+    transition: none !important;
+  }
+
+  .cv-hover:hover,
+  .cv-press:active {
+    transform: none !important;
+  }
+
+  .cv-snap-row {
+    scroll-snap-type: none;
+  }
+}

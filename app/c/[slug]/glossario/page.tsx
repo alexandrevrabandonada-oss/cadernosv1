@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
 import { PortalsRail } from '@/components/portals/PortalsRail';
@@ -192,27 +193,27 @@ export default async function GlossarioPage({ params, searchParams }: GlossarioP
               </article>
 
               <div className='toolbar-row'>
-                <Link className='ui-button' href={provasHref()}>
+                <PrefetchLink className='ui-button' href={provasHref()}>
                   Ver Provas
-                </Link>
-                <Link className='ui-button' href={debateHref()}>
+                </PrefetchLink>
+                <PrefetchLink className='ui-button' href={debateHref()}>
                   Ver Debate
-                </Link>
-                <Link className='ui-button' data-variant='ghost' href={linhaHref()}>
+                </PrefetchLink>
+                <PrefetchLink className='ui-button' data-variant='ghost' href={linhaHref()}>
                   Ver Linha
-                </Link>
+                </PrefetchLink>
                 {selectedDetail.node ? (
-                  <Link
+                  <PrefetchLink
                     className='ui-button'
                     data-variant='ghost'
                     href={`${buildUniverseHref(slug, 'mapa')}?node=${encodeURIComponent(selectedDetail.node.slug)}&panel=detail`}
                   >
                     Ir para No
-                  </Link>
+                  </PrefetchLink>
                 ) : null}
-                <Link className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
+                <PrefetchLink className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
                   Abrir no Tutor
-                </Link>
+                </PrefetchLink>
                 <ShareButton
                   url={`/c/${slug}/s/term/${selectedDetail.id}`}
                   title={selectedDetail.term}

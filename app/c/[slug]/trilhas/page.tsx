@@ -1,9 +1,11 @@
 import Link from 'next/link';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
 import { PortalsRail } from '@/components/portals/PortalsRail';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
+import { FocusToggle } from '@/components/ui/FocusToggle';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { TrailBranches } from '@/components/trilhas/TrailBranches';
 import { TrailPlayer } from '@/components/trilhas/TrailPlayer';
@@ -69,6 +71,7 @@ export default async function TrilhasPage({ params, searchParams }: TrilhasPageP
           tag='Trilhas v2'
         />
         <div className='toolbar-row'>
+          <FocusToggle compactLabel />
           <Carimbo>{data.source === 'db' ? 'dados:db' : 'dados:mock'}</Carimbo>
           <Carimbo>{`trilhas:${data.trails.length}`}</Carimbo>
         </div>
@@ -167,26 +170,26 @@ export default async function TrilhasPage({ params, searchParams }: TrilhasPageP
 
                 <article className='core-node stack'>
                   <strong>Atalhos filtrados</strong>
-                  <Link
+                  <PrefetchLink
                     className='ui-button'
                     href={`${buildUniverseHref(slug, 'provas')}${activeStep.nodeSlug ? `?node=${encodeURIComponent(activeStep.nodeSlug)}` : ''}`}
                   >
                     Ver Provas do no
-                  </Link>
-                  <Link
+                  </PrefetchLink>
+                  <PrefetchLink
                     className='ui-button'
                     data-variant='ghost'
                     href={`${buildUniverseHref(slug, 'linha')}${activeStep.nodeSlug ? `?node=${encodeURIComponent(activeStep.nodeSlug)}` : ''}`}
                   >
                     Ver Linha do no
-                  </Link>
-                  <Link
+                  </PrefetchLink>
+                  <PrefetchLink
                     className='ui-button'
                     data-variant='ghost'
                     href={`${buildUniverseHref(slug, 'debate')}?status=strict_ok${activeStep.nodeSlug ? `&node=${encodeURIComponent(activeStep.nodeSlug)}` : ''}`}
                   >
                     Ver Debate do no
-                  </Link>
+                  </PrefetchLink>
                 </article>
 
                 <article className='core-node stack'>

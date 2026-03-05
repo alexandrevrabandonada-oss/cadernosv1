@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
 import { PortalsRail } from '@/components/portals/PortalsRail';
@@ -125,7 +126,7 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
         slug={slug}
         section='mapa'
         title={`Explorer de ${map.universeTitle}`}
-        subtitle='Constelacao editorial de nos, cobertura e conexoes de investigacao.'
+        subtitle='Sala de relacoes do universo: cobertura por no, lacunas e portas para prova, linha e debate.'
         selectedId={selectedId}
         detailTitle='Detalhe do mapa'
         filter={
@@ -286,16 +287,16 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
                         <strong>{doc.document?.title ?? 'Documento'}</strong> | peso {doc.weight}
                       </p>
                       {doc.document?.id ? (
-                        <Link className='ui-button' data-variant='ghost' href={`/c/${slug}/doc/${doc.document.id}`}>
+                        <PrefetchLink className='ui-button' data-variant='ghost' href={`/c/${slug}/doc/${doc.document.id}`}>
                           Abrir doc
-                        </Link>
+                        </PrefetchLink>
                       ) : null}
                     </div>
                   ))}
                 </article>
 
                 <div className='toolbar-row'>
-                  <Link
+                  <PrefetchLink
                     className='ui-button'
                     href={provasHref()}
                     data-track-event='cta_click'
@@ -303,8 +304,8 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
                     data-track-section='mapa_detail'
                   >
                     Ver Provas
-                  </Link>
-                  <Link
+                  </PrefetchLink>
+                  <PrefetchLink
                     className='ui-button'
                     href={linhaHref()}
                     data-track-event='cta_click'
@@ -312,8 +313,8 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
                     data-track-section='mapa_detail'
                   >
                     Ver Linha
-                  </Link>
-                  <Link
+                  </PrefetchLink>
+                  <PrefetchLink
                     className='ui-button'
                     href={debateHref()}
                     data-track-event='cta_click'
@@ -321,7 +322,7 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
                     data-track-section='mapa_detail'
                   >
                     Ver Debate
-                  </Link>
+                  </PrefetchLink>
                   <Link className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
                     Abrir no Tutor
                   </Link>

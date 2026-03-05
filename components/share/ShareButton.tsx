@@ -2,7 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { useToast } from '@/components/ui/Toast';
+import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { trackEvent } from '@/lib/analytics/track';
+import { feedback } from '@/lib/feedback/feedback';
 
 type ShareButtonProps = {
   url: string;
@@ -22,6 +24,7 @@ function toAbsoluteUrl(url: string) {
 export function ShareButton({ url, title, text, label = 'Compartilhar', className }: ShareButtonProps) {
   const [busy, setBusy] = useState(false);
   const toast = useToast();
+  const prefs = useUiPrefsContext();
   const absoluteUrl = useMemo(() => toAbsoluteUrl(url), [url]);
 
   async function onShare() {
@@ -33,9 +36,11 @@ export function ShareButton({ url, title, text, label = 'Compartilhar', classNam
       if (navigator.share) {
         await navigator.share({ title, text: text ?? title, url: absoluteUrl });
         toast.success('Compartilhado');
+        feedback('success', prefs?.settings);
       } else {
         await navigator.clipboard.writeText(absoluteUrl);
         toast.success('Link copiado');
+        feedback('tap', prefs?.settings);
       }
       trackEvent({
         universeSlug,
@@ -51,8 +56,10 @@ export function ShareButton({ url, title, text, label = 'Compartilhar', classNam
       try {
         await navigator.clipboard.writeText(absoluteUrl);
         toast.success('Link copiado');
+        feedback('tap', prefs?.settings);
       } catch {
         toast.error('Falha ao compartilhar');
+        feedback('warning', prefs?.settings);
       }
     } finally {
       setBusy(false);

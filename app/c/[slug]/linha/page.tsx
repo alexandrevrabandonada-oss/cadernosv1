@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
 import { PortalsRail } from '@/components/portals/PortalsRail';
@@ -224,7 +225,7 @@ export default async function LinhaPage({ params, searchParams }: LinhaPageProps
               </article>
 
               <div className='toolbar-row'>
-                <Link
+                <PrefetchLink
                   className='ui-button'
                   href={buildProvasHref()}
                   data-track-event='cta_click'
@@ -232,25 +233,25 @@ export default async function LinhaPage({ params, searchParams }: LinhaPageProps
                   data-track-section='linha_detail'
                 >
                   Ver Provas
-                </Link>
+                </PrefetchLink>
                 <ShareButton
                   url={`/c/${slug}/s/event/${selectedDetail.id}`}
                   title={selectedDetail.title}
                   text={selectedDetail.summary}
                 />
                 {selectedDetail.node ? (
-                  <Link
+                  <PrefetchLink
                     className='ui-button'
                     data-variant='ghost'
                     href={`${buildUniverseHref(slug, 'mapa')}?node=${encodeURIComponent(selectedDetail.node.slug)}&panel=detail`}
                   >
                     Ver no mapa
-                  </Link>
+                  </PrefetchLink>
                 ) : null}
                 {selectedDetail.document ? (
-                  <Link className='ui-button' data-variant='ghost' href={`/c/${slug}/doc/${selectedDetail.document.id}`}>
+                  <PrefetchLink className='ui-button' data-variant='ghost' href={`/c/${slug}/doc/${selectedDetail.document.id}`}>
                     Abrir documento
-                  </Link>
+                  </PrefetchLink>
                 ) : null}
               </div>
 
