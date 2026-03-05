@@ -344,7 +344,7 @@ export function TutorPointLab({
         <Carimbo>{`ponto:${point.orderIndex + 1}/${points.length}`}</Carimbo>
       </div>
 
-      <article className='core-node stack'>
+      <article className='core-node stack tutor-panel-card'>
         <strong>{point.title}</strong>
         <p style={{ margin: 0 }}>{point.goal}</p>
       </article>
@@ -353,7 +353,7 @@ export function TutorPointLab({
         <section className='stack'>
           <strong>Evidencias obrigatorias</strong>
           {requiredEvidences.map((evidence) => (
-            <article key={evidence.id} className='core-node'>
+            <article key={evidence.id} className='core-node tutor-panel-card'>
               <strong>{evidence.title}</strong>
               <p className='muted' style={{ margin: 0 }}>
                 {evidence.summary}
@@ -397,7 +397,7 @@ export function TutorPointLab({
             </p>
           ) : null}
           {result ? (
-            <article className='core-node stack'>
+            <article className='core-node stack tutor-panel-card'>
               <strong>Resposta</strong>
               {result.confidence ? (
                 <p className='muted' style={{ margin: 0 }}>
@@ -439,7 +439,7 @@ export function TutorPointLab({
         </p>
         <div className='stack'>
           {chatMessages.map((message) => (
-            <article key={message.id} className='core-node stack'>
+            <article key={message.id} className='core-node stack tutor-panel-card'>
               <div className='toolbar-row'>
                 <Carimbo>{message.role === 'user' ? 'voce' : 'tutor'}</Carimbo>
                 {message.qaThreadId ? (
@@ -474,7 +474,7 @@ export function TutorPointLab({
               {message.citations && message.citations.length > 0 ? (
                 <div className='stack'>
                   {message.citations.slice(0, 3).map((citation, idx) => (
-                    <article key={`${message.id}-${idx}`} className='core-node'>
+                    <article key={`${message.id}-${idx}`} className='core-node tutor-panel-card'>
                       <p className='muted' style={{ margin: 0 }}>
                         {citation.doc} {citation.year ? `(${citation.year})` : ''} | {citation.pages}
                       </p>

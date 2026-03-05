@@ -117,7 +117,7 @@ export default async function TutorPointPage({ params }: TutorPointPageProps) {
       <Card className='stack'>
         <SectionHeader
           title={`Ponto ${parsedIndex + 1} de ${points.length}`}
-          description='Mini-lab: ler evidencias, fazer pergunta guiada e concluir checkpoint.'
+          description='Mini-lab do ponto: evidencia obrigatoria, pergunta guiada e checkpoint.'
           tag='Tutor Point'
         />
       </Card>

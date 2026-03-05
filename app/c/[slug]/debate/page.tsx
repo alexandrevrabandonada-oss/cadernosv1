@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { DebatePanel } from '@/components/debate/DebatePanel';
 import { ThreadDetailActions } from '@/components/debate/ThreadDetailActions';
 import { PortalsRail } from '@/components/portals/PortalsRail';
+import { ConfidenceSeal } from '@/components/brand/ConfidenceSeal';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
 import { Carimbo } from '@/components/ui/Badge';
@@ -112,11 +113,11 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
         slug={slug}
         section='debate'
         title={`Debate de ${list.universeTitle}`}
-        subtitle='Inbox de perguntas com evidencias rastreaveis e filtros editoriais.'
+        subtitle='Perguntas vivas, conflito de interpretacoes e resposta com lastro documental.'
         selectedId={filters.selected}
         detailTitle='Detalhe da thread'
         filter={
-          <FilterRail>
+          <FilterRail title='Lentes e recortes'>
             <form method='get' className='stack'>
               <label>
                 <span>Lente</span>
@@ -207,7 +208,14 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
                   {dateLabel(selectedDetail.thread.createdAt)} | {selectedDetail.thread.source} | {selectedDetail.thread.mode}
                 </p>
                 <div className='toolbar-row'>
-                  <Carimbo>{`confianca:${selectedDetail.thread.confidenceLabel ?? 'n/d'}`}</Carimbo>
+                  {selectedDetail.thread.confidenceLabel ? (
+                    <>
+                      <Carimbo>{`confianca:${selectedDetail.thread.confidenceLabel}`}</Carimbo>
+                      <ConfidenceSeal kind={selectedDetail.thread.confidenceLabel as 'forte' | 'media' | 'fraca'} />
+                    </>
+                  ) : (
+                    <Carimbo>{`confianca:n/d`}</Carimbo>
+                  )}
                   {typeof selectedDetail.thread.confidenceScore === 'number' ? (
                     <Carimbo>{`${selectedDetail.thread.confidenceScore}/100`}</Carimbo>
                   ) : null}
@@ -263,6 +271,7 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
               {selectedDetail.thread.divergenceFlag ? (
                 <article className='core-node stack'>
                   <strong>Possivel divergencia entre fontes</strong>
+                  <ConfidenceSeal kind='divergencia' />
                   <p className='muted' style={{ margin: 0 }}>
                     {selectedDetail.thread.divergenceSummary ??
                       'Ha sinais de resultados divergentes ou inconclusivos entre os documentos usados.'}
@@ -353,6 +362,7 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
                     {typeof item.docsUsed === 'number' ? <Carimbo>{`docs:${item.docsUsed}`}</Carimbo> : null}
                     {typeof item.chunksUsed === 'number' ? <Carimbo>{`chunks:${item.chunksUsed}`}</Carimbo> : null}
                     {item.confidenceLabel ? <Carimbo>{`conf:${item.confidenceLabel}`}</Carimbo> : null}
+                    {item.confidenceLabel ? <ConfidenceSeal kind={item.confidenceLabel as 'forte' | 'media' | 'fraca'} /> : null}
                     {item.divergenceFlag ? <Carimbo variant='alert'>divergencia</Carimbo> : null}
                   </div>
                   <Link
@@ -369,7 +379,7 @@ export default async function DebatePage({ params, searchParams }: DebatePagePro
             {list.items.length === 0 ? (
               <EmptyState
                 title='Sem threads'
-                description='Sem threads para estes filtros.'
+                description='Nenhuma conversa apareceu neste recorte. Tente ampliar periodo, lente ou no.'
                 variant='no-results'
                 actions={[{ label: 'Limpar filtros', href: currentPath }]}
               />

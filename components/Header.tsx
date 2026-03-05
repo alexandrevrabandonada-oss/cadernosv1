@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
+import { Wordmark } from '@/components/brand/Wordmark';
 
 export function Header() {
   return (
@@ -17,8 +18,8 @@ export function Header() {
       }}
     >
       <div className='header-wrap'>
-        <Link href='/' style={{ fontWeight: 800, letterSpacing: '0.05em' }} aria-label='Voltar para Home'>
-          Cadernos Vivos // Urbano
+        <Link href='/' className='brand-link' aria-label='Voltar para Home'>
+          <Wordmark variant='nav' />
         </Link>
         <nav className='top-nav' aria-label='Navegacao principal'>
           <Button href='/' variant='ghost'>

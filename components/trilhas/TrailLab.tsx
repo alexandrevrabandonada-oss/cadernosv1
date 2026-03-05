@@ -115,7 +115,7 @@ export function TrailLab({ slug, universeId, trail, initialDoneStepIds, isLogged
           const done = progress.getStepStatus(step.id) === 'done';
           const open = expandedStepId === step.id;
           return (
-            <article key={step.id} className='core-node stack'>
+            <article key={step.id} className='core-node stack trail-player-card'>
               <div className='toolbar-row'>
                 <strong>
                   {step.order}. {step.title}
@@ -141,7 +141,7 @@ export function TrailLab({ slug, universeId, trail, initialDoneStepIds, isLogged
                           ? `?p=${evidence.pageStart}`
                           : '';
                         return (
-                          <article key={evidence.id} className='core-node'>
+                          <article key={evidence.id} className='core-node trail-player-card'>
                             <strong>{evidence.title}</strong>
                             <p className='muted' style={{ margin: 0 }}>
                               {evidence.summary}

@@ -2,6 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { ShareButton } from '@/components/share/ShareButton';
+import { Wordmark } from '@/components/brand/Wordmark';
+import { BrandIcon } from '@/components/brand/icons/BrandIcon';
+import { EvidenceSeal } from '@/components/brand/EvidenceSeal';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
@@ -51,6 +54,13 @@ export default async function ShareTermPage({ params }: ShareTermPageProps) {
   return (
     <main className='stack'>
       <Card className='stack'>
+        <div className='toolbar-row'>
+          <Wordmark variant='compact' />
+          <span className='muted' style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+            <BrandIcon name='glossario' size={14} tone='editorial' />
+            Termo do glossario
+          </span>
+        </div>
         <SectionHeader title={term.term} description={term.universeTitle} tag='Termo do Glossario' />
         <p style={{ margin: 0 }}>{term.snippet}</p>
         <div className='toolbar-row'>
@@ -65,6 +75,7 @@ export default async function ShareTermPage({ params }: ShareTermPageProps) {
         <div className='stack'>
           {term.evidences.map((item) => (
             <article key={item.id} className='core-node stack'>
+              <EvidenceSeal kind='proof' />
               <strong>{item.title}</strong>
               <p style={{ margin: 0 }}>{item.summary}</p>
               <Link className='ui-button' data-variant='ghost' href={`${buildUniverseHref(slug, 'provas')}?selected=${encodeURIComponent(item.id)}&panel=detail`}>

@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache';
 import { OrientationBar } from '@/components/universe/OrientationBar';
 import { Portais } from '@/components/universe/Portais';
 import { PortalsRail } from '@/components/portals/PortalsRail';
+import { EvidenceSeal } from '@/components/brand/EvidenceSeal';
 import { CopyCitationButton } from '@/components/provas/CopyCitationButton';
 import { ShareButton } from '@/components/share/ShareButton';
 import { Carimbo } from '@/components/ui/Badge';
@@ -204,15 +205,15 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
       return (
         <div className='stack'>
           <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Provas' />
-          <WorkspaceShell
-            slug={slug}
-            section='provas'
-            title={`Evidencias de ${seed.universe.title}`}
-            subtitle='Modo de teste com dados mock para validacao de UI.'
-            selectedId={filters.selected}
-            detailTitle='Detalhe da evidencia'
-            filter={
-              <FilterRail>
+        <WorkspaceShell
+          slug={slug}
+          section='provas'
+          title={`Evidencias de ${seed.universe.title}`}
+          subtitle='Arquivo vivo de prova: sinais curados, rastreabilidade e leitura comparada.'
+          selectedId={filters.selected}
+          detailTitle='Detalhe da evidencia'
+          filter={
+              <FilterRail title='Eixos de prova'>
                 <form method='get' className='stack'>
                   <label>
                     <span>Tipo</span>
@@ -282,7 +283,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
           >
             <ListKeyboardNavigator ids={listIds} selectedId={filters.selected} />
             <Card className='stack'>
-              <SectionHeader title='Evidencias curadas' description='Clique no card para abrir detalhe no painel.' />
+              <SectionHeader title='Colecao de evidencias' description='Selecione um item para abrir contexto, fonte e portas relacionadas.' />
               <div className='core-grid'>
                 {filtered.map((item) => (
                   <article key={item.id} className='core-node' data-testid='evidence-card' data-selected={filters.selected === item.id ? 'true' : undefined}>
@@ -311,7 +312,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
               {filtered.length === 0 ? (
                 <EmptyState
                   title='Sem resultados'
-                  description='Nenhum item encontrado para os filtros atuais.'
+                  description='Nenhuma prova cruzou os filtros atuais. Ajuste no, tags ou periodo para retomar a trilha.'
                   variant='no-results'
                   actions={[{ label: 'Limpar filtros', href: currentPath }]}
                 />
@@ -405,11 +406,11 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
         slug={slug}
         section='provas'
         title={`Evidencias de ${universe.title}`}
-        subtitle='Evidence-first: curadas primeiro, chunks como fallback.'
+        subtitle='Arquivo vivo de evidencias: curadoria primeiro, trechos tecnicos como apoio.'
         selectedId={filters.selected}
         detailTitle='Detalhe da evidencia'
         filter={
-          <FilterRail>
+          <FilterRail title='Eixos de prova'>
             <form method='get' className='stack'>
               <label>
                 <span>Tipo</span>
@@ -577,8 +578,8 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
           <ListKeyboardNavigator ids={listIds} selectedId={filters.selected} />
           <Card className='stack'>
             <SectionHeader
-              title={filters.type === 'chunk' ? 'Trechos' : 'Evidencias curadas'}
-              description='Clique no card para abrir detalhe no painel e gerar link compartilhavel.'
+              title={filters.type === 'chunk' ? 'Trechos tecnicos' : 'Evidencias curadas'}
+              description='Abra um item para ver contexto documental, relacoes e compartilhamento.'
             />
             <div className='toolbar-row'>
               <Carimbo>{`tipo:${filters.type}`}</Carimbo>
@@ -600,6 +601,14 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                       item.pages.start ? `p.${item.pages.start}` : 's/p'
                     } | ${item.editorialStatus}`}
                   />
+                  {item.kind === 'evidence' ? (
+                    <div className='toolbar-row'>
+                      <EvidenceSeal kind='proof' />
+                      {item.editorialStatus === 'draft' ? <EvidenceSeal kind='draft' /> : null}
+                      {item.editorialStatus === 'review' ? <EvidenceSeal kind='review' /> : null}
+                      {item.editorialStatus === 'published' ? <EvidenceSeal kind='published' /> : null}
+                    </div>
+                  ) : null}
                   <p style={{ margin: 0 }}>{clip(item.snippet, 180)}</p>
                   <div className='toolbar-row'>
                     <Link
@@ -641,7 +650,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
             {listItems.length === 0 ? (
               <EmptyState
                 title='Sem resultados'
-                description='Nenhum item encontrado para os filtros atuais.'
+                description='Nenhuma prova corresponde ao recorte atual. Reabra o filtro ou volte para um no core.'
                 variant='no-results'
                 actions={[{ label: 'Limpar filtros', href: currentPath }]}
               />
@@ -660,7 +669,7 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
             <Card className='stack'>
               <SectionHeader
                 title='Trechos relevantes (fallback)'
-                description='Ainda ha poucas evidencias curadas. Estes trechos brutos ajudam na triagem editorial.'
+                description='Ainda ha baixa curadoria publicada neste recorte; use estes trechos para triagem investigativa.'
               />
               <div className='core-grid'>
                 {fallbackChunks.items.map((chunk) => (

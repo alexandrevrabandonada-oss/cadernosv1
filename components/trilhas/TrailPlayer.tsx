@@ -101,7 +101,7 @@ export function TrailPlayer({
         </button>
       </div>
 
-      <article className='core-node stack'>
+      <article className='core-node stack trail-player-card'>
         <strong>{activeStep.title}</strong>
         <p style={{ margin: 0 }}>{activeStep.instruction}</p>
         {activeStep.nodeTitle ? (
@@ -112,7 +112,7 @@ export function TrailPlayer({
       </article>
 
       {activeStep.requiredEvidences.length > 0 ? (
-        <article className='core-node stack'>
+        <article className='core-node stack trail-player-card'>
           <strong>Leituras obrigatorias</strong>
           {activeStep.requiredEvidences.map((evidence) => (
             <div key={evidence.id} className='stack'>
@@ -138,7 +138,7 @@ export function TrailPlayer({
       ) : null}
 
       {activeStep.guidedQuestion ? (
-        <article className='core-node stack'>
+        <article className='core-node stack trail-player-card'>
           <strong>Pergunta guiada</strong>
           <p style={{ margin: 0 }}>{activeStep.guidedQuestion}</p>
           <div className='toolbar-row'>

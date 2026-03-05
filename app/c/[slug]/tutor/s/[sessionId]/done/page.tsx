@@ -84,7 +84,7 @@ export default async function TutorDonePage({ params, searchParams }: TutorDoneP
       <Card className='stack'>
         <SectionHeader
           title={`Resumo final: ${universe.title}`}
-          description='Consolidacao do que foi coberto na sessao de tutor e proximos passos.'
+          description='Consolidacao do percurso, forca dos achados e proximas portas.'
           tag='Tutor Done'
         />
       </Card>

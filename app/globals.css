@@ -125,6 +125,16 @@ main {
   letter-spacing: 0.05em;
 }
 
+.core-node > strong {
+  font-size: clamp(1rem, 1.2vw, 1.15rem);
+  letter-spacing: 0.01em;
+  text-wrap: balance;
+}
+
+.core-node p {
+  text-wrap: pretty;
+}
+
 .core-node:hover {
   transform: translateY(-1px);
   border-color: color-mix(in srgb, var(--line-0), var(--accent-action) 45%);
@@ -347,6 +357,180 @@ main {
   border-color: color-mix(in srgb, var(--accent-editorial), #000 15%);
 }
 
+.brand-link {
+  display: inline-flex;
+  align-items: center;
+}
+
+.brand-link:hover {
+  text-decoration: none;
+}
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  letter-spacing: 0.06em;
+}
+
+.wordmark-symbol {
+  width: 1.2rem;
+  height: 1.2rem;
+  border: 1px solid color-mix(in srgb, var(--line-soft), #000 8%);
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: color-mix(in srgb, var(--surface-blade), white 16%);
+}
+
+.wordmark-text {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.32rem;
+}
+
+.wordmark-text strong {
+  line-height: 1;
+  font-size: 0.92rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.wordmark-hero .wordmark-text strong {
+  font-size: clamp(1.3rem, 2.4vw, 1.84rem);
+  letter-spacing: 0.02em;
+}
+
+.wordmark-nav .wordmark-text strong {
+  font-size: 0.84rem;
+}
+
+.wordmark-compact {
+  font-size: 0.76rem;
+  text-transform: uppercase;
+  font-weight: 800;
+}
+
+.wordmark-compact strong {
+  letter-spacing: 0.11em;
+}
+
+.wordmark.is-mono {
+  color: var(--text-0);
+}
+
+.brand-icon {
+  flex: none;
+}
+
+.brand-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  border: 1px solid color-mix(in srgb, var(--line-0), #000 14%);
+  background: color-mix(in srgb, var(--surface-blade), white 18%);
+  border-radius: 999px;
+  min-height: 26px;
+  padding: 0.14rem 0.52rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.brand-seal[data-kind='showcase'] {
+  border-color: color-mix(in srgb, var(--accent-editorial), #000 16%);
+  background: color-mix(in srgb, var(--surface-blade), var(--accent-editorial) 16%);
+}
+
+.brand-seal[data-kind='published'],
+.brand-seal[data-kind='forte'],
+.brand-seal[data-kind='curated'] {
+  border-color: color-mix(in srgb, var(--accent-action), #000 18%);
+  background: color-mix(in srgb, var(--surface-blade), var(--accent-action) 13%);
+}
+
+.brand-seal[data-kind='media'] {
+  border-color: color-mix(in srgb, var(--accent-editorial), #000 20%);
+}
+
+.brand-seal[data-kind='fraca'],
+.brand-seal[data-kind='draft'],
+.brand-seal[data-kind='review'],
+.brand-seal[data-kind='divergencia'] {
+  border-color: color-mix(in srgb, var(--status-warning), #000 20%);
+  background: color-mix(in srgb, var(--surface-blade), var(--status-warning) 12%);
+}
+
+.editorial-media-frame {
+  margin: 0;
+  border: 1px solid color-mix(in srgb, var(--line-0), #000 16%);
+  border-radius: var(--radius-md);
+  overflow: clip;
+  background: color-mix(in srgb, var(--surface-blade), white 14%);
+  box-shadow: var(--shadow-1);
+  min-height: 138px;
+}
+
+.editorial-media-surface {
+  min-height: 104px;
+  position: relative;
+  background:
+    radial-gradient(circle at 16% 22%, rgba(217, 178, 79, 0.2), transparent 36%),
+    radial-gradient(circle at 80% 12%, rgba(45, 155, 116, 0.18), transparent 40%),
+    linear-gradient(130deg, color-mix(in srgb, var(--surface-panel), #000 12%), color-mix(in srgb, var(--surface-blade), #000 6%));
+}
+
+.editorial-media-frame[data-accent='editorial'] .editorial-media-surface::after,
+.editorial-media-frame[data-accent='action'] .editorial-media-surface::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.editorial-media-frame[data-accent='editorial'] .editorial-media-surface::after {
+  background: linear-gradient(140deg, rgba(217, 178, 79, 0.15), transparent 60%);
+}
+
+.editorial-media-frame[data-accent='action'] .editorial-media-surface::after {
+  background: linear-gradient(140deg, rgba(45, 155, 116, 0.16), transparent 64%);
+}
+
+.editorial-media-fallback {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(transparent 94%, rgba(18, 20, 23, 0.2)),
+    linear-gradient(90deg, transparent 94%, rgba(18, 20, 23, 0.2));
+  background-size: 26px 26px;
+}
+
+.editorial-media-meta {
+  border-top: 1px solid color-mix(in srgb, var(--line-soft), #000 10%);
+  padding: 0.58rem 0.68rem;
+  display: grid;
+  gap: 0.26rem;
+}
+
+.editorial-media-meta small {
+  color: var(--text-1);
+  font-size: 0.66rem;
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  font-weight: 700;
+}
+
+.editorial-media-meta strong {
+  line-height: 1.15;
+}
+
+.editorial-media-meta span {
+  color: color-mix(in srgb, var(--text-1), #000 10%);
+  font-size: 0.82rem;
+}
+
 .ui-skeleton {
   border-radius: var(--radius-sm);
   background: linear-gradient(
@@ -497,6 +681,16 @@ main {
   border-radius: var(--radius-sm);
   background: color-mix(in srgb, var(--surface-panel), white 20%);
   padding: var(--space-3);
+  box-shadow: var(--shadow-blade);
+}
+
+.empty-state strong {
+  font-size: 1.02rem;
+  letter-spacing: 0.01em;
+}
+
+.empty-state .muted {
+  max-width: 62ch;
 }
 
 .empty-state[data-variant='not-published'] {
@@ -635,6 +829,18 @@ main {
 .command-item[data-active='1'] {
   border-color: var(--accent-editorial);
   box-shadow: var(--ring-selected);
+}
+
+.card-head-meta small {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.66rem;
+}
+
+.card-head-title {
+  font-size: clamp(0.98rem, 1.2vw, 1.12rem);
+  letter-spacing: 0.01em;
+  text-wrap: balance;
 }
 
 .surface-panel {
@@ -973,6 +1179,35 @@ main {
 .resume-journey-card h3,
 .resume-journey-card .muted {
   margin: 0;
+}
+
+.portals-rail .ui-section-title {
+  font-size: clamp(1.16rem, 1.4vw, 1.42rem);
+}
+
+.portal-tile {
+  border: 1px solid color-mix(in srgb, var(--line-0), #000 14%);
+}
+
+.portal-tile-head strong {
+  font-size: 1.03rem;
+  line-height: 1.05;
+}
+
+.portal-tile-reason {
+  min-height: 2.8em;
+}
+
+.portal-tile-cta {
+  justify-self: start;
+}
+
+.trail-player-card,
+.tutor-panel-card {
+  border: 1px solid color-mix(in srgb, var(--line-0), #000 16%);
+  border-radius: var(--radius-md);
+  padding: var(--space-3);
+  background: color-mix(in srgb, var(--surface-plate), white 12%);
 }
 
 @media (max-width: 900px) {

@@ -125,11 +125,11 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
         slug={slug}
         section='mapa'
         title={`Explorer de ${map.universeTitle}`}
-        subtitle='Camadas visuais: core, clusters e entrada no cluster.'
+        subtitle='Constelacao editorial de nos, cobertura e conexoes de investigacao.'
         selectedId={selectedId}
         detailTitle='Detalhe do mapa'
         filter={
-          <FilterRail>
+          <FilterRail title='Camadas do mapa'>
             <form method='get' className='stack'>
               <label>
                 <span>Visao</span>
@@ -360,21 +360,21 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
               Mostrando {map.nodes.length} de {map.totalNodes} nos. Use filtros para foco.
             </p>
           ) : null}
-          <SectionHeader
-            title='Explorer do grafo'
-            description={
-              showClusters
-                ? 'Camada de clusters por tag/kind. Clique para entrar no cluster.'
+              <SectionHeader
+                title='Explorer do grafo'
+                description={
+                  showClusters
+                ? 'Camada de clusters por tema. Entre no cluster para descer ao detalhe.'
                 : inCluster
-                  ? 'Camada de nos dentro do cluster selecionado.'
-                  : 'Camada de nos do mapa. Selecione para abrir detalhe.'
-            }
-          />
+                  ? 'Nos visiveis dentro do cluster selecionado.'
+                  : 'Panorama de nos do universo com foco em cobertura.'
+                }
+              />
           {showClusters ? (
             map.clusters.length === 0 ? (
               <EmptyState
                 title='Sem clusters'
-                description='Sem clusters para estes filtros.'
+                description='Nenhum agrupamento foi encontrado nesse recorte. Tente remover tags/kind ou mudar a visao.'
                 variant='no-results'
                 actions={[{ label: 'Limpar filtros', href: currentPath }]}
               />
@@ -415,7 +415,7 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
           ) : map.nodes.length === 0 ? (
             <EmptyState
               title='Sem nos'
-              description='Sem nos para estes filtros.'
+              description='Nenhum no apareceu com os filtros atuais. Reabra o recorte para recuperar a constelacao.'
               variant='no-results'
               actions={[{ label: 'Limpar filtros', href: currentPath }]}
             />

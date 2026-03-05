@@ -146,6 +146,22 @@ Pasta: `components/workspace`
     - `selected=<id>`
     - `panel=detail|filters`
 
+### Padrao de Sala (acabamento transversal)
+
+- Toda secao principal (`Provas`, `Linha`, `Debate`, `Mapa`, `Glossario`, `Trilhas`) segue o mesmo ritmo:
+  - header de sala com kicker + titulo forte + subtitulo funcional
+  - trilho de filtros com rotulos tecnicos e recortes claros
+  - conteudo central com cards/listas de alto contraste (titulo > meta)
+  - painel de detalhe como objeto em foco (resumo, metadados, relacionados, portas)
+  - bloco de continuidade com `PortalsRail`
+- Microcopy da sala deve evitar placeholder e manter tom:
+  - editorial
+  - investigativo
+  - objetivo
+- Estados vazios:
+  - nunca apenas "sem resultados"
+  - sempre indicar recorte aplicado e uma proxima acao clara
+
 ### Query params padrao
 
 - `selected`: item selecionado para detalhe
@@ -429,3 +445,22 @@ Rota: `/c/[slug]/mapa`
 - Estrategia:
   - checks por `data-testid`/URL (sem snapshot visual pesado)
   - modo deterministico via `TEST_SEED=1` para CI sem dependencia de banco externo
+
+## Identidade de Marca (VIZ-04)
+
+- Sistema de marca operacional introduzido para todo o produto:
+  - `Wordmark` oficial (`hero`, `nav`, `compact`, `mono`)
+  - iconografia proprietaria (`BrandIcon`)
+  - selos editoriais (`UniverseSeal`, `EvidenceSeal`, `ConfidenceSeal`)
+  - moldura de imagem editorial (`EditorialMediaFrame`)
+- Principios:
+  - assinatura institucional viva (arquivo + navegacao), sem estetica SaaS generica
+  - sem copiar literalmente VR Abandonada
+  - sem perder legibilidade em dark/mobile/texture-low
+- Aplicacao:
+  - header, Home e Hub
+  - headers de sala no Workspace e DockNav
+  - Provas e Debate (selos operacionais)
+  - share pages e OG cards com assinatura compacta
+- Referencia de marca:
+  - ver `docs/BRAND.md`

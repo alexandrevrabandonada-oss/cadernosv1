@@ -88,11 +88,11 @@ export default async function GlossarioPage({ params, searchParams }: GlossarioP
         slug={slug}
         section='glossario'
         title={`Glossario de ${list.universeTitle}`}
-        subtitle='Indice de conceitos, entidades e siglas conectados ao universo.'
+        subtitle='Indice vivo de conceitos, siglas e entidades que organizam o universo.'
         selectedId={filters.selected}
         detailTitle='Detalhe do termo'
         filter={
-          <FilterRail>
+          <FilterRail title='Recorte de termos'>
             <form method='get' className='stack'>
               <label>
                 <span>Busca</span>
@@ -274,7 +274,7 @@ export default async function GlossarioPage({ params, searchParams }: GlossarioP
           {list.items.length === 0 ? (
             <EmptyState
               title='Sem termos'
-              description='Sem termos para estes filtros.'
+              description='Nenhum termo casou com este recorte. Tente outra letra, busca ou conjunto de tags.'
               variant='no-results'
               actions={[{ label: 'Limpar filtros', href: currentPath }]}
             />

@@ -13,6 +13,29 @@
   justify-content: space-between;
   gap: var(--space-3);
   padding: var(--space-3);
+  position: relative;
+  overflow: hidden;
+}
+
+.workspace-head::after {
+  content: '';
+  position: absolute;
+  right: -12%;
+  top: -22%;
+  width: 42%;
+  aspect-ratio: 1;
+  border-radius: 999px;
+  background: radial-gradient(circle, rgba(217, 178, 79, 0.13), transparent 72%);
+  pointer-events: none;
+}
+
+.workspace-kicker {
+  margin: 0 0 0.2rem;
+  color: color-mix(in srgb, var(--text-1), #000 16%);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.67rem;
+  font-weight: 800;
 }
 
 .workspace-grid {
@@ -76,8 +99,24 @@
   padding-bottom: var(--space-2);
 }
 
+.workspace-rail-title {
+  text-transform: uppercase;
+  letter-spacing: 0.11em;
+  font-size: 0.72rem;
+}
+
 .workspace-rail-body {
   overflow: auto;
+}
+
+.workspace-rail-body label > span {
+  display: block;
+  margin-bottom: 0.3rem;
+  color: color-mix(in srgb, var(--text-1), #000 12%);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .workspace-rail-foot {
@@ -94,8 +133,16 @@
   border-bottom: 1px solid color-mix(in srgb, var(--line-0), #000 12%);
 }
 
+.workspace-detail-head strong {
+  font-size: 0.84rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
 .workspace-detail-body {
   padding: var(--space-3);
+  display: grid;
+  gap: var(--space-3);
 }
 
 .workspace-sheet-overlay,
@@ -190,12 +237,24 @@
   min-height: 44px;
   border-radius: var(--radius-sm);
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  gap: 0.18rem;
   font-size: 0.78rem;
   text-align: center;
   border: 1px solid color-mix(in srgb, var(--line-soft), transparent 45%);
   color: var(--text-0);
+}
+
+.workspace-dock-item-icon {
+  line-height: 0;
+}
+
+.workspace-title-with-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .workspace-dock-item[aria-current='page'] {
@@ -203,6 +262,30 @@
   background: color-mix(in srgb, var(--surface-plate), var(--accent-editorial) 16%);
   font-weight: 700;
   box-shadow: var(--ring-selected);
+}
+
+.workspace-shell[data-room='provas'] .workspace-kicker::after {
+  content: ' arquivo vivo';
+}
+
+.workspace-shell[data-room='linha'] .workspace-kicker::after {
+  content: ' cronologia';
+}
+
+.workspace-shell[data-room='debate'] .workspace-kicker::after {
+  content: ' disputas';
+}
+
+.workspace-shell[data-room='mapa'] .workspace-kicker::after {
+  content: ' constelacao';
+}
+
+.workspace-shell[data-room='glossario'] .workspace-kicker::after {
+  content: ' conceitos';
+}
+
+.workspace-shell[data-room='trilhas'] .workspace-kicker::after {
+  content: ' percurso';
 }
 
 .desktop-only {

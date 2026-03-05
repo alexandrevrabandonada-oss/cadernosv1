@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
+import { BrandIcon, type BrandIconName } from '@/components/brand/icons/BrandIcon';
 import { buildUniverseHref } from '@/lib/universeNav';
 
 type DockNavProps = {
@@ -10,13 +11,13 @@ type DockNavProps = {
 };
 
 const ITEMS = [
-  { key: 'provas', label: 'Provas' },
-  { key: 'linha', label: 'Linha' },
-  { key: 'glossario', label: 'Glossario' },
-  { key: 'trilhas', label: 'Trilhas' },
-  { key: 'tutor', label: 'Tutoria' },
-  { key: 'debate', label: 'Debate' },
-  { key: 'mapa', label: 'Mapa' },
+  { key: 'provas', label: 'Provas', icon: 'provas' as BrandIconName },
+  { key: 'linha', label: 'Linha', icon: 'linha' as BrandIconName },
+  { key: 'glossario', label: 'Glossario', icon: 'glossario' as BrandIconName },
+  { key: 'trilhas', label: 'Trilhas', icon: 'trilhas' as BrandIconName },
+  { key: 'tutor', label: 'Tutoria', icon: 'tutor' as BrandIconName },
+  { key: 'debate', label: 'Debate', icon: 'debate' as BrandIconName },
+  { key: 'mapa', label: 'Mapa', icon: 'mapa' as BrandIconName },
 ] as const;
 
 export function DockNav({ slug }: DockNavProps) {
@@ -35,7 +36,10 @@ export function DockNav({ slug }: DockNavProps) {
             aria-current={isActive ? 'page' : undefined}
             onClick={() => uiPrefs?.setLastSection(item.key)}
           >
-            {item.label}
+            <span className='workspace-dock-item-icon' aria-hidden='true'>
+              <BrandIcon name={item.icon} size={16} tone={isActive ? 'editorial' : 'default'} />
+            </span>
+            <span>{item.label}</span>
           </Link>
         );
       })}

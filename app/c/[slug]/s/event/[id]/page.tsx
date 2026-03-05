@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import type { Metadata } from 'next';
 import { ShareButton } from '@/components/share/ShareButton';
+import { Wordmark } from '@/components/brand/Wordmark';
+import { BrandIcon } from '@/components/brand/icons/BrandIcon';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { getShareEvent } from '@/lib/share/content';
@@ -48,6 +50,13 @@ export default async function ShareEventPage({ params }: ShareEventPageProps) {
   return (
     <main className='stack'>
       <Card className='stack'>
+        <div className='toolbar-row'>
+          <Wordmark variant='compact' />
+          <span className='muted' style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+            <BrandIcon name='linha' size={14} tone='editorial' />
+            Cartao de linha
+          </span>
+        </div>
         <SectionHeader title={event.title} description={event.universeTitle} tag='Event Share' />
         <p style={{ margin: 0 }}>{event.summary}</p>
         <p className='muted' style={{ margin: 0 }}>

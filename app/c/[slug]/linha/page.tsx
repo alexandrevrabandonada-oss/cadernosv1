@@ -80,11 +80,11 @@ export default async function LinhaPage({ params, searchParams }: LinhaPageProps
         slug={slug}
         section='linha'
         title={`Linha do tempo de ${timeline.universeTitle}`}
-        subtitle='Eventos editoriais conectados a nos, documentos e provas.'
+        subtitle='Cronologia de marcos, disputas e viradas do universo.'
         selectedId={filters.selected}
         detailTitle='Detalhe do item'
         filter={
-          <FilterRail>
+          <FilterRail title='Recortes cronologicos'>
             <form method='get' className='stack'>
               <fieldset className='stack' style={{ margin: 0, border: 'none', padding: 0 }}>
                 <legend style={{ marginBottom: 6, fontWeight: 600 }}>Tipo</legend>
@@ -322,7 +322,7 @@ export default async function LinhaPage({ params, searchParams }: LinhaPageProps
           {timeline.items.length === 0 ? (
             <EmptyState
               title='Sem itens'
-              description='Sem itens para estes filtros.'
+              description='Nenhum marco apareceu nesse recorte. Amplie periodo ou remova filtros de tipo/no.'
               variant='no-results'
               actions={[{ label: 'Limpar filtros', href: currentPath }]}
             />

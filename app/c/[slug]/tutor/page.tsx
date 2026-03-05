@@ -48,7 +48,7 @@ export default async function TutorModePage({ params }: TutorModePageProps) {
       <Card className='stack'>
         <SectionHeader
           title={`Tutor Mode: ${title}`}
-          description='Sessao guiada com 3-5 pontos de conhecimento progressivos.'
+          description='Sessao de estudo guiada por pontos, evidencias e checkpoints.'
           tag='Tutor v1'
         />
         {isLoggedIn ? (

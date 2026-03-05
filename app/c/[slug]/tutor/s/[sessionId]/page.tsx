@@ -57,7 +57,7 @@ export default async function TutorSessionOverviewPage({ params }: TutorSessionO
       <Card className='stack'>
         <SectionHeader
           title={`Sessao de Tutor: ${universe.title}`}
-          description='Visao geral dos pontos da sessao e progresso atual.'
+          description='Visao geral do percurso, status por ponto e retomada da sessao.'
           tag='Tutor Session'
         />
       </Card>

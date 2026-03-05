@@ -29,24 +29,24 @@ export function PortalsRail({
   if (items.length === 0) return null;
 
   return (
-    <section className='stack' aria-label='Proximas portas contextuais'>
+    <section className='stack portals-rail' aria-label='Proximas portas contextuais'>
       <SectionHeader
         title={heading}
-        description='Navegacao orientada pelo contexto atual para manter fluidez de exploracao.'
+        description='Portas de continuidade para manter contexto e ritmo de investigacao.'
         tag='Contextual'
       />
-      <div className='layout-shell' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
+      <div className='layout-shell portals-grid' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))' }}>
         {items.map((item) => (
-          <Card key={item.id} className='stack' surface='plate'>
-            <div className='toolbar-row'>
+          <Card key={item.id} className='stack portal-tile' surface='plate'>
+            <div className='toolbar-row portal-tile-head'>
               <strong>{item.label}</strong>
               {item.badge ? <Carimbo>{item.badge}</Carimbo> : null}
             </div>
-            <p className='muted' style={{ margin: 0 }}>
+            <p className='muted portal-tile-reason' style={{ margin: 0 }}>
               {item.description}
             </p>
-            <Link className='ui-button' href={item.href} aria-label={`Abrir portal ${item.label}`}>
-              Abrir
+            <Link className='ui-button portal-tile-cta' href={item.href} aria-label={`Abrir portal ${item.label}`}>
+              Abrir porta
             </Link>
           </Card>
         ))}

@@ -6,6 +6,7 @@ import { Carimbo } from '@/components/ui/Badge';
 import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { UiPreferencesMenu } from '@/components/ui/UiPreferencesMenu';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { BrandIcon, type BrandIconName } from '@/components/brand/icons/BrandIcon';
 import { DockNav } from '@/components/workspace/DockNav';
 import { DetailPanel } from '@/components/workspace/DetailPanel';
 import { useWorkspaceContext } from '@/components/workspace/WorkspaceContext';
@@ -37,6 +38,14 @@ export function WorkspaceShell({
   selectedId = '',
   preview = false,
 }: WorkspaceShellProps) {
+  const sectionIcons: Record<WorkspaceShellProps['section'], BrandIconName> = {
+    provas: 'provas',
+    linha: 'linha',
+    debate: 'debate',
+    trilhas: 'trilhas',
+    glossario: 'glossario',
+    mapa: 'mapa',
+  };
   const panels = useWorkspacePanels();
   const workspace = useWorkspaceContext();
   const uiPrefs = useUiPrefsContext();
@@ -78,10 +87,12 @@ export function WorkspaceShell({
   }, [section, uiPrefs]);
 
   return (
-    <section className='workspace-shell stack' data-testid='workspace'>
+    <section className='workspace-shell stack' data-testid='workspace' data-room={section}>
       <header className='workspace-head surface-panel'>
         <div>
-          <h2 className='ui-section-title' style={{ margin: 0 }}>
+          <p className='workspace-kicker'>{section}</p>
+          <h2 className='ui-section-title workspace-title-with-icon' style={{ margin: 0 }}>
+            <BrandIcon name={sectionIcons[section]} size={18} tone='editorial' />
             {sectionLabel}
           </h2>
           {subtitle ? (

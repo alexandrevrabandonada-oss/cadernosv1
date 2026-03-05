@@ -65,7 +65,7 @@ export default async function TrilhasPage({ params, searchParams }: TrilhasPageP
       <Card className='stack'>
         <SectionHeader
           title={`Trilhas de ${data.universeTitle}`}
-          description='Cards editoriais, modo player e ramificacao por no/tipo/tags.'
+          description='Percursos de investigacao com passos, ramificacoes e atalhos contextuais.'
           tag='Trilhas v2'
         />
         <div className='toolbar-row'>
@@ -78,7 +78,7 @@ export default async function TrilhasPage({ params, searchParams }: TrilhasPageP
 
       {listMode ? (
         <Card className='stack'>
-          <SectionHeader title='Catalogo de trilhas' description='Escolha uma trilha e abra no modo player.' />
+          <SectionHeader title='Catalogo de percursos' description='Escolha uma jornada e entre no modo player com checkpoints.' />
           <div className='layout-shell' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
             {data.trails.map((trail) => {
               const openHref = stepHref(currentPath, trail.slug, 1, 'player');
@@ -125,7 +125,7 @@ export default async function TrilhasPage({ params, searchParams }: TrilhasPageP
           slug={slug}
           section='trilhas'
           title={selectedTrail ? `${selectedTrail.title}` : 'Player de trilha'}
-          subtitle={selectedTrail?.summary ?? 'Abra uma trilha no modo player.'}
+          subtitle={selectedTrail?.summary ?? 'Abra um percurso para entrar no modo player.'}
           selectedId={selectedTrail?.id ?? ''}
           detailTitle='Progresso e atalhos'
           filter={

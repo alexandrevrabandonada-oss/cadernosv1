@@ -35,21 +35,41 @@ function ogCard(input: {
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          background: 'linear-gradient(135deg, #111111 0%, #1f1f1f 55%, #2b2b2b 100%)',
-          color: '#f4f4ef',
+          background:
+            'radial-gradient(circle at 18% 8%, rgba(217, 178, 79, 0.14), transparent 34%), radial-gradient(circle at 82% 12%, rgba(45, 155, 116, 0.12), transparent 36%), linear-gradient(160deg, #12161a, #1b2127)',
+          color: '#ece6dc',
           padding: '48px 54px',
           fontFamily: 'Arial, sans-serif',
         }}
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: 24, letterSpacing: 1.5, textTransform: 'uppercase', color: '#d9d9d0' }}>Cadernos Vivos</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <div
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 999,
+                border: '1px solid rgba(224,212,195,0.35)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: 16,
+                color: '#d9b24f',
+              }}
+            >
+              *
+            </div>
+            <div style={{ fontSize: 20, letterSpacing: 1.7, textTransform: 'uppercase', color: '#e6dfd4' }}>CV //</div>
+          </div>
           <div
             style={{
-              fontSize: 18,
+              fontSize: 16,
               padding: '8px 14px',
-              border: '1px solid rgba(255,255,255,0.25)',
+              border: '1px solid rgba(217,178,79,0.45)',
               borderRadius: 999,
-              color: '#efefdf',
+              color: '#f0e7d8',
+              textTransform: 'uppercase',
+              letterSpacing: 1.2,
             }}
           >
             {input.badge}
@@ -57,17 +77,17 @@ function ogCard(input: {
         </div>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{ fontSize: 26, fontWeight: 600, color: '#ecece1' }}>{clip(input.universeTitle, 86)}</div>
+          <div style={{ fontSize: 24, fontWeight: 600, color: '#d8cec0' }}>{clip(input.universeTitle, 86)}</div>
           <div style={{ fontSize: 52, fontWeight: 700, lineHeight: 1.1, color: '#ffffff' }}>{clip(input.headline, 110)}</div>
           <div
             style={{
               marginTop: 8,
-              background: 'rgba(255,255,255,0.06)',
-              border: '1px solid rgba(255,255,255,0.18)',
+              background: 'rgba(245,239,229,0.06)',
+              border: '1px solid rgba(224,212,195,0.2)',
               borderRadius: 14,
               padding: '16px 18px',
-              color: '#f1f1e8',
-              fontSize: 28,
+              color: '#f2ece0',
+              fontSize: 27,
               lineHeight: 1.35,
             }}
           >
@@ -75,9 +95,9 @@ function ogCard(input: {
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#d3d3ca', fontSize: 21 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#d0c7ba', fontSize: 20 }}>
           <div>{clip(input.tagLine, 100)}</div>
-          <div>Ver evidencias no Cadernos Vivos</div>
+          <div>Abrir no Cadernos Vivos</div>
         </div>
       </div>
     ),

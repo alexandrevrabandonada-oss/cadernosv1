@@ -4,6 +4,10 @@ import { Badge } from '@/components/ui/Badge';
 import { HeroPanel } from '@/components/universe/HeroPanel';
 import { BigPortalCard } from '@/components/universe/BigPortalCard';
 import { HighlightsStrip, type HighlightStripItem } from '@/components/universe/HighlightsStrip';
+import { Wordmark } from '@/components/brand/Wordmark';
+import { UniverseSeal } from '@/components/brand/UniverseSeal';
+import { EditorialMediaFrame } from '@/components/brand/EditorialMediaFrame';
+import { BrandIcon } from '@/components/brand/icons/BrandIcon';
 import { listPublishedUniverses } from '@/lib/data/universes';
 import { getCurrentSession } from '@/lib/auth/server';
 import { getHubData } from '@/lib/data/universe';
@@ -84,6 +88,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         eyebrow='Portal Publico'
         title='Universos de prova, memoria e disputa'
         subtitle='Cadernos Vivos organiza evidencias, linha do tempo, mapa e debate em percursos editoriais para leitura publica.'
+        meta={<Wordmark variant='hero' />}
         actions={
           <>
             <a className='ui-button' href='#universos'>
@@ -105,6 +110,12 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                 <Badge>{`provas:${featuredHub.quickStart.evidencesTotal}`}</Badge>
                 <Badge>{`docs:${featuredHub.quickStart.docsProcessed}`}</Badge>
               </div>
+              <EditorialMediaFrame
+                title='Arquivo ativo'
+                subtitle='Entrada editorial para leitura rapida'
+                label='FOCO'
+                accent='editorial'
+              />
               <Link className='ui-button' href={buildUniverseHref(featuredHub.slug, '')}>
                 Entrar no universo
               </Link>
@@ -120,6 +131,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           description='Entre por evidencias curadas, relacionados e citações rastreaveis.'
           cta='Abrir Provas'
           badge='Evidence-first'
+          preview={<EditorialMediaFrame title='Provas' subtitle='Trechos, citacoes e rastreio' label='SALA' accent='action' />}
         />
         <BigPortalCard
           href={buildUniverseHref(targetSlug, 'trilhas')}
@@ -127,6 +139,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           description='Percursos guiados para leitura progressiva do acervo.'
           cta='Abrir Trilhas'
           badge='Curadoria'
+          preview={<EditorialMediaFrame title='Trilhas' subtitle='Percursos por investigacao' label='SALA' accent='editorial' />}
         />
         <BigPortalCard
           href={buildUniverseHref(targetSlug, 'tutor')}
@@ -134,6 +147,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           description='Sessões por pontos de conhecimento com checkpoint e evidencias obrigatorias.'
           cta='Abrir Tutor'
           badge='Tutor Mode'
+          preview={<EditorialMediaFrame title='Tutor' subtitle='Sessao guiada por pontos' label='SALA' accent='editorial' />}
         />
       </section>
 
@@ -148,7 +162,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           {universoCards.map((universe, index) => (
             <article key={universe.id} className={['universe-door-card surface-plate', index === 0 && universe.hasHighlights ? 'is-highlighted' : ''].join(' ')}>
               <div className='toolbar-row'>
-                {universe.hasHighlights ? <Badge variant='ok'>Vitrine</Badge> : null}
+                {universe.hasHighlights ? <UniverseSeal kind='showcase' /> : <UniverseSeal kind='published' />}
                 <Badge>{new Date(universe.published_at ?? '').toLocaleDateString('pt-BR')}</Badge>
               </div>
               <h3>{universe.title}</h3>
@@ -181,7 +195,10 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <HighlightsStrip
           title='Fios quentes'
           description='Sinalizacao editorial do que esta mais ativo no universo em foco.'
-          items={hotItems.slice(0, 6)}
+          items={hotItems.slice(0, 6).map((item) => ({
+            ...item,
+            label: item.label === 'Evidencia' ? 'Evidencia' : item.label,
+          }))}
           emptyLabel='Sem destaques recentes disponiveis. Abra um universo para explorar as portas principais.'
         />
       </Card>
@@ -196,16 +213,19 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <div className='how-it-works-grid'>
           <article className='surface-blade'>
             <small>01</small>
+            <BrandIcon name='mapa' size={16} tone='editorial' />
             <strong>Entrar no universo</strong>
             <p className='muted'>Comece pelo hub para entender escopo, perguntas e caminhos.</p>
           </article>
           <article className='surface-blade'>
             <small>02</small>
+            <BrandIcon name='provas' size={16} tone='action' />
             <strong>Explorar com prova</strong>
             <p className='muted'>Cruze Provas, Linha, Mapa e Debate sem perder contexto.</p>
           </article>
           <article className='surface-blade'>
             <small>03</small>
+            <BrandIcon name='share' size={16} tone='editorial' />
             <strong>Compartilhar e continuar</strong>
             <p className='muted'>Use share pages e tutor para consolidar e redistribuir aprendizado.</p>
           </article>

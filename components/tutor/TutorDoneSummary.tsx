@@ -107,7 +107,7 @@ export function TutorDoneSummary({
         <Carimbo>{`concluidos:${covered.length}/${points.length}`}</Carimbo>
         {typeof averageConfidence === 'number' ? <Carimbo>{`confianca media:${averageConfidence}/100`}</Carimbo> : null}
       </div>
-      <article className='core-node stack'>
+      <article className='core-node stack tutor-panel-card'>
         <strong>O que foi coberto</strong>
         {coveredPoints.map((point, index) => (
           <p key={`${point.title}-${index}`} style={{ margin: 0 }}>
@@ -121,7 +121,7 @@ export function TutorDoneSummary({
         ) : null}
       </article>
 
-      <article className='core-node stack'>
+      <article className='core-node stack tutor-panel-card'>
         <strong>Principais achados</strong>
         {findings.length > 0 ? (
           findings.map((finding, index) => (
@@ -136,7 +136,7 @@ export function TutorDoneSummary({
         )}
       </article>
 
-      <article className='core-node stack'>
+      <article className='core-node stack tutor-panel-card'>
         <strong>Limitacoes e lacunas</strong>
         {limitations.length > 0 ? (
           limitations.map((item, index) => (
@@ -151,7 +151,7 @@ export function TutorDoneSummary({
         )}
       </article>
 
-      <article className='core-node stack'>
+      <article className='core-node stack tutor-panel-card'>
         <strong>Proximos passos</strong>
         <p style={{ margin: 0 }}>1. Nos recomendados: {nextSteps.nodes.map((item) => item.title).join(' | ') || 'n/d'}.</p>
         <p style={{ margin: 0 }}>
@@ -170,7 +170,7 @@ export function TutorDoneSummary({
         </p>
       </article>
 
-      <article className='core-node stack'>
+      <article className='core-node stack tutor-panel-card'>
         <strong>Acoes</strong>
         <div className='toolbar-row'>
           {nextSteps.nodes[0]?.slug ? (

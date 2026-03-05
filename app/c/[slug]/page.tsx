@@ -13,6 +13,10 @@ import { UniverseMetaBar } from '@/components/universe/UniverseMetaBar';
 import { BigPortalCard } from '@/components/universe/BigPortalCard';
 import { HighlightsStrip } from '@/components/universe/HighlightsStrip';
 import { ResumeJourneyCard } from '@/components/universe/ResumeJourneyCard';
+import { Wordmark } from '@/components/brand/Wordmark';
+import { UniverseSeal } from '@/components/brand/UniverseSeal';
+import { EditorialMediaFrame } from '@/components/brand/EditorialMediaFrame';
+import { BrandIcon } from '@/components/brand/icons/BrandIcon';
 
 type UniversoPageProps = {
   params: Promise<{
@@ -117,20 +121,23 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           </>
         }
         meta={
-          <UniverseMetaBar
-            items={[
-              { label: 'Atualizado', value: updatedAgo },
-              { label: 'Nos', value: String(universe.quickStart.nodesTotal) },
-              { label: 'Trilhas', value: String(Math.max(universe.featuredTrails.length, 1)) },
-              { label: 'Provas', value: String(universe.quickStart.evidencesTotal) },
-            ]}
-          />
+          <div className='stack' style={{ gap: '0.7rem' }}>
+            <Wordmark variant='compact' />
+            <UniverseMetaBar
+              items={[
+                { label: 'Atualizado', value: updatedAgo },
+                { label: 'Nos', value: String(universe.quickStart.nodesTotal) },
+                { label: 'Trilhas', value: String(Math.max(universe.featuredTrails.length, 1)) },
+                { label: 'Provas', value: String(universe.quickStart.evidencesTotal) },
+              ]}
+            />
+          </div>
         }
         aside={
           <article className='feature-universe-card surface-plate'>
             <div className='toolbar-row'>
               <UniverseVisibilityBadge published={Boolean(access.published)} preview={Boolean(access.canPreview)} />
-              {isShowcase ? <Badge variant='ok'>Vitrine</Badge> : null}
+              {isShowcase ? <UniverseSeal kind='showcase' /> : <UniverseSeal kind='published' />}
             </div>
             <h2>Estado do universo</h2>
             <p className='muted'>Nucleo curado para leitura publica com portas de prova, mapa e debate.</p>
@@ -139,6 +146,12 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               <Carimbo>{`nos:${universe.quickStart.nodesTotal}`}</Carimbo>
               <Carimbo>{`evidencias:${universe.quickStart.evidencesTotal}`}</Carimbo>
             </div>
+            <EditorialMediaFrame
+              title='Nucleo de leitura'
+              subtitle='Portas de prova, mapa e debate'
+              label='UNIVERSO'
+              accent='editorial'
+            />
           </article>
         }
       />
@@ -150,6 +163,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           description='Evidencias curadas com relacionados e links compartilhaveis.'
           cta='Entrar em Provas'
           badge='Porta 1'
+          preview={<BrandIcon name='provas' size={22} tone='action' />}
           track={{ event: 'cta_click', cta: 'porta_provas', section: 'hub_portas' }}
         />
         <BigPortalCard
@@ -158,6 +172,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           description='Veja o nucleo do universo, cobertura por no e conexoes.'
           cta='Entrar no Mapa'
           badge='Porta 2'
+          preview={<BrandIcon name='mapa' size={22} tone='editorial' />}
           track={{ event: 'cta_click', cta: 'porta_mapa', section: 'hub_portas' }}
         />
         <BigPortalCard
@@ -166,13 +181,17 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           description='Perguntas rastreaveis com citacoes, confianca e limitacoes.'
           cta='Entrar no Debate'
           badge='Porta 3'
+          preview={<BrandIcon name='debate' size={22} tone='editorial' />}
           track={{ event: 'cta_click', cta: 'porta_debate', section: 'hub_portas' }}
         />
       </section>
 
       <Card className='stack surface-panel quickstart-block'>
         <header className='stack' style={{ gap: '0.35rem' }}>
-          <Badge variant='warning'>Comece Aqui</Badge>
+          <span className='toolbar-row'>
+            <Badge variant='warning'>Comece Aqui</Badge>
+            <BrandIcon name='trilhas' size={16} tone='editorial' />
+          </span>
           <h2 style={{ margin: 0 }}>Comece em 5 minutos</h2>
           <p className='muted' style={{ margin: 0 }}>
             Trilha guiada + perguntas prontas para abrir o debate com contexto de no.
@@ -197,6 +216,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               )}
             >
               <small>{item.label}</small>
+              <BrandIcon name='debate' size={14} tone='editorial' />
               <strong>{item.question}</strong>
             </a>
           ))}

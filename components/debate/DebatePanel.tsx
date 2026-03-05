@@ -216,7 +216,7 @@ export function DebatePanel({
   return (
     <div className='stack'>
       <Card className='stack'>
-        <SectionHeader title='Pergunta de debate' description='Envie uma pergunta e recupere resposta com evidencias citadas.' />
+        <SectionHeader title='Pergunta de debate' description='Formule a disputa e recupere resposta ancorada em evidencias citadas.' />
         {backUrl ? (
           <div className='toolbar-row'>
             <Link className='ui-button' data-variant='ghost' href={backUrl}>
@@ -241,7 +241,7 @@ export function DebatePanel({
             />
           </label>
           <small id={hintId} className='muted'>
-            Minimo de 8 caracteres. A resposta so conclui quando houver citacoes recuperadas.
+            Minimo de 8 caracteres. O modo estrito so fecha quando houver citacoes recuperadas.
           </small>
           {nodeSlug ? (
             <p className='muted' style={{ margin: 0 }}>
@@ -360,7 +360,7 @@ export function DebatePanel({
             ))}
             {result.citations.length === 0 ? (
               <p className='muted' style={{ margin: 0 }}>
-                Nenhuma evidencia retornada para esta pergunta.
+                Nenhuma evidencia disponivel para sustentar esta pergunta no recorte atual.
               </p>
             ) : null}
           </div>
@@ -381,7 +381,7 @@ export function DebatePanel({
             ))}
             {history.length === 0 ? (
               <p className='muted' style={{ margin: 0 }}>
-                Ainda nao ha historico para este universo.
+                Ainda nao ha historico de perguntas neste universo.
               </p>
             ) : null}
           </div>

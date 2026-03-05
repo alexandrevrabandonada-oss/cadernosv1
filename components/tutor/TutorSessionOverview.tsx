@@ -72,7 +72,7 @@ export function TutorSessionOverview({
       </div>
       <div className='stack'>
         {points.map((point) => (
-          <article key={point.id} className='core-node'>
+          <article key={point.id} className='core-node tutor-panel-card'>
             <div className='toolbar-row'>
               <strong>
                 {point.orderIndex + 1}. {point.title}

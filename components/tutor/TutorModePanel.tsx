@@ -99,7 +99,7 @@ export function TutorModePanel({
 
       <div className='stack'>
         {points.map((point, index) => (
-          <article key={point.id} className='core-node'>
+          <article key={point.id} className='core-node tutor-panel-card'>
             <strong>
               {index + 1}. {point.title}
             </strong>
