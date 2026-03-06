@@ -285,6 +285,18 @@ export default async function UniverseChecklistPage({ params, searchParams }: Un
       </Card>
 
       <Card className='stack'>
+        <SectionHeader title='Fila coletiva pendente' description='Itens em draft/review dos coletivos do universo aguardando triagem editorial.' />
+        <div className='toolbar-row'>
+          <Carimbo>{`draft:${checklist.overview.collectiveReview.draft}`}</Carimbo>
+          <Carimbo>{`review:${checklist.overview.collectiveReview.review}`}</Carimbo>
+        </div>
+        <div className='toolbar-row'>
+          <Link className='ui-button' href={`/c/${universe.slug}/coletivos`}>
+            Abrir coletivos
+          </Link>
+        </div>
+      </Card>
+      <Card className='stack'>
         <SectionHeader
           title='Curadoria Assistida'
           description='Atalho operacional quando faltam links/evidencias/perguntas em nos core.'

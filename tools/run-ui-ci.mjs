@@ -1,30 +1,30 @@
-import { createServer } from 'node:net';
 import { spawn } from 'node:child_process';
+import { resolvePreferredPort } from './find-free-port.mjs';
 
-async function findFreePort(start = 3100, attempts = 20) {
-  for (let port = start; port < start + attempts; port += 1) {
-    const available = await new Promise((resolve) => {
-      const server = createServer();
-      server.unref();
-      server.on('error', () => resolve(false));
-      server.listen(port, '127.0.0.1', () => {
-        server.close(() => resolve(true));
-      });
-    });
-    if (available) return port;
-  }
-  throw new Error('No free port available for visual CI');
+const requestedPort = Number(process.env.PORT ?? 3100);
+const resolved = await resolvePreferredPort(requestedPort);
+const port = resolved.port;
+const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
+const updateSnapshots = process.env.PLAYWRIGHT_UPDATE_SNAPSHOTS === '1';
+const command = process.platform === 'win32' ? 'cmd.exe' : 'npx';
+const cli = `npx playwright test --config=playwright.config.ts tests/e2e/visual.spec.ts --reporter=line${updateSnapshots ? ' --update-snapshots' : ''}`;
+const args = process.platform === 'win32'
+  ? ['/d', '/s', '/c', cli]
+  : ['playwright', 'test', '--config=playwright.config.ts', 'tests/e2e/visual.spec.ts', '--reporter=line', ...(updateSnapshots ? ['--update-snapshots'] : [])];
+
+if (resolved.usedFallback) {
+  console.log(`[ui-ci] Porta ${requestedPort} ocupada. Usando fallback ${port}.`);
+} else {
+  console.log(`[ui-ci] Usando porta ${port}.`);
+}
+console.log('[ui-ci] Snapshot mode forçado para estabilizar capturas.');
+if (updateSnapshots) {
+  console.log('[ui-ci] Atualizando baselines visuais.');
 }
 
-const port = Number(process.env.PORT ?? await findFreePort());
-const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
-const command = process.platform === 'win32'
-  ? 'npx playwright test --config=playwright.config.ts tests/e2e/visual.spec.ts --reporter=line'
-  : 'npx playwright test --config=playwright.config.ts tests/e2e/visual.spec.ts --reporter=line';
-
-const child = spawn(command, {
-  stdio: 'inherit',
-  shell: true,
+const child = spawn(command, args, {
+  stdio: ['ignore', 'pipe', 'pipe'],
+  shell: false,
   env: {
     ...process.env,
     CI: process.env.CI ?? '1',
@@ -32,10 +32,28 @@ const child = spawn(command, {
     NODE_ENV: process.env.NODE_ENV ?? 'test',
     PORT: String(port),
     PLAYWRIGHT_BASE_URL: baseUrl,
+    PLAYWRIGHT_RETRIES: process.env.PLAYWRIGHT_RETRIES ?? '0',
+    UI_SNAPSHOT: '1',
+    NEXT_PUBLIC_UI_SNAPSHOT: '1',
     NEXT_DISABLE_DEVTOOLS: process.env.NEXT_DISABLE_DEVTOOLS ?? '1',
   },
 });
 
-child.on('exit', (code) => {
+const terminate = (signal) => {
+  if (!child.killed) {
+    child.kill(signal);
+  }
+};
+
+process.on('SIGINT', () => terminate('SIGINT'));
+process.on('SIGTERM', () => terminate('SIGTERM'));
+
+child.stdout?.on('data', (chunk) => process.stdout.write(chunk));
+child.stderr?.on('data', (chunk) => process.stderr.write(chunk));
+child.on('exit', (code, signal) => {
+  if (signal) {
+    process.kill(process.pid, signal);
+    return;
+  }
   process.exit(code ?? 1);
 });

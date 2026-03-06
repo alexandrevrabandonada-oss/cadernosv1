@@ -14,6 +14,7 @@ Os exports sao curtos e focados em trechos citados. Nao fazem dump de documentos
 - `trail`: Caderno de estudo (trilha, passos e evidencias recomendadas).
 - `tutor_session`: Dossie de fechamento da sessao do tutor.
 - `clip`: export rapido de trecho (reader/focus mode), curto e privado por padrao.
+- `shared_notebook`: export de um caderno coletivo com itens curados, notas coletivas e links de volta para o app.
 
 ## Fluxo
 
@@ -70,3 +71,9 @@ Em `/admin/universes/[id]`:
 - O export `notebook` inclui highlights do Doc Viewer quando o usuario exporta o proprio Meu Caderno.
 - Cada item leva quote clampado, fonte documental e link `Abrir no app` de volta ao reader no highlight salvo.
 - Esses highlights continuam privados por padrao e nao aparecem em share publico sem publicacao explicita do export.
+
+## Kind shared_notebook
+
+- exports.kind agora tambem aceita `shared_notebook`.
+- O kind `shared_notebook` representa um coletivo exportado em MD/PDF, com `meta.notebookId`, `meta.notebookSlug`, `meta.visibility` e `meta.itemCount`.
+- Share publico continua bloqueado por default com `is_public=false`.

@@ -23,7 +23,8 @@
     "db:link": "node tools/supabase-cli.mjs link",
     "db:push": "node tools/supabase-cli.mjs push",
     "db:deploy": "node tools/supabase-cli.mjs deploy",
-    "db:status": "node tools/supabase-cli.mjs status"
+    "db:status": "node tools/supabase-cli.mjs status",
+    "clean:ops": "node tools/clean-ops.mjs"
   },
   "dependencies": {
     "@sentry/nextjs": "^10.42.0",

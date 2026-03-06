@@ -4,14 +4,15 @@ import { RouteProgress } from '@/components/nav/RouteProgress';
 import { OfflineBanner } from '@/components/pwa/OfflineBanner';
 import { ServiceWorkerRegister } from '@/components/pwa/ServiceWorkerRegister';
 import { ToastProvider } from '@/components/ui/Toast';
+import { resolveMetadataBase } from '@/lib/site';
 import type { Metadata, Viewport } from 'next';
 import './globals.css';
 
 export const metadata: Metadata = {
+  metadataBase: resolveMetadataBase(),
   title: 'Cadernos Vivos',
   description: 'Base inicial do app Cadernos Vivos',
   manifest: '/manifest.webmanifest',
-  themeColor: '#171b21',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

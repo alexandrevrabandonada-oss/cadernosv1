@@ -70,3 +70,23 @@ npm install
 
 - Opcao simples: testar em viewport mobile (`< 1024px`) para atalhos nao dispararem.
 - Para desligar via codigo local, comente o componente `CommandPalette` em `app/c/[slug]/layout.tsx`.
+
+## Hardening operacional (OPS-01)
+
+### Runner E2E/UI mais resiliente
+- `npm run test:e2e:ci` e `npm run test:ui:ci` agora resolvem porta livre antes de iniciar o Playwright.
+- A porta preferida continua `3100`, mas o runner cai automaticamente para outra livre quando necessario.
+- O log do runner informa claramente quando houve fallback.
+- O `webServer` do Playwright sobe com `127.0.0.1` e porta explicita para evitar conflitos e warnings cruzados.
+
+### Limpeza de artefatos temporarios
+- Use `npm run clean:ops` para remover:
+  - `test-results/`
+  - `playwright-report/`
+  - `*.tsbuildinfo`
+  - logs temporarios de verify/e2e/playwright
+- O script foi pensado para limpar apenas artefatos seguros, sem tocar em `docs/` ou `reports/`.
+
+### Snapshot mode previsivel
+- `npm run test:ui:ci` agora força `UI_SNAPSHOT=1` e `NEXT_PUBLIC_UI_SNAPSHOT=1`.
+- Isso desliga motion e reduz variacao visual durante as capturas.

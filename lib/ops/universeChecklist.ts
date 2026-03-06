@@ -97,6 +97,10 @@ export type UniverseChecklist = {
       badDocsRatePct: number;
       emptyPagesTotal: number;
     };
+    collectiveReview: {
+      draft: number;
+      review: number;
+    };
   };
   operational24h: {
     askTotal24h: number;
@@ -180,6 +184,8 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
     ingestJobsQuery,
     exports24hQuery,
     quickStartTrailQuery,
+    sharedDraftQuery,
+    sharedReviewQuery,
   ] = await Promise.all([
     db.from('nodes').select('id, title, kind, tags').eq('universe_id', universeId),
     db
@@ -203,6 +209,8 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
     db.from('ingest_jobs').select('status').eq('universe_id', universeId),
     db.from('exports').select('id', { count: 'exact', head: true }).eq('universe_id', universeId).gte('created_at', since24hIso),
     db.from('trails').select('id').eq('universe_id', universeId).eq('slug', 'comece-aqui').maybeSingle(),
+    db.from('shared_notebook_items').select('*', { count: 'exact', head: true }).eq('universe_id', universeId).eq('review_status', 'draft'),
+    db.from('shared_notebook_items').select('*', { count: 'exact', head: true }).eq('universe_id', universeId).eq('review_status', 'review'),
   ]);
 
   const thresholds = DEFAULT_THRESHOLDS;
@@ -552,6 +560,10 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
         badDocsCount,
         badDocsRatePct,
         emptyPagesTotal,
+      },
+      collectiveReview: {
+        draft: Number(sharedDraftQuery.count ?? 0),
+        review: Number(sharedReviewQuery.count ?? 0),
       },
     },
     operational24h: {

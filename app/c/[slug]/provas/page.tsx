@@ -8,6 +8,7 @@ import { EvidenceSeal } from '@/components/brand/EvidenceSeal';
 import { CopyCitationButton } from '@/components/provas/CopyCitationButton';
 import { ShareButton } from '@/components/share/ShareButton';
 import { SaveToNotebookButton } from '@/components/notes/SaveToNotebookButton';
+import { AddToSharedNotebookButton } from '@/components/shared-notebooks/AddToSharedNotebookButton';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { CardHeader } from '@/components/ui/CardHeader';
@@ -540,6 +541,26 @@ export default async function ProvasPage({ params, searchParams }: ProvasPagePro
                     }}
                     tags={selectedDetail.tags}
                     label='Salvar trecho'
+                    compact
+                  />
+                  <AddToSharedNotebookButton
+                    universeSlug={slug}
+                    sourceType={selectedDetail.kind === 'evidence' ? 'evidence' : 'chunk'}
+                    sourceId={selectedDetail.id}
+                    title={selectedDetail.title}
+                    text={selectedDetail.snippet}
+                    sourceMeta={{
+                      docId: selectedDetail.document?.id ?? null,
+                      pageStart: selectedDetail.pages.start,
+                      pageEnd: selectedDetail.pages.end,
+                      nodeSlug: selectedDetail.nodeSlugs[0] ?? null,
+                      originalSourceType: selectedDetail.kind === 'evidence' ? 'evidence' : 'chunk',
+                      originalSourceId: selectedDetail.id,
+                      linkToApp: selectedDetail.document?.id
+                        ? `/c/${slug}/doc/${selectedDetail.document.id}${selectedDetail.pages.start ? `?p=${selectedDetail.pages.start}` : ''}`
+                        : `/c/${slug}/provas?selected=${selectedDetail.id}&panel=detail`,
+                    }}
+                    tags={selectedDetail.tags}
                     compact
                   />
                   {adminCanWrite ? (

@@ -3,6 +3,7 @@ export const universeSections = [
   { path: 'mapa', label: 'Mapa' },
   { path: 'provas', label: 'Provas' },
   { path: 'meu-caderno', label: 'Meu Caderno' },
+  { path: 'coletivos', label: 'Coletivos' },
   { path: 'glossario', label: 'Glossario' },
   { path: 'linha', label: 'Linha' },
   { path: 'trilhas', label: 'Trilhas' },
@@ -14,3 +15,4 @@ export const universeSections = [
 export function buildUniverseHref(slug: string, path: string) {
   return `/c/${slug}${path ? `/${path}` : ''}`;
 }
+

@@ -8,6 +8,7 @@ import { HighlightLayer } from '@/components/doc/HighlightLayer';
 import { SelectionToolbar } from '@/components/doc/SelectionToolbar';
 import { SaveToNotebookButton } from '@/components/notes/SaveToNotebookButton';
 import { CopyCitationButton } from '@/components/provas/CopyCitationButton';
+import { AddToSharedNotebookButton } from '@/components/shared-notebooks/AddToSharedNotebookButton';
 import { Card } from '@/components/ui/Card';
 import { Carimbo } from '@/components/ui/Badge';
 import { FocusToggle } from '@/components/ui/FocusToggle';
@@ -385,6 +386,47 @@ export function DocumentReaderClient({ slug, doc, pageHint, threadId, citations,
                   tags={[]}
                   label='Salvar citacao'
                   compact
+                />
+                <AddToSharedNotebookButton
+                  universeSlug={slug}
+                  sourceType='citation'
+                  sourceId={selectedCitation.citationId}
+                  title={`Citacao: ${doc.title}`}
+                  text={selectedCitation.quote}
+                  sourceMeta={{
+                    docId: doc.id,
+                    docTitle: doc.title,
+                    pageStart: selectedCitation.pageStart,
+                    pageEnd: selectedCitation.pageEnd,
+                    threadId: selectedCitation.threadId,
+                    originalSourceType: 'citation',
+                    originalSourceId: selectedCitation.citationId,
+                    linkToApp: `${buildUniverseHref(slug, `doc/${doc.id}`)}${selectedCitation.pageStart ? `?p=${selectedCitation.pageStart}` : ''}`,
+                  }}
+                  compact
+                />
+              </div>
+            </Card>
+          ) : null}
+
+          {selectedHighlight ? (
+            <Card className='stack'>
+              <SectionHeader title='Promover highlight' description='Leve este highlight privado para um caderno coletivo sem misturar seu rascunho pessoal automaticamente.' tag='Colab' />
+              <div className='toolbar-row'>
+                <AddToSharedNotebookButton
+                  universeSlug={slug}
+                  sourceType='highlight'
+                  sourceId={selectedHighlight.id}
+                  title={selectedHighlight.title}
+                  text={typeof selectedHighlight.sourceMeta?.quote === 'string' ? selectedHighlight.sourceMeta.quote : selectedHighlight.text}
+                  sourceMeta={{
+                    ...(selectedHighlight.sourceMeta ?? {}),
+                    originalSourceType: 'doc',
+                    originalSourceId: selectedHighlight.sourceId,
+                    originalHighlightId: selectedHighlight.id,
+                    linkToApp: `${buildUniverseHref(slug, `doc/${doc.id}`)}?hl=${encodeURIComponent(selectedHighlight.id)}`,
+                  }}
+                  tags={selectedHighlight.tags}
                 />
               </div>
             </Card>

@@ -159,3 +159,13 @@ Quando houver suspeita de vazamento, rotacionar imediatamente:
 - Share publico so funciona quando is_public=true e o universo esta publicado.
 - O renderer limita 40 itens por export e 1200 caracteres por item para reduzir risco de vazamento e volume excessivo.
 
+
+## Sentry client e privacidade (OPS-01)
+
+- O bootstrap client do Sentry agora fica em `instrumentation-client.ts`, no formato recomendado pelo Next 15.
+- O hook `onRouterTransitionStart` foi exportado para manter a instrumentacao de navegacao sem warnings de setup incompleto.
+- O comportamento de sanitizacao foi preservado:
+  - remove `Authorization`
+  - remove `Cookie`
+  - remove request body/cookies do evento
+- Sem DSN configurado, o setup continua sem emitir dados.

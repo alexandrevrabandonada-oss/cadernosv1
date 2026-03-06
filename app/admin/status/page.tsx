@@ -142,6 +142,19 @@ export default async function AdminStatusPage() {
       </Card>
 
       <Card className='stack'>
+        <SectionHeader title='Fila coletiva (24h)' />
+        <div className='status-grid'>
+          <div className='status-item'>
+            <span>Itens em review</span>
+            <strong>{status.ops24h.collectiveReview.review}</strong>
+          </div>
+          <div className='status-item'>
+            <span>Promocoes 24h</span>
+            <strong>{status.ops24h.collectiveReview.promotions24h}</strong>
+          </div>
+        </div>
+      </Card>
+      <Card className='stack'>
         <SectionHeader title='Tutor Chat (24h)' />
         <div className='status-grid'>
           <div className='status-item'>

@@ -85,3 +85,19 @@ curl -X POST http://localhost:3000/api/cron/weekly-pack -H "x-cron-secret: <CRON
 - Workflows nao fazem `echo` de secrets.
 - Secrets sao passados via `env` do job e mascarados pelo GitHub Actions.
 - Evite adicionar comandos que imprimam variaveis sensiveis (por exemplo `printenv`, `env`, `set`).
+
+## Hardening de CI (OPS-01)
+
+### E2E e Visual
+- Os runners `npm run test:e2e:ci` e `npm run test:ui:ci` usam descoberta de porta livre antes de subir o app.
+- A preferencia continua na `3100`; se ocupada, o runner escolhe uma porta livre e propaga para `PLAYWRIGHT_BASE_URL`.
+- Isso reduz falsos negativos por `EADDRINUSE` em ambientes de CI ou dev local contaminado.
+
+### Metadata e share
+- O layout raiz agora define `metadataBase` a partir de `NEXT_PUBLIC_SITE_URL` ou `VERCEL_URL`.
+- Em ambientes de deploy, mantenha `NEXT_PUBLIC_SITE_URL` configurada para garantir OG/share com URLs absolutas coerentes.
+
+### Sentry client
+- O setup client migrou para `instrumentation-client.ts`.
+- Mantenha `NEXT_PUBLIC_SENTRY_DSN` ou `SENTRY_DSN` apenas se a coleta estiver habilitada.
+- Sem DSN, o client continua em no-op.

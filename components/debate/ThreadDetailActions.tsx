@@ -6,6 +6,7 @@ import { GenerateExportButton } from '@/components/export/GenerateExportButton';
 import { ShareButton } from '@/components/share/ShareButton';
 import { Card } from '@/components/ui/Card';
 import { SaveToNotebookButton } from '@/components/notes/SaveToNotebookButton';
+import { AddToSharedNotebookButton } from '@/components/shared-notebooks/AddToSharedNotebookButton';
 import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { useToast } from '@/components/ui/Toast';
 import { feedback } from '@/lib/feedback/feedback';
@@ -171,6 +172,22 @@ export function ThreadDetailActions({
           label='Salvar pergunta + achado'
           compact
         />
+        <AddToSharedNotebookButton
+          universeSlug={slug}
+          sourceType='thread'
+          sourceId={threadId}
+          title={`Thread: ${question}`}
+          text={`${question}\n\n${clip(answer, 520)}`}
+          sourceMeta={{
+            threadId,
+            nodeSlug: nodeSlug || null,
+            docIds: documentIds,
+            originalSourceType: 'thread',
+            originalSourceId: threadId,
+            linkToApp: `/c/${slug}/debate?selected=${threadId}&panel=detail`,
+          }}
+          compact
+        />
         <button className='ui-button' type='button' data-variant='ghost' onClick={onCopyLink}>
           {copied ? 'Link copiado' : 'Copiar link'}
         </button>
@@ -282,3 +299,4 @@ export function ThreadDetailActions({
     </div>
   );
 }
+

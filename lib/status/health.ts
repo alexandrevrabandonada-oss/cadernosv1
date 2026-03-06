@@ -118,6 +118,10 @@ export type AdminSystemStatus = BaseStatus & {
       review: number;
       published24h: number;
     };
+    collectiveReview: {
+      review: number;
+      promotions24h: number;
+    };
     analytics: {
       pageViews24h: number;
       shareViews24h: number;
@@ -295,6 +299,10 @@ async function getOps24h() {
         review: 0,
         published24h: 0,
       },
+      collectiveReview: {
+        review: 0,
+        promotions24h: 0,
+      },
       analytics: {
         pageViews24h: 0,
         shareViews24h: 0,
@@ -324,6 +332,8 @@ async function getOps24h() {
     { count: evidenceDraftCount },
     { count: evidenceReviewCount },
     { count: evidencePublished24hCount },
+    { count: sharedReviewCount },
+    { count: sharedPromotions24hCount },
     { data: qaThreadsMetricsRaw },
     { data: analytics24hRaw },
     globalAnalyticsSummary,
@@ -372,6 +382,8 @@ async function getOps24h() {
     db.from('evidences').select('*', { count: 'exact', head: true }).eq('status', 'draft'),
     db.from('evidences').select('*', { count: 'exact', head: true }).eq('status', 'review'),
     db.from('evidences').select('*', { count: 'exact', head: true }).eq('status', 'published').gte('published_at', since),
+    db.from('shared_notebook_items').select('*', { count: 'exact', head: true }).eq('review_status', 'review'),
+    db.from('shared_notebook_audit_logs').select('*', { count: 'exact', head: true }).eq('action', 'promote').gte('created_at', since),
     db
       .from('qa_threads')
       .select('confidence_label, divergence_flag')
@@ -508,6 +520,10 @@ async function getOps24h() {
       draft: evidenceDraftCount ?? 0,
       review: evidenceReviewCount ?? 0,
       published24h: evidencePublished24hCount ?? 0,
+    },
+    collectiveReview: {
+      review: sharedReviewCount ?? 0,
+      promotions24h: sharedPromotions24hCount ?? 0,
     },
     analytics: {
       pageViews24h,

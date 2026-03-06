@@ -10,6 +10,7 @@ import { FilterRail } from '@/components/workspace/FilterRail';
 import { ListKeyboardNavigator } from '@/components/workspace/ListKeyboardNavigator';
 import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
 import { NotebookExportControls } from '@/components/notes/NotebookExportControls';
+import { AddToSharedNotebookButton } from '@/components/shared-notebooks/AddToSharedNotebookButton';
 import type { CadernoFilters } from '@/lib/filters/cadernoFilters';
 import { serializeCadernoFilters } from '@/lib/filters/cadernoFilters';
 import type { UserNote } from '@/lib/notes/types';
@@ -215,6 +216,22 @@ export function MyNotebookWorkspace({ slug, title, filters, isPublished }: MyNot
                 <Link className='ui-button' href={buildOriginHref(slug, selected)}>
                   Abrir origem
                 </Link>
+                <AddToSharedNotebookButton
+                  universeSlug={slug}
+                  sourceType={selected.kind}
+                  sourceId={selected.id}
+                  title={selected.title}
+                  text={selected.text}
+                  sourceMeta={{
+                    ...(selected.sourceMeta ?? {}),
+                    originalSourceType: selected.sourceType,
+                    originalSourceId: selected.sourceId,
+                    linkToApp: buildOriginHref(slug, selected),
+                    originalHighlightId: selected.kind === 'highlight' ? selected.id : null,
+                  }}
+                  tags={selected.tags}
+                  compact
+                />
                 <button className='ui-button' data-variant='ghost' type='button' onClick={() => void deleteNote(selected.id)}>
                   Deletar
                 </button>
@@ -297,3 +314,4 @@ export function MyNotebookWorkspace({ slug, title, filters, isPublished }: MyNot
     </WorkspaceShell>
   );
 }
+

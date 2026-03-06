@@ -11,6 +11,7 @@ import { ShareButton } from '@/components/share/ShareButton';
 import { generateWeeklySharePackAction, setSharePackPinnedAction } from '@/app/actions/sharePack';
 import { setSharePackPostStatusAction } from '@/app/actions/distribution';
 import { getUniverseById } from '@/lib/admin/db';
+import { createSharedNotebook } from '@/lib/shared-notebooks/notebooks';
 import { requireEditorOrAdmin } from '@/lib/auth/requireRole';
 import {
   buildSharePackCopyText,
@@ -59,6 +60,33 @@ async function pinPackFormAction(formData: FormData) {
   redirect(
     `/admin/universes/${universeId}/share-pack?level=${result.ok ? 'ok' : 'error'}&msg=${encodeURIComponent(result.message)}`,
   );
+}
+
+async function createWeeklyBaseFormAction(formData: FormData) {
+  'use server';
+  await requireEditorOrAdmin();
+  const universeId = String(formData.get('universe_id') ?? '').trim();
+  const universeSlug = String(formData.get('universe_slug') ?? '').trim();
+  const universeTitle = String(formData.get('universe_title') ?? '').trim();
+  const week = String(formData.get('week') ?? '').trim();
+  if (!universeId || !universeSlug) return;
+  try {
+    const notebook = await createSharedNotebook({
+      universeSlug,
+      title: `Base da Semana ${week || ''}`.trim(),
+      summary: `Base semanal derivada do Share Pack de ${universeTitle}${week ? ` (${week})` : ''}. Use este coletivo para revisar, adicionar notas curtas e subir itens para a fila editorial.`,
+      visibility: 'team',
+      templateId: 'weekly_base',
+      templateMeta: {
+        sharePackWeek: week || null,
+        sharePackPath: `/admin/universes/${universeId}/share-pack?week=${encodeURIComponent(week)}`,
+      },
+    });
+    revalidatePath(`/admin/universes/${universeId}/share-pack`);
+    redirect(`/c/${universeSlug}/coletivos/${notebook.slug}`);
+  } catch {
+    redirect(`/admin/universes/${universeId}/share-pack?week=${encodeURIComponent(week)}&level=error&msg=${encodeURIComponent('Falha ao criar Base da Semana.')}`);
+  }
 }
 
 async function setPostStatusFormAction(formData: FormData) {
@@ -222,6 +250,15 @@ export default async function AdminUniverseSharePackPage({ params, searchParams 
             </form>
           ) : null}
           <CopyPackTextButton text={copyText} />
+          <form action={createWeeklyBaseFormAction}>
+            <input type='hidden' name='universe_id' value={id} />
+            <input type='hidden' name='universe_slug' value={universe.slug} />
+            <input type='hidden' name='universe_title' value={universe.title} />
+            <input type='hidden' name='week' value={selectedWeekKey} />
+            <button className='ui-button' type='submit' data-variant='ghost'>
+              Gerar Base da Semana
+            </button>
+          </form>
         </div>
         {pack?.is_pinned ? (
           <p className='muted' style={{ margin: 0 }}>
@@ -345,3 +382,5 @@ export default async function AdminUniverseSharePackPage({ params, searchParams 
     </main>
   );
 }
+
+

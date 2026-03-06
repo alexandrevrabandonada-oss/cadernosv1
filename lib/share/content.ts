@@ -62,7 +62,7 @@ export type ShareExportCard = {
   slug: string;
   universeTitle: string;
   title: string;
-  kind: 'thread' | 'trail' | 'tutor_session' | 'clip' | 'notebook';
+  kind: 'thread' | 'trail' | 'tutor_session' | 'clip' | 'notebook' | 'shared_notebook';
   format: 'md' | 'pdf';
   createdAt: string;
   subtitle: string;
@@ -394,8 +394,13 @@ export async function getShareExport(slug: string, id: string): Promise<ShareExp
     const tags = Array.isArray(view.item.meta?.tags) ? view.item.meta.tags.filter((item) => typeof item === 'string').slice(0, 5) : [];
     snippet = clip(`${itemCount ? `${itemCount} itens.` : ''} ${tags.length > 0 ? `Tags: ${tags.join(', ')}.` : 'Highlights e notas com links para abrir no app.'}`, 280);
     appHref = `/c/${slug}/meu-caderno`;
+  } else if (view.item.kind === 'shared_notebook') {
+    subtitle = 'Caderno coletivo exportado';
+    const itemCount = typeof view.item.meta?.itemCount === 'number' ? view.item.meta.itemCount : null;
+    const notebookSlug = typeof view.item.meta?.notebookSlug === 'string' ? view.item.meta.notebookSlug : null;
+    snippet = clip(`${itemCount ? `${itemCount} itens.` : ''} Highlights e notas curadas em espaco coletivo com governanca por visibilidade e membros.`, 280);
+    appHref = notebookSlug ? `/c/${slug}/coletivos/${notebookSlug}` : `/c/${slug}/coletivos`;
   }
-
   let downloadUrl = view.signedUrl;
   if (view.item.format !== 'pdf') {
     let pdfQuery = db

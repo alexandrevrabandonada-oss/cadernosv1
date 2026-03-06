@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { GenerateExportButton } from '@/components/export/GenerateExportButton';
 import { SaveToNotebookButton } from '@/components/notes/SaveToNotebookButton';
+import { AddToSharedNotebookButton } from '@/components/shared-notebooks/AddToSharedNotebookButton';
 import { Carimbo } from '@/components/ui/Badge';
 import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
 import { useStudyTracker } from '@/hooks/useStudyTracker';
@@ -510,6 +511,22 @@ export function TutorPointLab({
                     label='Salvar resposta'
                     compact
                   />
+                  <AddToSharedNotebookButton
+                    universeSlug={slug}
+                    sourceType='thread'
+                    sourceId={result.threadId}
+                    title={`Tutor: ${point.title}`}
+                    text={result.answer}
+                    sourceMeta={{
+                      threadId: result.threadId,
+                      nodeSlug: point.nodeSlug ?? null,
+                      originalSourceType: 'thread',
+                      originalSourceId: result.threadId,
+                      linkToApp: result.threadId ? `/c/${slug}/debate?selected=${result.threadId}&panel=detail` : pointHref(slug, sessionId, point),
+                    }}
+                    tags={[...(point.nodeSlug ? [point.nodeSlug] : []), 'tutor']}
+                    compact
+                  />
                   <GenerateExportButton
                     endpoint='/api/admin/export/clip'
                     label='Exportar trecho'
@@ -628,4 +645,5 @@ export function TutorPointLab({
     </div>
   );
 }
+
 

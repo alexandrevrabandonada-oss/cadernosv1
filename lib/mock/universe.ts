@@ -37,6 +37,10 @@ const portalDescriptions: Record<string, { description: string; cta: string }> =
     description: 'Reveja highlights e notas pessoais deste universo.',
     cta: 'Abrir meu caderno',
   },
+  coletivos: {
+    description: 'Promova itens do estudo individual para cadernos compartilhados com governanca por visibilidade e papeis.',
+    cta: 'Abrir coletivos',
+  },
   glossario: {
     description: 'Explore conceitos, siglas e entidades chave do universo.',
     cta: 'Abrir glossario',

@@ -9,7 +9,7 @@ import { renderClipMarkdown } from '@/lib/export/clip';
 import { buildTutorSessionSummary, upsertTutorSessionSummary } from '@/lib/tutor/summary';
 
 type ExportFormat = 'md' | 'pdf';
-type ExportKind = 'thread' | 'trail' | 'tutor_session' | 'clip' | 'notebook';
+type ExportKind = 'thread' | 'trail' | 'tutor_session' | 'clip' | 'notebook' | 'shared_notebook';
 
 type StoredExport = {
   id: string;
@@ -1088,6 +1088,7 @@ export async function getUniverseIdBySlug(slug: string) {
   const { data } = await db.from('universes').select('id').eq('slug', slug).maybeSingle();
   return data?.id ?? null;
 }
+
 
 
 

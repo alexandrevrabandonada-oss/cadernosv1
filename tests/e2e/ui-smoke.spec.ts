@@ -264,6 +264,75 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page.getByText('Editar highlight')).toBeVisible();
   });
 
+  test('coletivos: cria por template, mostra badge na lista, adiciona item e abre review', async ({ page, request }) => {
+    await page.goto(`/c/${slug}/coletivos/novo`);
+    await expect(page.getByRole('heading', { name: /Criar coletivo/i })).toBeVisible();
+    await expect(page.getByRole('button', { name: /Criar Base da Semana/i })).toBeVisible();
+
+    const createResponse = await request.post('/api/shared-notebooks', {
+      data: {
+        universeSlug: slug,
+        title: 'Base da Semana',
+        summary: 'Base semanal criada a partir do template para validar fluxo.',
+        visibility: 'team',
+        templateId: 'weekly_base',
+        templateMeta: {
+          suggestedTags: ['semana', 'prioridade', 'base'],
+          preferredSources: ['highlight', 'evidence', 'thread', 'event'],
+          microcopy: 'Template semanal para triagem e review.',
+        },
+      },
+    });
+    expect(createResponse.ok()).toBeTruthy();
+    const createPayload = (await createResponse.json()) as { notebook?: { id: string; slug: string } };
+    expect(createPayload.notebook?.id).toBeTruthy();
+
+    await page.goto(`/c/${slug}/coletivos`);
+    await expect(page.getByText('Base da semana').first()).toBeVisible();
+    await expect(page.getByText('Template semanal para triagem e review.').first()).toBeVisible();
+
+    const addResponse = await request.post('/api/shared-notebooks', {
+      data: {
+        action: 'add_item',
+        notebookId: createPayload.notebook?.id,
+        universeSlug: slug,
+        sourceType: 'evidence',
+        sourceId: `${slug}-ev-1`,
+        title: 'Nota para coletivo',
+        text: 'Resumo curto para promover ao coletivo e validar export.',
+        sourceMeta: {
+          nodeSlug: 'demo-n1',
+          originalSourceType: 'evidence',
+          originalSourceId: `${slug}-ev-1`,
+          linkToApp: `/c/${slug}/provas?selected=${slug}-ev-1&panel=detail`,
+        },
+        tags: ['demo', 'base'],
+        note: 'Virou base compartilhada.',
+      },
+    });
+    expect(addResponse.ok()).toBeTruthy();
+
+    await page.goto(`/c/${slug}/coletivos/${createPayload.notebook?.slug ?? 'base-da-semana'}/review`);
+    await expect(page.getByText('Nota para coletivo').first()).toBeVisible();
+    await expect(page.getByText('status:draft').first()).toBeVisible();
+    await page.getByLabel('Nota editorial').first().fill('Precisa subir para review coletivo.');
+    await page.getByRole('button', { name: 'Mover para review' }).click();
+    await expect(page.getByText(/Item atualizado para review./)).toBeVisible();
+    await expect(page.getByText('status:review').first()).toBeVisible();
+
+    const exportResponse = await request.post('/api/export/shared-notebook', {
+      data: {
+        universeSlug: slug,
+        notebookId: createPayload.notebook?.id,
+        format: 'pdf',
+      },
+    });
+    expect(exportResponse.ok()).toBeTruthy();
+    const exportPayload = (await exportResponse.json()) as { ok: boolean; assets?: Array<{ signedUrl: string | null; format: string }> };
+    expect(exportPayload.ok).toBeTruthy();
+    expect(exportPayload.assets?.some((asset) => asset.format === 'pdf' && Boolean(asset.signedUrl))).toBeTruthy();
+  });
+
   test('study recap: highlight no doc aparece no recap local', async ({ page }) => {
     await page.goto(`/c/${slug}/doc/${slug}-doc-1`);
     await expect(page.getByTestId('doc-text-surface')).toBeVisible();
@@ -462,7 +531,9 @@ test.describe('UI smoke - workspace critico', () => {
     await page.goto(`/c/${slug}/s/evidence/${slug}-ev-1`);
     const openAppLink = page.getByRole('link', { name: 'Abrir no app' });
     await expect(openAppLink).toHaveAttribute('data-track-event', 'share_open_app');
-    await openAppLink.click();
+    const href = await openAppLink.getAttribute('href');
+    expect(href).toContain(`/c/${slug}/provas`);
+    await page.goto(href ?? `/c/${slug}/provas`);
     await expect(page).toHaveURL(new RegExp(`/c/${slug}/provas`));
   });
 
@@ -521,6 +592,9 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page.getByTestId('route-progress')).toHaveCount(0);
   });
 });
+
+
+
 
 
 

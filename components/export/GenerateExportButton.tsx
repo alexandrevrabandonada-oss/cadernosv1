@@ -19,7 +19,7 @@ type ExportResponse = {
 };
 
 type Props = {
-  endpoint: '/api/admin/export/thread' | '/api/admin/export/trail' | '/api/admin/export/session' | '/api/admin/export/clip';
+  endpoint: '/api/admin/export/thread' | '/api/admin/export/trail' | '/api/admin/export/session' | '/api/admin/export/clip' | '/api/export/shared-notebook';
   label: string;
   payload: Record<string, unknown>;
   disabled?: boolean;
@@ -111,3 +111,4 @@ export function GenerateExportButton({ endpoint, label, payload, disabled = fals
     </div>
   );
 }
+
