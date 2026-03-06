@@ -19,22 +19,30 @@ type BigPortalCardProps = {
 export function BigPortalCard({ href, title, description, cta = 'Entrar', badge, preview, track }: BigPortalCardProps) {
   return (
     <article className='big-portal-card surface-plate'>
-      {badge ? <Badge>{badge}</Badge> : null}
-      <h3>{title}</h3>
-      <p className='muted'>{description}</p>
+      <div className='big-portal-topline'>
+        <small className='big-portal-label'>porta editorial</small>
+        {badge ? <Badge>{badge}</Badge> : null}
+      </div>
+      <div className='big-portal-copy'>
+        <h3>{title}</h3>
+        <p className='muted'>{description}</p>
+      </div>
       {preview ? <div className='big-portal-preview'>{preview}</div> : null}
-      <PrefetchLink
-        className='ui-button'
-        href={href}
-        prefetchOnVisible
-        smartPrefetch='all'
-        data-variant='primary'
-        data-track-event={track?.event}
-        data-track-cta={track?.cta}
-        data-track-section={track?.section}
-      >
-        {cta}
-      </PrefetchLink>
+      <div className='big-portal-footer'>
+        <span className='big-portal-cta-note'>continuar com contexto preservado</span>
+        <PrefetchLink
+          className='ui-button big-portal-cta'
+          href={href}
+          prefetchOnVisible
+          smartPrefetch='all'
+          data-variant='primary'
+          data-track-event={track?.event}
+          data-track-cta={track?.cta}
+          data-track-section={track?.section}
+        >
+          {cta}
+        </PrefetchLink>
+      </div>
     </article>
   );
 }

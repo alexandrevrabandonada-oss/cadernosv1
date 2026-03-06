@@ -1,4 +1,7 @@
 import { notFound } from 'next/navigation';
+
+import { RestrictedStateCard } from '@/components/ui/state/RestrictedStateCard';
+import { ErrorStateCard } from '@/components/ui/state/ErrorStateCard';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { OrientationBar } from '@/components/universe/OrientationBar';
@@ -35,14 +38,20 @@ export default async function ExportDetailPage({ params }: ExportPageProps) {
               Baixar arquivo
             </a>
           ) : (
-            <p className='muted' style={{ margin: 0 }}>
-              Nao foi possivel gerar link assinado para este arquivo.
-            </p>
+            <ErrorStateCard
+              eyebrow='link temporario indisponivel'
+              title='Nao foi possivel gerar o download agora'
+              description='O export existe, mas o link assinado nao foi emitido nesta tentativa. Tente novamente em alguns instantes.'
+              primaryAction={{ label: 'Voltar aos exports', href: `/c/${slug}/meu-caderno` }}
+            />
           )
         ) : (
-          <p role='alert' className='muted' style={{ margin: 0, color: 'var(--alert-0)' }}>
-            Export indisponivel: privado ou universo nao publicado.
-          </p>
+          <RestrictedStateCard
+            title='Este export nao esta liberado aqui'
+            description='O arquivo continua privado ou o universo ainda nao foi publicado para leitura externa. Somente pessoas com acesso editorial podem abrir este link.'
+            primaryAction={{ label: 'Voltar ao universo', href: `/c/${slug}` }}
+            secondaryAction={{ label: 'Abrir Meu Caderno', href: `/c/${slug}/meu-caderno` }}
+          />
         )}
       </Card>
     </div>

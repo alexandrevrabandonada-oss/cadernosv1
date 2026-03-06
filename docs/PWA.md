@@ -157,3 +157,8 @@ Sem cache agressivo de dados sensiveis e sem prometer uso 100% offline.
   - concluir passo (trilhas/tutor)
   - marcar evidencia aberta no fluxo de estudo
   - persistencia/checklist com sucesso/erro em operacoes de distribuicao.
+
+## Safe areas e ergonomia mobile
+- `header`, `offline-banner`, `dock nav`, `workspace-sheet` e `workspace-drawer` usam safe areas para evitar corte por notch e barras do sistema.
+- O dock nav mobile foi mantido dentro do shell do PWA com padding extra no rodape e targets maiores para uso com polegar.
+- O prompt de instalacao iOS reaproveita o `workspace-sheet` com espacamento seguro no rodape.

@@ -1030,6 +1030,32 @@ export async function deleteExportById(exportId: string) {
 }
 
 export async function getExportViewBySlug(slug: string, exportId: string): Promise<ExportView | null> {
+  if (process.env.TEST_SEED === '1' && exportId === `${slug}-export-private`) {
+    return {
+      item: {
+        id: exportId,
+        universe_id: `mock-${slug}`,
+        kind: 'clip',
+        thread_id: null,
+        trail_id: null,
+        session_id: null,
+        title: 'Export privado de teste',
+        format: 'pdf',
+        storage_path: `/mock/${exportId}.pdf`,
+        meta: {},
+        source_type: 'evidence',
+        source_id: `${slug}-ev-1`,
+        is_public: false,
+        created_by: null,
+        created_at: new Date('2026-03-06T12:00:00.000Z').toISOString(),
+        universe_title: 'Universo Demo',
+        universe_slug: slug,
+      },
+      canAccess: false,
+      signedUrl: null,
+    };
+  }
+
   const db = getAdminService();
   if (!db) return null;
 

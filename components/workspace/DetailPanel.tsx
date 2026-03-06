@@ -17,9 +17,7 @@ type DetailPanelProps = {
 function focusables(root: HTMLElement | null) {
   if (!root) return [] as HTMLElement[];
   return Array.from(
-    root.querySelectorAll<HTMLElement>(
-      'a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])',
-    ),
+    root.querySelectorAll<HTMLElement>('a[href],button:not([disabled]),textarea,input,select,[tabindex]:not([tabindex="-1"])'),
   );
 }
 
@@ -79,7 +77,7 @@ export function DetailPanel({
       <aside className='workspace-detail desktop-only surface-panel cv-panel-enter' aria-label='Painel de detalhe' data-testid='detail-panel'>
         <header className='workspace-detail-head'>
           <strong>{title}</strong>
-          {headerActions ? <div className='toolbar-row'>{headerActions}</div> : null}
+          {headerActions ? <div className='toolbar-row workspace-detail-actions'>{headerActions}</div> : null}
         </header>
         <div className='workspace-detail-body stack'>{content}</div>
       </aside>
@@ -96,9 +94,9 @@ export function DetailPanel({
         <div className='workspace-sheet-handle' aria-hidden='true' />
         <header className='workspace-detail-head'>
           <strong>{title}</strong>
-          <div className='toolbar-row'>
+          <div className='toolbar-row workspace-detail-actions' aria-label='Acoes do detalhe'>
             {headerActions}
-            <button type='button' className='ui-button' data-variant='ghost' onClick={onCloseMobile} aria-label='Fechar detalhe'>
+            <button type='button' className='ui-button' style={{ minHeight: 46, height: 46 }} data-variant='ghost' onClick={onCloseMobile} aria-label='Fechar detalhe'>
               Fechar
             </button>
           </div>

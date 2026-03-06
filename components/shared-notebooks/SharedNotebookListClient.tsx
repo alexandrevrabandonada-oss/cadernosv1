@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Carimbo } from '@/components/ui/Badge';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { EmptyStateCard } from '@/components/ui/state/EmptyStateCard';
 import type { SharedNotebookSummary } from '@/lib/shared-notebooks/types';
 import { buildUniverseHref } from '@/lib/universeNav';
 
@@ -59,10 +59,12 @@ export function SharedNotebookListClient({ slug, title }: Props) {
       <Card className='stack'>
         <SectionHeader title='Cadernos compartilhados' description='Publicos quando o universo estiver publicado; team/private apenas para participantes.' />
         {items.length === 0 && !loading ? (
-          <EmptyState
-            title='Nenhum coletivo disponivel'
-            description='Crie um coletivo por template ou entre em um espaco compartilhado para comecar a organizar a base coletiva.'
-            actions={canCreate ? [{ label: 'Criar por template', href: buildUniverseHref(slug, 'coletivos/novo') }] : [{ label: 'Ir para Meu Caderno', href: buildUniverseHref(slug, 'meu-caderno') }]}
+          <EmptyStateCard
+            eyebrow='sem coletivos liberados'
+            title='Nenhum coletivo disponivel neste recorte'
+            description='Crie um coletivo por template ou volte ao seu caderno para preparar highlights e notas antes de compartilhar com o grupo.'
+            primaryAction={canCreate ? { label: 'Criar por template', href: buildUniverseHref(slug, 'coletivos/novo') } : { label: 'Ir para Meu Caderno', href: buildUniverseHref(slug, 'meu-caderno') }}
+            secondaryAction={canCreate ? { label: 'Ir para Meu Caderno', href: buildUniverseHref(slug, 'meu-caderno') } : undefined}
           />
         ) : (
           <div className='core-grid'>

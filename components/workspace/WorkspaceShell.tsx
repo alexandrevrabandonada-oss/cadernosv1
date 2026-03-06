@@ -95,7 +95,7 @@ export function WorkspaceShell({
     <section className='workspace-shell stack' data-testid='workspace' data-room={section}>
       <PageReadyMarker id={`workspace:${section}`} />
       <header className='workspace-head surface-panel'>
-        <div>
+        <div className='workspace-head-copy'>
           <p className='workspace-kicker'>{section}</p>
           <h2 className='ui-section-title workspace-title-with-icon' style={{ margin: 0 }}>
             <BrandIcon name={sectionIcons[section]} size={18} tone='editorial' />
@@ -107,12 +107,12 @@ export function WorkspaceShell({
             </p>
           ) : null}
         </div>
-        <div className='toolbar-row'>
+        <div className='toolbar-row workspace-head-actions' aria-label='Acoes do workspace'>
           {headerActions}
           <FocusToggle compactLabel />
           <UiPreferencesMenu compact />
           {preview ? <Carimbo>Preview</Carimbo> : null}
-          <button type='button' className='ui-button mobile-only' onClick={panels.openFilters} aria-label='Abrir filtros'>
+          <button type='button' className='ui-button mobile-only' style={{ minHeight: 46, height: 46 }} onClick={panels.openFilters} aria-label='Abrir filtros'>
             Filtros
           </button>
           <Link className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, '')}>
@@ -157,11 +157,11 @@ export function WorkspaceShell({
       >
         <header className='workspace-detail-head'>
           <strong>Filtros</strong>
-          <div className='toolbar-row'>
+          <div className='toolbar-row workspace-detail-actions' aria-label='Acoes do painel de filtros'>
             {headerActions}
-          <FocusToggle compactLabel />
+            <FocusToggle compactLabel />
             <UiPreferencesMenu compact />
-            <button type='button' className='ui-button' data-variant='ghost' onClick={panels.closeFilters} aria-label='Fechar filtros'>
+            <button type='button' className='ui-button' style={{ minHeight: 46, height: 46 }} data-variant='ghost' onClick={panels.closeFilters} aria-label='Fechar filtros'>
               Fechar
             </button>
           </div>
@@ -173,4 +173,3 @@ export function WorkspaceShell({
     </section>
   );
 }
-

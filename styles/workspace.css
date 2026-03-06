@@ -334,3 +334,201 @@
     border-radius: var(--radius-md);
   }
 }
+
+/* VIZ-19 mobile ergonomics + accessibility pass */
+.workspace-shell {
+  padding-bottom: calc(86px + var(--safe-bottom));
+}
+
+.workspace-head-copy {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.workspace-head-actions,
+.workspace-detail-actions {
+  align-items: center;
+}
+
+.workspace-head .ui-button,
+.workspace-detail-head .ui-button,
+.workspace-drawer .ui-button,
+.workspace-rail-foot .ui-button,
+.workspace-dock-item,
+.workspace-dock-install {
+  min-height: var(--tap-min);
+}
+
+.workspace-drawer .workspace-detail-head .ui-button,
+.workspace-sheet .workspace-detail-head .ui-button {
+  min-height: var(--tap-min);
+  block-size: var(--tap-min);
+}
+
+.workspace-detail-head {
+  gap: 0.75rem;
+}
+
+.workspace-detail-head strong {
+  color: color-mix(in srgb, var(--text-0), #000 10%);
+}
+
+.workspace-rail-body label > span,
+.workspace-kicker {
+  color: color-mix(in srgb, var(--text-1), #000 26%);
+}
+
+.workspace-sheet,
+.workspace-drawer {
+  overscroll-behavior: contain;
+}
+
+.workspace-sheet {
+  max-height: min(82dvh, 760px);
+  padding-bottom: max(var(--space-2), var(--safe-bottom));
+}
+
+.workspace-sheet .workspace-detail-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-panel), white 18%), color-mix(in srgb, var(--surface-plate), white 8%));
+  backdrop-filter: blur(10px);
+}
+
+.workspace-sheet-handle {
+  width: 62px;
+  height: 6px;
+  margin: 12px auto 2px;
+}
+
+.workspace-sheet .workspace-detail-body {
+  max-height: calc(82dvh - 86px);
+  overflow: auto;
+  padding-inline: clamp(0.95rem, 4vw, 1.15rem);
+  padding-bottom: calc(var(--space-4) + var(--safe-bottom));
+}
+
+.workspace-drawer {
+  width: min(88vw, 360px);
+  padding-top: var(--safe-top);
+}
+
+.workspace-drawer .workspace-detail-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--surface-panel), white 18%), color-mix(in srgb, var(--surface-plate), white 8%));
+  backdrop-filter: blur(10px);
+}
+
+.workspace-drawer-body {
+  height: calc(100dvh - 78px - var(--safe-top));
+  padding: var(--space-3) clamp(0.9rem, 4vw, 1rem) calc(var(--space-4) + var(--safe-bottom));
+}
+
+.workspace-dock {
+  min-height: calc(70px + var(--safe-bottom));
+  padding: 8px calc(var(--space-2) + var(--safe-right)) calc(8px + var(--safe-bottom)) calc(var(--space-2) + var(--safe-left));
+  display: flex;
+  align-items: stretch;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  gap: 8px;
+  scroll-snap-type: x proximity;
+}
+
+.workspace-dock-item {
+  flex: 0 0 auto;
+  min-width: 74px;
+  padding: 0.35rem 0.55rem;
+  scroll-snap-align: start;
+}
+
+.workspace-dock-item span:last-child {
+  line-height: 1.08;
+}
+
+.workspace-dock-install {
+  min-width: 88px;
+}
+
+@media (max-width: 1023px) {
+  .workspace-head {
+    min-height: 0;
+    padding: 0.95rem;
+    align-items: stretch;
+  }
+
+  .workspace-head .workspace-head-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .workspace-content {
+    padding: 0.95rem;
+  }
+
+  .workspace-rail,
+  .workspace-detail-body,
+  .workspace-drawer-body {
+    font-size: 0.95rem;
+  }
+}
+
+@media (max-width: 720px) {
+  .workspace-shell {
+    padding-bottom: calc(92px + var(--safe-bottom));
+  }
+
+  .workspace-head {
+    gap: 0.85rem;
+    border-radius: 20px;
+  }
+
+  .workspace-head .workspace-head-actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
+  .workspace-head .workspace-head-actions > .ui-button,
+  .workspace-head .workspace-head-actions > .ui-badge,
+  .workspace-head .workspace-head-actions > .toolbar-row,
+  .workspace-head .workspace-head-actions > .ui-prefs {
+    min-width: 0;
+  }
+
+  .workspace-head .workspace-head-actions > .toolbar-row,
+  .workspace-head .workspace-head-actions > .ui-prefs {
+    grid-column: 1 / -1;
+  }
+
+  .workspace-head .ui-prefs {
+    padding: 0.65rem;
+  }
+
+  .workspace-head .ui-prefs > .muted {
+    color: color-mix(in srgb, var(--text-1), #000 20%);
+  }
+
+  .workspace-detail-head,
+  .workspace-drawer .workspace-detail-head {
+    padding-inline: 0.95rem;
+  }
+
+  .workspace-detail-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+
+  .workspace-dock {
+    gap: 0.55rem;
+  }
+
+  .workspace-dock-item {
+    min-width: 78px;
+    font-size: 0.8rem;
+  }
+}

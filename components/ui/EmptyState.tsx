@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import { EmptyStateCard } from '@/components/ui/state/EmptyStateCard';
 
 type EmptyAction = {
   label: string;
@@ -13,28 +13,22 @@ type EmptyStateProps = {
   actions?: EmptyAction[];
 };
 
+const eyebrowByVariant: Record<NonNullable<EmptyStateProps['variant']>, string> = {
+  'no-results': 'busca sem resultado',
+  'no-data': 'ainda sem material',
+  'not-published': 'publicacao pendente',
+  'needs-curation': 'curadoria pendente',
+};
+
 export function EmptyState({ title, description, variant = 'no-data', actions = [] }: EmptyStateProps) {
   return (
-    <section className='empty-state stack' data-variant={variant} aria-live='polite'>
-      <strong>{title}</strong>
-      <p className='muted' style={{ margin: 0 }}>
-        {description}
-      </p>
-      {actions.length > 0 ? (
-        <div className='toolbar-row'>
-          {actions.map((action, index) =>
-            action.href ? (
-              <Link key={`${action.label}-${index}`} className='ui-button' data-variant='ghost' href={action.href}>
-                {action.label}
-              </Link>
-            ) : (
-              <button key={`${action.label}-${index}`} className='ui-button' data-variant='ghost' type='button' onClick={action.onClick}>
-                {action.label}
-              </button>
-            ),
-          )}
-        </div>
-      ) : null}
-    </section>
+    <EmptyStateCard
+      className='empty-state'
+      eyebrow={eyebrowByVariant[variant]}
+      title={title}
+      description={description}
+      primaryAction={actions[0]}
+      secondaryAction={actions[1]}
+    />
   );
 }

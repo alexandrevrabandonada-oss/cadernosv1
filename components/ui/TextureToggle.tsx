@@ -8,12 +8,15 @@ export function TextureToggle({ compactLabel = false }: { compactLabel?: boolean
   const prefs = useUiPrefsContext();
   const texture: Texture = prefs?.settings.texture === 'low' ? 'low' : 'normal';
 
+  const touchTargetStyle = compactLabel ? { minHeight: 46, height: 46 } : undefined;
+
   return (
     <div className='toolbar-row' role='group' aria-label='Textura da interface' data-testid='texture-toggle'>
       {!compactLabel ? <small className='muted'>Textura</small> : null}
       <button
         type='button'
         className='ui-button'
+        style={touchTargetStyle}
         data-variant={texture === 'low' ? undefined : 'ghost'}
         onClick={() => prefs?.setTexture('low')}
       >
@@ -22,6 +25,7 @@ export function TextureToggle({ compactLabel = false }: { compactLabel?: boolean
       <button
         type='button'
         className='ui-button'
+        style={touchTargetStyle}
         data-variant={texture === 'normal' ? undefined : 'ghost'}
         onClick={() => prefs?.setTexture('normal')}
       >

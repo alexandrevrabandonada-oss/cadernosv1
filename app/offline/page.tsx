@@ -1,6 +1,9 @@
 import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
+
 import { Wordmark } from '@/components/brand/Wordmark';
+import { Card } from '@/components/ui/Card';
+import { EmptyStateCard } from '@/components/ui/state/EmptyStateCard';
+import { PartialDataNotice } from '@/components/ui/state/PartialDataNotice';
 import { getPublicOfflineSeed } from '@/lib/offline/seed';
 
 type OfflinePageProps = {
@@ -26,27 +29,25 @@ export default async function OfflinePage({ searchParams }: OfflinePageProps) {
     <main className='stack stack-editorial'>
       <Card className='stack surface-panel' style={{ maxWidth: 760 }}>
         <Wordmark variant='hero' />
-        <h1 style={{ margin: 0 }}>Voce esta offline</h1>
-        <p className='muted' style={{ margin: 0 }}>
-          O app shell foi carregado, mas esta pagina precisa de conexao para atualizar os dados.
-        </p>
-        <div className='toolbar-row'>
-          <a href='' className='ui-button'>
-            Tentar novamente
-          </a>
-          <Link href='/' className='ui-button' data-variant='ghost'>
-            Voltar para Home
-          </Link>
-        </div>
-        {from ? (
-          <p className='muted' style={{ margin: 0 }}>
-            Ultima rota: <code>{from}</code>
-          </p>
-        ) : null}
+        <PartialDataNotice
+          eyebrow='navegacao parcial'
+          title='Voce esta offline'
+          description='O shell do app foi carregado, mas esta pagina precisa de conexao para atualizar dados ao vivo. O que ja foi salvo em cache continua acessivel.'
+          primaryAction={{ label: 'Tentar novamente', href: '' }}
+          secondaryAction={{ label: 'Voltar para Home', href: '/' }}
+          details={
+            from ? (
+              <span>Ultima rota tentada: <code>{from}</code></span>
+            ) : (
+              <span>Se uma rota nao estiver em cache, o app mostra apenas as superfices que ja estavam disponiveis localmente.</span>
+            )
+          }
+        />
       </Card>
 
       <Card className='stack surface-plate' style={{ maxWidth: 760 }}>
         <h2 style={{ margin: 0 }}>O que pode abrir agora</h2>
+        <p className='muted' style={{ margin: 0 }}>Universos e paginas publicas visitadas recentemente podem continuar acessiveis enquanto a conexao nao volta.</p>
         <div className='toolbar-row'>
           <Link href='/' className='ui-button'>
             Abrir Home
@@ -59,7 +60,7 @@ export default async function OfflinePage({ searchParams }: OfflinePageProps) {
         </div>
         {sharePages.length > 0 ? (
           <div className='stack' style={{ gap: '0.6rem' }}>
-            <strong>Share pages recentes salvas</strong>
+            <strong>Paginas publicas salvas</strong>
             <div className='toolbar-row'>
               {sharePages.map((href) => (
                 <Link key={href} href={href} className='ui-button' data-variant='ghost'>
@@ -68,7 +69,14 @@ export default async function OfflinePage({ searchParams }: OfflinePageProps) {
               ))}
             </div>
           </div>
-        ) : null}
+        ) : (
+          <EmptyStateCard
+            eyebrow='sem cache publico'
+            title='Nenhuma pagina publica foi salva ainda'
+            description='Abra um universo publicado quando a conexao voltar para deixar uma base minima pronta para leitura offline.'
+            primaryAction={{ label: 'Voltar para Home', href: '/' }}
+          />
+        )}
       </Card>
     </main>
   );

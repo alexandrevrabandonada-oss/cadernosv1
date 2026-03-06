@@ -5,40 +5,35 @@ import { Wordmark } from '@/components/brand/Wordmark';
 
 export function Header() {
   return (
-    <header
-      style={{
-        position: 'sticky',
-        top: 0,
-        left: 0,
-        right: 0,
-        height: 'var(--header-height)',
-        zIndex: 40,
-        borderBottom: '1px solid var(--stroke-2)',
-        backdropFilter: 'blur(var(--blur-1))',
-        background: 'rgba(18, 22, 27, 0.58)',
-      }}
-    >
+    <header className='app-header-shell'>
       <div className='header-wrap'>
-        <Link href='/' className='brand-link' aria-label='Voltar para Home'>
-          <Wordmark variant='nav' />
-        </Link>
+        <div className='header-brand-block'>
+          <Link href='/' className='brand-link' aria-label='Voltar para Home'>
+            <Wordmark variant='nav' />
+          </Link>
+          <span className='header-brand-note'>arquivo vivo de prova e leitura guiada</span>
+        </div>
         <nav className='top-nav' aria-label='Navegacao principal'>
-          <InstallPrompt compact className='desktop-only' />
-          <Button href='/' variant='ghost'>
-            Home
-          </Button>
-          <Button href='/c/exemplo' variant='ghost'>
-            Universo
-          </Button>
-          <Button href='/admin' variant='ghost'>
-            Admin
-          </Button>
-          <Button href='/login' variant='ghost'>
-            Login
-          </Button>
-          <Button href='/status' variant='ghost'>
-            Status
-          </Button>
+          <div className='top-nav-links'>
+            <Button href='/' variant='ghost'>
+              Home
+            </Button>
+            <Button href='/c/exemplo' variant='ghost'>
+              Universo
+            </Button>
+            <Button href='/admin' variant='ghost'>
+              Admin
+            </Button>
+            <Button href='/status' variant='ghost'>
+              Status
+            </Button>
+          </div>
+          <div className='top-nav-actions'>
+            <InstallPrompt compact className='desktop-only' />
+            <Button href='/login' variant='primary'>
+              Login
+            </Button>
+          </div>
         </nav>
       </div>
     </header>

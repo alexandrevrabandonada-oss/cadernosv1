@@ -2,10 +2,12 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Carimbo } from '@/components/ui/Badge';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { EmptyStateCard } from '@/components/ui/state/EmptyStateCard';
+import { PartialDataNotice } from '@/components/ui/state/PartialDataNotice';
 import { buildStudyRecapData } from '@/lib/study/aggregate';
 import { readActiveStudySession, readStudySessions } from '@/lib/study/local';
 import { recommendStudyNext, type StudyRecommendationEvidence, type StudyRecommendationNode } from '@/lib/study/recommend';
@@ -130,6 +132,7 @@ export function StudyRecapClient({ slug, title, isLoggedIn, lastSection, recomme
   }, [isLoggedIn, lastSection, recommendationSeed, slug]);
 
   const latestSessions = useMemo(() => recap?.sessions.slice(0, 5) ?? [], [recap?.sessions]);
+  const hasRecommendations = Boolean((recap?.recommendations.nodes.length ?? 0) > 0 || (recap?.recommendations.evidences.length ?? 0) > 0);
 
   return (
     <div className='stack'>
@@ -171,7 +174,11 @@ export function StudyRecapClient({ slug, title, isLoggedIn, lastSection, recomme
           <p style={{ margin: 0 }}>Itens estudados: <strong>{recap?.week.itemsStudied ?? 0}</strong></p>
           <div className='stack'>
             {(recap?.week.topActions ?? []).length === 0 ? (
-              <p className='muted' style={{ margin: 0 }}>Sem acoes agregadas ainda.</p>
+              <PartialDataNotice
+                eyebrow='sem historico suficiente'
+                title='A semana ainda nao formou um padrao'
+                description='Assim que voce abrir docs, salvar notas ou circular por outras salas, as acoes agregadas aparecem aqui.'
+              />
             ) : (
               recap?.week.topActions.map((action) => (
                 <p key={action.key} className='muted' style={{ margin: 0 }}>
@@ -186,10 +193,12 @@ export function StudyRecapClient({ slug, title, isLoggedIn, lastSection, recomme
       <Card className='stack'>
         <SectionHeader title='Ultimas sessoes' description='As sessoes mais recentes do universo, com duracao e itens tocados.' />
         {latestSessions.length === 0 ? (
-          <EmptyState
+          <EmptyStateCard
+            eyebrow='recap ainda vazio'
             title='Nenhuma sessao registrada ainda'
-            description='Abra um doc, entre em Focus Mode, salve um highlight ou use o tutor para iniciar o recap.'
-            actions={[{ label: 'Abrir documentos', href: buildUniverseHref(slug, 'provas') }]}
+            description='Abra um doc, entre em Focus Mode, salve um highlight ou use o tutor para iniciar um rastro de estudo neste universo.'
+            primaryAction={{ label: 'Abrir documentos', href: buildUniverseHref(slug, 'provas') }}
+            secondaryAction={{ label: 'Abrir Tutor', href: buildUniverseHref(slug, 'tutor') }}
           />
         ) : (
           <div className='stack'>
@@ -211,26 +220,35 @@ export function StudyRecapClient({ slug, title, isLoggedIn, lastSection, recomme
 
       <Card className='stack'>
         <SectionHeader title='Proximas portas' description='2 nos e 3 evidencias sugeridos a partir do que voce tocou recentemente.' />
-        <div className='core-grid'>
-          {recap?.recommendations.nodes.map((node) => (
-            <article key={node.id} className='core-node stack'>
-              <strong>{node.title}</strong>
-              {node.summary ? <p className='muted' style={{ margin: 0 }}>{node.summary}</p> : null}
-              <Link className='ui-button' data-variant='ghost' href={`${buildUniverseHref(slug, 'mapa')}?node=${encodeURIComponent(node.slug)}&panel=detail`}>
-                Abrir no mapa
-              </Link>
-            </article>
-          ))}
-          {recap?.recommendations.evidences.map((evidence) => (
-            <article key={evidence.id} className='core-node stack'>
-              <strong>{evidence.title}</strong>
-              {evidence.summary ? <p className='muted' style={{ margin: 0 }}>{evidence.summary}</p> : null}
-              <Link className='ui-button' data-variant='ghost' href={evidence.href}>
-                Abrir evidencia
-              </Link>
-            </article>
-          ))}
-        </div>
+        {!hasRecommendations ? (
+          <EmptyStateCard
+            eyebrow='sem recomendacoes ainda'
+            title='As proximas portas aparecem depois de algum uso'
+            description='Quando houver leitura, highlights ou sessoes suficientes, o recap passa a sugerir nos e evidencias para continuar o percurso.'
+            primaryAction={{ label: 'Abrir Mapa', href: buildUniverseHref(slug, 'mapa') }}
+          />
+        ) : (
+          <div className='core-grid'>
+            {recap?.recommendations.nodes.map((node) => (
+              <article key={node.id} className='core-node stack'>
+                <strong>{node.title}</strong>
+                {node.summary ? <p className='muted' style={{ margin: 0 }}>{node.summary}</p> : null}
+                <Link className='ui-button' data-variant='ghost' href={`${buildUniverseHref(slug, 'mapa')}?node=${encodeURIComponent(node.slug)}&panel=detail`}>
+                  Abrir no mapa
+                </Link>
+              </article>
+            ))}
+            {recap?.recommendations.evidences.map((evidence) => (
+              <article key={evidence.id} className='core-node stack'>
+                <strong>{evidence.title}</strong>
+                {evidence.summary ? <p className='muted' style={{ margin: 0 }}>{evidence.summary}</p> : null}
+                <Link className='ui-button' data-variant='ghost' href={evidence.href}>
+                  Abrir evidencia
+                </Link>
+              </article>
+            ))}
+          </div>
+        )}
       </Card>
     </div>
   );

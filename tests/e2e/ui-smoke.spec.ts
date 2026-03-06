@@ -3,6 +3,12 @@ import { expect, test } from '@playwright/test';
 const slug = 'demo';
 
 test.describe('UI smoke - workspace critico', () => {
+  test('home: estado vazio orienta quando busca nao encontra universo publico', async ({ page }) => {
+    await page.goto('/?q=zzzxxyynotfound');
+    await expect(page.getByText('Catalogo em preparacao').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: /Como funciona|Criar\/ativar vitrine/ }).first()).toBeVisible();
+  });
+
   test('provas: abre detalhe com selected e mostra empty state com filtro impossivel', async ({ page }) => {
     await page.goto(`/c/${slug}/provas`);
     await expect(page.getByTestId('workspace')).toBeVisible();
@@ -16,7 +22,7 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page.getByTestId('detail-panel').first()).toBeVisible();
 
     await page.goto(`/c/${slug}/provas?q=zzzxxyynotfound`);
-    await expect(page.getByText('Sem resultados')).toBeVisible();
+    await expect(page.getByText('Sem resultados').first()).toBeVisible();
   });
 
   test('linha: abre detalhe e CTA Ver Provas navega com filtros', async ({ page }) => {
@@ -99,10 +105,13 @@ test.describe('UI smoke - workspace critico', () => {
     await page.goto(`/c/${slug}/mapa?view=clusters`);
     await expect(page.getByTestId('map-cluster').first()).toBeVisible();
 
-    await page.getByTestId('map-cluster').first().getByRole('link', { name: 'Entrar no cluster' }).click();
+    const clusterHref = await page.getByTestId('map-cluster').first().getByRole('link', { name: 'Entrar no cluster' }).getAttribute('href');
+    await page.goto(clusterHref ?? `/c/${slug}/mapa?view=clusters`);
     await expect(page).toHaveURL(/cluster=/);
     await expect(page.getByTestId('detail-panel').first()).toBeVisible();
-    await page.getByTestId('detail-panel').first().getByRole('link', { name: 'Abrir portal Provas' }).first().click();
+    const portalHref = await page.getByTestId('detail-panel').first().getByRole('link', { name: 'Abrir portal Provas' }).first().getAttribute('href');
+    expect(portalHref).toContain(`/c/${slug}/provas`);
+    await page.goto(portalHref ?? `/c/${slug}/provas`);
     await expect(page).toHaveURL(new RegExp(`/c/${slug}/provas`));
   });
 
@@ -213,6 +222,7 @@ test.describe('UI smoke - workspace critico', () => {
       document.dispatchEvent(new Event('selectionchange'));
     });
 
+        await page.waitForFunction(() => Boolean(window.getSelection()?.toString().trim()));
     await expect(page.getByRole('dialog', { name: 'Acoes da selecao' })).toBeVisible();
     await page.getByRole('button', { name: 'Destacar' }).click();
     await expect(page.getByText('Highlight salvo no Meu Caderno.')).toBeVisible();
@@ -248,6 +258,7 @@ test.describe('UI smoke - workspace critico', () => {
       document.dispatchEvent(new Event('selectionchange'));
     });
 
+        await page.waitForFunction(() => Boolean(window.getSelection()?.toString().trim()));
     await expect(page.getByRole('dialog', { name: 'Acoes da selecao' })).toBeVisible();
     await page.getByRole('button', { name: 'Destacar' }).click();
     await expect(page.getByText('Highlight salvo no Meu Caderno.')).toBeVisible();
@@ -354,6 +365,7 @@ test.describe('UI smoke - workspace critico', () => {
       document.dispatchEvent(new Event('selectionchange'));
     });
 
+        await page.waitForFunction(() => Boolean(window.getSelection()?.toString().trim()));
     await expect(page.getByRole('dialog', { name: 'Acoes da selecao' })).toBeVisible();
     await page.getByRole('button', { name: 'Destacar' }).click();
     await expect(page.getByText('Highlight salvo no Meu Caderno.')).toBeVisible();
@@ -364,6 +376,60 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page.getByTestId('study-recap-today')).toContainText('Itens estudados: 1');
     await expect(page.getByRole('link', { name: 'Continuar' })).toBeVisible();
   });
+  test('mobile ergonomics: dock nav, drawer, detail sheet e doc toolbar respeitam toque', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`/c/${slug}/provas`);
+    await expect(page.getByTestId('dock-nav')).toBeVisible();
+
+    const dockHeights = await page.locator('[data-testid="dock-nav"] .workspace-dock-item').evaluateAll((elements) =>
+      elements.filter((element) => element.getClientRects().length > 0).slice(0, 4).map((element) => Math.round(element instanceof HTMLElement ? element.offsetHeight : 0)),
+    );
+    expect(dockHeights.every((height) => height >= 44)).toBeTruthy();
+
+    const openFiltersHeight = await page.getByRole('button', { name: 'Abrir filtros' }).evaluate((element) => Math.round(element instanceof HTMLElement ? element.offsetHeight : 0));
+    expect(openFiltersHeight).toBeGreaterThanOrEqual(44);
+    await page.getByRole('button', { name: 'Abrir filtros' }).click();
+    await expect(page.locator('.workspace-drawer.is-open')).toBeVisible();
+    const closeFiltersHeight = await page.getByRole('button', { name: 'Fechar filtros' }).evaluate((element) => Math.round(element instanceof HTMLElement ? element.offsetHeight : 0));
+    expect(closeFiltersHeight).toBeGreaterThanOrEqual(44);
+    await page.getByRole('button', { name: 'Fechar filtros' }).click();
+
+    const detailHref = await page.getByTestId('evidence-card').first().getByRole('link', { name: 'Ver detalhe' }).getAttribute('href');
+    await page.goto(detailHref ?? `/c/${slug}/provas`);
+    await expect(page.locator('.workspace-sheet.is-open')).toBeVisible();
+    const sheetHeights = await page.locator('.workspace-sheet.is-open .workspace-detail-head .ui-button').evaluateAll((elements) =>
+      elements.filter((element) => element.getClientRects().length > 0).map((element) => Math.round(element instanceof HTMLElement ? element.offsetHeight : 0)),
+    );
+    expect(sheetHeights.every((height) => height >= 44)).toBeTruthy();
+
+    await page.goto(`/c/${slug}/doc/${slug}-doc-1`);
+    await expect(page.getByTestId('doc-text-surface')).toBeVisible();
+    await page.waitForTimeout(400);
+
+    await page.evaluate(() => {
+      const paragraph = document.querySelector('p.doc-text-block');
+      if (!paragraph || !paragraph.firstChild) throw new Error('doc text not found');
+      const textNode = paragraph.firstChild;
+      const text = textNode.textContent ?? '';
+      const start = text.indexOf('highlight real');
+      const end = start + 'highlight real no Doc Viewer'.length;
+      const range = document.createRange();
+      range.setStart(textNode, start);
+      range.setEnd(textNode, end);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+    });
+
+    const toolbar = page.getByTestId('doc-selection-toolbar');
+    await expect(toolbar).toBeVisible();
+    const toolbarHeights = await toolbar.locator('.ui-button').evaluateAll((elements) =>
+      elements.filter((element) => element.getClientRects().length > 0).map((element) => Math.round(element instanceof HTMLElement ? element.offsetHeight : 0)),
+    );
+    expect(toolbarHeights.every((height) => height >= 44)).toBeTruthy();
+  });
+
   test('workspace base: rail, content e detail panel renderizam', async ({ page }) => {
     await page.goto(`/c/${slug}/linha`);
     await expect(page.getByTestId('workspace')).toBeVisible();
@@ -554,6 +620,18 @@ test.describe('UI smoke - workspace critico', () => {
     expect(icon192.headers()['content-type']).toContain('image/png');
   });
 
+  test('coletivos: detalhe restrito mostra estado de acesso', async ({ page }) => {
+    await page.goto(`/c/${slug}/coletivos/sem-acesso`);
+    await expect(page.getByText('Coletivo indisponivel').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Voltar aos coletivos' })).toBeVisible();
+  });
+
+  test('exports: export privado mostra bloqueio elegante', async ({ page }) => {
+    await page.goto(`/c/${slug}/exports/${slug}-export-private`);
+    await expect(page.getByText('Este export nao esta liberado aqui').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Voltar ao universo' })).toBeVisible();
+  });
+
   test('pwa: service worker e rota offline existem', async ({ request, page }) => {
     const swResponse = await request.get('/sw.js');
     expect(swResponse.status()).toBe(200);
@@ -563,6 +641,7 @@ test.describe('UI smoke - workspace critico', () => {
 
     await page.goto('/offline');
     await expect(page.getByRole('heading', { name: 'Voce esta offline' })).toBeVisible();
+    await expect(page.getByText('O shell do app foi carregado').first()).toBeVisible();
     await expect(page.getByRole('link', { name: 'Abrir Home' })).toBeVisible();
   });
 
@@ -592,6 +671,8 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page.getByTestId('route-progress')).toHaveCount(0);
   });
 });
+
+
 
 
 

@@ -5,6 +5,7 @@ import { CommandPalette } from '@/components/command/CommandPalette';
 import { StudyTrackerProvider } from '@/components/study/StudyTrackerProvider';
 import { Card } from '@/components/ui/Card';
 import { MotionModeSync } from '@/components/ui/MotionModeSync';
+import { RestrictedStateCard } from '@/components/ui/state/RestrictedStateCard';
 import { UiPrefsProvider } from '@/components/ui/UiPrefsProvider';
 import { UniverseVisibilityBadge } from '@/components/universe/UniverseVisibilityBadge';
 import { WorkspaceProvider } from '@/components/workspace/WorkspaceContext';
@@ -47,9 +48,12 @@ export default async function UniversoLayout({ children, params }: UniversoLayou
               {!access.published && access.canPreview ? (
                 <Card className='stack'>
                   <UniverseVisibilityBadge published={false} preview />
-                  <p className='muted' style={{ margin: 0 }}>
-                    Este universo ainda nao esta publicado. Somente editor/admin pode ver este preview.
-                  </p>
+                  <RestrictedStateCard
+                    eyebrow='preview editorial'
+                    title='Este universo ainda esta em preparacao'
+                    description='A leitura publica continua fechada por enquanto. Somente editor e admin podem navegar neste preview para revisar material, estados e publicacao.'
+                    primaryAction={{ label: 'Voltar para Home', href: '/' }}
+                  />
                 </Card>
               ) : null}
               {children}

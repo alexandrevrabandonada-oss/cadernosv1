@@ -46,7 +46,10 @@ export function OfflineBanner() {
 
   return (
     <div className='offline-banner' role='status' aria-live='polite' data-testid='offline-banner'>
-      <p>Voce esta offline — mostrando o que esta salvo.</p>
+      <div className='offline-banner-copy'>
+        <strong>Voce esta offline.</strong>
+        <p>O que ja foi salvo continua acessivel. Novas consultas e rotas sem cache podem falhar ate a conexao voltar.</p>
+      </div>
       <button
         type='button'
         className='ui-button'
@@ -56,9 +59,8 @@ export function OfflineBanner() {
           window.localStorage.setItem(DISMISSED_KEY, '1');
         }}
       >
-        Tentar reconectar
+        Ocultar aviso
       </button>
     </div>
   );
 }
-

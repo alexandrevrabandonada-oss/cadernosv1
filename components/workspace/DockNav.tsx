@@ -25,19 +25,24 @@ const ITEMS = [
 export function DockNav({ slug }: DockNavProps) {
   const pathname = usePathname();
   const uiPrefs = useUiPrefsContext();
+
   return (
     <nav className='workspace-dock surface-blade' aria-label='Navegacao rapida mobile' data-testid='dock-nav'>
-      <InstallPrompt compact className='workspace-dock-item' />
+      <InstallPrompt compact className='workspace-dock-item workspace-dock-install' />
       {ITEMS.map((item) => {
         const href = buildUniverseHref(slug, item.key);
         const isActive = pathname === href;
+        const lastSection = item.key === 'meu-caderno' ? 'provas' : (item.key as 'mapa' | 'provas' | 'linha' | 'debate' | 'glossario' | 'trilhas' | 'tutor');
+
         return (
           <Link
             key={item.key}
             href={href}
             className='workspace-dock-item'
             aria-current={isActive ? 'page' : undefined}
-            onClick={() => uiPrefs?.setLastSection(item.key === 'meu-caderno' ? 'provas' : (item.key as 'mapa' | 'provas' | 'linha' | 'debate' | 'glossario' | 'trilhas' | 'tutor'))}
+            aria-label={`Abrir ${item.label}`}
+            title={item.label}
+            onClick={() => uiPrefs?.setLastSection(lastSection)}
           >
             <span className='workspace-dock-item-icon' aria-hidden='true'>
               <BrandIcon name={item.icon} size={16} tone={isActive ? 'editorial' : 'default'} />

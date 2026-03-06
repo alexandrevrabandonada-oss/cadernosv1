@@ -4,6 +4,8 @@ import { revalidatePath } from 'next/cache';
 import { Card } from '@/components/ui/Card';
 import { Carimbo } from '@/components/ui/Badge';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { EmptyStateCard } from '@/components/ui/state/EmptyStateCard';
+import { SuccessInlineNotice } from '@/components/ui/state/SuccessInlineNotice';
 import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { buildUniverseHref } from '@/lib/universeNav';
 import {
@@ -148,9 +150,11 @@ export default async function SharedNotebookReviewPage({ params, searchParams }:
       </Card>
 
       {sp.msg ? (
-        <Card>
-          <p role='status' style={{ margin: 0 }}>{sp.msg}</p>
-        </Card>
+        <SuccessInlineNotice
+          title='Fluxo editorial atualizado'
+          description={sp.msg}
+          primaryAction={selected ? { label: 'Voltar ao item', href: selectedHref(selected.id) } : { label: 'Voltar ao coletivo', href: buildUniverseHref(slug, `coletivos/${review.slug}`) }}
+        />
       ) : null}
 
       <Card className='stack'>
@@ -202,7 +206,7 @@ export default async function SharedNotebookReviewPage({ params, searchParams }:
                 </div>
               </article>
             ))}
-            {queue.items.length === 0 ? <p className='muted' style={{ margin: 0 }}>Sem itens na fila para esse filtro.</p> : null}
+            {queue.items.length === 0 ? <EmptyStateCard eyebrow='fila limpa' title='Nenhum item neste filtro' description='Nao ha materiais em draft ou review para este recorte agora. Ajuste os filtros ou volte ao coletivo para adicionar novos insumos.' primaryAction={{ label: 'Voltar ao coletivo', href: buildUniverseHref(slug, `coletivos/${review.slug}`) }} /> : null}
           </div>
         </Card>
 
@@ -313,12 +317,12 @@ export default async function SharedNotebookReviewPage({ params, searchParams }:
                       {entry.note ? <span className='muted'>{entry.note}</span> : null}
                     </div>
                   ))}
-                  {audit.length === 0 ? <p className='muted' style={{ margin: 0 }}>Sem logs ainda.</p> : null}
+                  {audit.length === 0 ? <EmptyStateCard eyebrow='auditoria vazia' title='Sem logs editoriais ainda' description='Este item ainda nao gerou uma trilha de auditoria alem da entrada inicial. Assim que houver revisao ou promocao, os registros aparecem aqui.' /> : null}
                 </div>
               </article>
             </>
           ) : (
-            <SectionHeader title='Selecione um item' description='Abra um item da fila para revisar, aprovar ou promover.' />
+            <EmptyStateCard eyebrow='nenhum item selecionado' title='Selecione um item da fila' description='Abra um item da lista para revisar, aprovar, rejeitar ou promover para um objeto editorial do produto.' primaryAction={{ label: 'Voltar ao coletivo', href: buildUniverseHref(slug, `coletivos/${review.slug}`) }} />
           )}
         </Card>
       </div>

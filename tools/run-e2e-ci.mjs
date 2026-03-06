@@ -1,4 +1,6 @@
 import { spawn } from 'node:child_process';
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
 import { resolvePreferredPort } from './find-free-port.mjs';
 
 const requestedPort = Number(process.env.PORT ?? 3100);
@@ -10,11 +12,14 @@ const args = process.platform === 'win32'
   ? ['/d', '/s', '/c', 'npx playwright test --config=playwright.config.ts tests/e2e/ui-smoke.spec.ts --reporter=line']
   : ['playwright', 'test', '--config=playwright.config.ts', 'tests/e2e/ui-smoke.spec.ts', '--reporter=line'];
 
+await rm(join(process.cwd(), '.next', 'cache'), { recursive: true, force: true, maxRetries: 6, retryDelay: 150 });
+
 if (resolved.usedFallback) {
   console.log(`[e2e-ci] Porta ${requestedPort} ocupada. Usando fallback ${port}.`);
 } else {
   console.log(`[e2e-ci] Usando porta ${port}.`);
 }
+console.log('[e2e-ci] Cache .next/cache limpo antes de subir o dev server de teste.');
 
 const child = spawn(command, args, {
   stdio: ['ignore', 'pipe', 'pipe'],

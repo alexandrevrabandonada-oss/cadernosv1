@@ -11,6 +11,7 @@ import { Wordmark } from '@/components/brand/Wordmark';
 import { UniverseSeal } from '@/components/brand/UniverseSeal';
 import { EditorialMediaFrame } from '@/components/brand/EditorialMediaFrame';
 import { BrandIcon } from '@/components/brand/icons/BrandIcon';
+import { EmptyState } from '@/components/ui/EmptyState';
 import { listPublishedUniverses } from '@/lib/data/universes';
 import { getCurrentSession } from '@/lib/auth/server';
 import { getHubData } from '@/lib/data/universe';
@@ -92,13 +93,13 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         eyebrow='Portal Publico'
         title='Universos de prova, memoria e disputa'
         subtitle='Entre em salas conectadas por evidencias rastreaveis, marcos historicos e perguntas publicas em modo de leitura guiada.'
-        meta={<Wordmark variant='hero' />}
+        meta={<Wordmark variant='hero' className='hero-wordmark-ghost' />}
         actions={
           <>
-            <PrefetchLink className='ui-button' href='#universos' smartPrefetch='off'>
+            <PrefetchLink className='ui-button' href='#universos' data-variant='primary' smartPrefetch='off'>
               Explorar universos
             </PrefetchLink>
-            <PrefetchLink className='ui-button' href={buildUniverseHref(targetSlug, 'tutor')} data-variant='primary'>
+            <PrefetchLink className='ui-button' href={buildUniverseHref(targetSlug, 'tutor')}>
               Comecar no Tutor
             </PrefetchLink>
             <PrefetchLink className='ui-button' data-variant='ghost' href='#como-funciona' smartPrefetch='off'>
@@ -108,7 +109,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         }
         aside={
           featuredHub ? (
-            <article className='feature-universe-card surface-plate'>
+            <article className='feature-universe-card surface-plate hero-sidecar'>
               <small>Universo em foco</small>
               <h2>{featuredHub.title}</h2>
               <p className='muted'>{featuredHub.summary}</p>
@@ -169,7 +170,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         />
       </section>
 
-      <Card className='stack surface-panel' id='universos'>
+      <Card className='stack surface-panel home-section-card' id='universos'>
         <header className='stack' style={{ gap: '0.35rem' }}>
           <h2 style={{ margin: 0 }}>Universos em destaque</h2>
           <p className='muted' style={{ margin: 0 }}>
@@ -196,25 +197,17 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             </article>
           ))}
           {universoCards.length === 0 ? (
-            <article className='universe-door-card surface-blade'>
-              <h3>Nenhum universo publicado</h3>
-              <p className='muted'>O catalogo publico esta em preparacao. Volte em breve.</p>
-              {session ? (
-                <div className='toolbar-row'>
-                  <Link className='ui-button' href='/admin/universes'>
-                    Criar/ativar vitrine
-                  </Link>
-                  <Link className='ui-button' data-variant='ghost' href='/c/poluicao-vr'>
-                    Abrir demo em preview
-                  </Link>
-                </div>
-              ) : null}
-            </article>
+            <EmptyState
+              title='Catalogo em preparacao'
+              description={session ? 'Ative uma vitrine ou abra a demo para revisar a entrada publica do produto.' : 'Nenhum universo publico esta aberto agora. Explore o fluxo guiado ou volte na proxima atualizacao.'}
+              variant='no-data'
+              actions={session ? [{ label: 'Criar/ativar vitrine', href: '/admin/universes' }, { label: 'Abrir demo em preview', href: '/c/poluicao-vr' }] : [{ label: 'Como funciona', href: '#como-funciona' }, { label: 'Abrir universo vitrine', href: '/c/poluicao-vr' }]}
+            />
           ) : null}
         </div>
       </Card>
 
-      <Card className='stack surface-blade'>
+      <Card className='stack surface-blade home-section-card surface-soft'>
         <HighlightsStrip
           title='Fios quentes'
           description='Sinais editoriais do que merece leitura agora: provas fortes, marcos e perguntas acionaveis.'
@@ -226,7 +219,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         />
       </Card>
 
-      <Card className='stack surface-plate' id='como-funciona'>
+      <Card className='stack surface-plate home-section-card' id='como-funciona'>
         <header className='stack' style={{ gap: '0.35rem' }}>
           <h2 style={{ margin: 0 }}>Como ler este universo</h2>
           <p className='muted' style={{ margin: 0 }}>
@@ -257,3 +250,5 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     </main>
   );
 }
+
+

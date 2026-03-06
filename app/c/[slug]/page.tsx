@@ -128,7 +128,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
         }
         meta={
           <div className='stack' style={{ gap: '0.7rem' }}>
-            <Wordmark variant='compact' />
+            <Wordmark variant='compact' className='hero-wordmark-ghost' />
             <UniverseMetaBar
               items={[
                 { label: 'Atualizado', value: updatedAgo },
@@ -140,7 +140,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           </div>
         }
         aside={
-          <article className='feature-universe-card surface-plate'>
+          <article className='feature-universe-card surface-plate hero-sidecar'>
             <div className='toolbar-row'>
               <UniverseVisibilityBadge published={Boolean(access.published)} preview={Boolean(access.canPreview)} />
               {isShowcase ? <UniverseSeal kind='showcase' /> : <UniverseSeal kind='published' />}
@@ -192,7 +192,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
         />
       </section>
 
-      <Card className='stack surface-panel quickstart-block'>
+      <Card className='stack surface-panel quickstart-block hub-section-card'>
         <header className='stack' style={{ gap: '0.35rem' }}>
           <span className='toolbar-row'>
             <Badge variant='warning'>Comece Aqui</Badge>
@@ -230,7 +230,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
       </Card>
 
       {studyWeek ? (
-        <Card className='stack surface-plate'>
+        <Card className='stack surface-plate hub-section-card'>
           <header className='stack' style={{ gap: '0.35rem' }}>
             <h2 style={{ margin: 0 }}>Seu ritmo nesta semana</h2>
             <p className='muted' style={{ margin: 0 }}>
@@ -248,7 +248,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
         </Card>
       ) : null}
 
-      <Card className='stack surface-plate' id='destaques'>
+      <Card className='stack surface-plate hub-section-card' id='destaques'>
         <header className='stack' style={{ gap: '0.35rem' }}>
           <h2 style={{ margin: 0 }}>Destaques editoriais</h2>
           <p className='muted' style={{ margin: 0 }}>
@@ -292,7 +292,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
         </div>
       </Card>
 
-      <Card className='stack surface-panel'>
+      <Card className='stack surface-panel hub-section-card surface-soft'>
         <HighlightsStrip
           title='Proximas portas'
           description='Continue a investigacao com filtros e contexto preservados entre salas.'
@@ -313,3 +313,5 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
     </div>
   );
 }
+
+

@@ -572,3 +572,33 @@ Rota: `/c/[slug]/mapa`
   - Provas detail prioriza bloco principal (Relacionados/Portais colapsados por padrao em foco)
 - Snapshot mode:
   - `data-motion='off'` ou `?snapshot=1` forca `data-focus='off'` para estabilidade de screenshots.
+
+## VIZ-19 — Mobile ergonomics
+- Safe areas do shell agora respeitam `env(safe-area-inset-top|bottom|left|right)` no header, dock, banners e sheets.
+- Tap targets principais foram normalizados para `44-48px` em CTAs, toggles, dock nav e acoes de detalhe.
+- Home e Hub ganharam ajuste de densidade em telas pequenas, com hero, portal cards e textos mais compactos e legiveis.
+- Detail panels, drawers e toolbar do Doc Viewer foram refinados como superfícies móveis com scroll interno mais previsível.
+
+## VIZ-20 - State quality pass
+- Taxonomia de estados consolidada em `components/ui/state/` com:
+  - `StatePanel`
+  - `EmptyStateCard`
+  - `ErrorStateCard`
+  - `RestrictedStateCard`
+  - `SuccessInlineNotice`
+  - `PartialDataNotice`
+- Direcao de microcopy:
+  - clara e editorial
+  - sem placeholder tecnico
+  - sempre com proxima acao quando fizer sentido
+- Aplicacao prioritaria:
+  - offline e dados parciais
+  - exports privados
+  - preview/editorial gating
+  - recap, coletivos, review e analytics
+- Regra de escolha:
+  - `empty`: ainda nao ha material ou o recorte zerou
+  - `error`: falha de fetch/acao ou link temporario indisponivel
+  - `restricted`: bloqueio por publicacao, permissao ou privacidade
+  - `partial`: parte do shell/dado segue acessivel, parte nao
+  - `success`: confirmacao inline depois de acao maior

@@ -98,6 +98,7 @@ export function InstallPrompt({ compact = false, className = '' }: InstallPrompt
         data-variant={compact ? 'ghost' : 'primary'}
         onClick={onInstall}
         aria-label='Instalar aplicativo'
+        data-testid='install-prompt-button'
       >
         Instalar
       </button>
@@ -109,7 +110,7 @@ export function InstallPrompt({ compact = false, className = '' }: InstallPrompt
           <div className='workspace-sheet-handle' aria-hidden='true' />
           <header className='workspace-detail-head'>
             <strong>Instalar no iPhone</strong>
-            <button type='button' className='ui-button' data-variant='ghost' onClick={() => setIosOpen(false)}>
+            <button type='button' className='ui-button' data-variant='ghost' onClick={() => setIosOpen(false)} aria-label='Fechar instrucoes de instalacao'>
               Fechar
             </button>
           </header>
@@ -117,7 +118,7 @@ export function InstallPrompt({ compact = false, className = '' }: InstallPrompt
             <p className='muted' style={{ margin: 0 }}>
               No Safari, toque em Compartilhar e escolha Adicionar a Tela de Inicio.
             </p>
-            <button type='button' className='ui-button' onClick={onDismiss}>
+            <button type='button' className='ui-button' onClick={onDismiss} aria-label='Fechar instrucoes e ocultar prompt'>
               Entendi
             </button>
           </div>

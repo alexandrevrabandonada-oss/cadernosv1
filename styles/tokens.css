@@ -1,5 +1,5 @@
 :root {
-  --header-height: 64px;
+  --header-height: 60px;
   --space-1: 0.25rem;
   --space-2: 0.5rem;
   --space-3: 0.75rem;
@@ -51,11 +51,11 @@
   --status-warning: #d89f40;
   --status-danger: #b74335;
   --status-ok: #2f9c69;
-  --surface-panel: rgba(242, 236, 226, 0.9);
-  --surface-plate: rgba(232, 226, 214, 0.86);
-  --surface-blade: rgba(219, 212, 200, 0.82);
-  --stroke-1: rgba(226, 216, 199, 0.22);
-  --stroke-2: rgba(226, 216, 199, 0.14);
+  --surface-panel: rgba(245, 239, 230, 0.94);
+  --surface-plate: rgba(233, 224, 211, 0.88);
+  --surface-blade: rgba(217, 208, 194, 0.8);
+  --stroke-1: rgba(226, 216, 199, 0.28);
+  --stroke-2: rgba(226, 216, 199, 0.18);
   --radius-1: 12px;
   --radius-2: 16px;
   --radius-3: 20px;
@@ -76,8 +76,8 @@
   --cv-card-gap: var(--space-2);
   --cv-font-sm: 0.9rem;
   --shadow-0: 0 14px 40px rgba(5, 8, 12, 0.32);
-  --shadow-1: 0 2px 14px rgba(10, 14, 19, 0.24);
-  --shadow-2: 0 18px 50px rgba(4, 6, 10, 0.35);
+  --shadow-1: 0 10px 26px rgba(8, 12, 17, 0.2);
+  --shadow-2: 0 24px 60px rgba(4, 6, 10, 0.32);
   --shadow-blade: inset 0 0 0 1px rgba(241, 233, 221, 0.04);
   --ring-selected: 0 0 0 2px color-mix(in srgb, var(--focus-strong), #000 8%);
   --texture-grid:
@@ -103,3 +103,4 @@
     --fs-ui: 0.8125rem;
   }
 }
+

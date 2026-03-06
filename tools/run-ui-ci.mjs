@@ -1,7 +1,9 @@
 import { spawn } from 'node:child_process';
+import { rm } from 'node:fs/promises';
+import { join } from 'node:path';
 import { resolvePreferredPort } from './find-free-port.mjs';
 
-const requestedPort = Number(process.env.PORT ?? 3100);
+const requestedPort = Number(process.env.PORT ?? 3110);
 const resolved = await resolvePreferredPort(requestedPort);
 const port = resolved.port;
 const baseUrl = process.env.PLAYWRIGHT_BASE_URL ?? `http://127.0.0.1:${port}`;
@@ -12,11 +14,14 @@ const args = process.platform === 'win32'
   ? ['/d', '/s', '/c', cli]
   : ['playwright', 'test', '--config=playwright.config.ts', 'tests/e2e/visual.spec.ts', '--reporter=line', ...(updateSnapshots ? ['--update-snapshots'] : [])];
 
+await rm(join(process.cwd(), '.next', 'cache'), { recursive: true, force: true, maxRetries: 6, retryDelay: 150 });
+
 if (resolved.usedFallback) {
   console.log(`[ui-ci] Porta ${requestedPort} ocupada. Usando fallback ${port}.`);
 } else {
   console.log(`[ui-ci] Usando porta ${port}.`);
 }
+console.log('[ui-ci] Cache .next/cache limpo antes de subir o dev server de teste.');
 console.log('[ui-ci] Snapshot mode forçado para estabilizar capturas.');
 if (updateSnapshots) {
   console.log('[ui-ci] Atualizando baselines visuais.');

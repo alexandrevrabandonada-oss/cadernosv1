@@ -4,6 +4,8 @@ import { Breadcrumb } from '@/components/ui/Breadcrumb';
 import { Carimbo } from '@/components/ui/Badge';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
+import { EmptyStateCard } from '@/components/ui/state/EmptyStateCard';
+import { PartialDataNotice } from '@/components/ui/state/PartialDataNotice';
 import { getAdminDb, getUniverseById } from '@/lib/admin/db';
 import { requireEditorOrAdmin } from '@/lib/auth/requireRole';
 import { getUniverseAnalyticsDashboard } from '@/lib/analytics/dashboard';
@@ -99,9 +101,11 @@ export default async function AdminUniverseAnalyticsPage({ params }: AdminUniver
             </article>
           ))}
           {dashboard.last24h.topCtas.length === 0 ? (
-            <p className='muted' style={{ margin: 0 }}>
-              Sem cliques de CTA registrados nas últimas 24h.
-            </p>
+            <EmptyStateCard
+              eyebrow='janela sem clique'
+              title='Sem cliques de CTA nas ultimas 24h'
+              description='Ainda nao houve interacao suficiente para destacar chamadas de acao neste periodo. Revise publicacao, share pages e distribuicao recente.'
+            />
           ) : null}
         </div>
       </Card>
@@ -138,9 +142,11 @@ export default async function AdminUniverseAnalyticsPage({ params }: AdminUniver
                 </div>
               ))}
               {dashboard.last7d.topNodes.length === 0 ? (
-                <p className='muted' style={{ margin: 0 }}>
-                  Sem seleções de nó no período.
-                </p>
+                <PartialDataNotice
+                  eyebrow='sem sinal suficiente'
+                  title='Sem selecoes de no no periodo'
+                  description='A base ainda nao reuniu navegacao suficiente para apontar nos dominantes nesta janela de sete dias.'
+                />
               ) : null}
             </div>
           </article>
@@ -156,9 +162,11 @@ export default async function AdminUniverseAnalyticsPage({ params }: AdminUniver
                 </div>
               ))}
               {dashboard.last7d.topEvidences.length === 0 ? (
-                <p className='muted' style={{ margin: 0 }}>
-                  Sem cliques em evidência no período.
-                </p>
+                <PartialDataNotice
+                  eyebrow='sem tracao recente'
+                  title='Sem cliques em evidencia no periodo'
+                  description='Ainda nao ha massa critica suficiente para comparar evidencias nesta janela de sete dias.'
+                />
               ) : null}
             </div>
           </article>
@@ -177,9 +185,11 @@ export default async function AdminUniverseAnalyticsPage({ params }: AdminUniver
             </article>
           ))}
           {dashboard.last7d.insufficientByNode.length === 0 ? (
-            <p className='muted' style={{ margin: 0 }}>
-              Sem dados suficientes para taxa de insufficient por nó.
-            </p>
+            <PartialDataNotice
+              eyebrow='dados insuficientes'
+              title='Ainda nao ha base para taxa de insufficient por no'
+              description='Quando o volume de perguntas e respostas crescer, esta leitura passa a mostrar onde o tutor ainda nao sustenta bem a resposta.'
+            />
           ) : null}
         </div>
       </Card>

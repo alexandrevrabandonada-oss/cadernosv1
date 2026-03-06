@@ -14,9 +14,11 @@ export function HeroPanel({ eyebrow, title, subtitle, actions, meta, aside, clas
   return (
     <section className={['hero-panel surface-panel', className].filter(Boolean).join(' ')}>
       <div className='hero-panel-main'>
-        {eyebrow ? <p className='hero-eyebrow'>{eyebrow}</p> : null}
-        <h1 className='hero-title'>{title}</h1>
-        <p className='hero-subtitle'>{subtitle}</p>
+        <div className='hero-copy-block'>
+          {eyebrow ? <p className='hero-eyebrow'>{eyebrow}</p> : null}
+          <h1 className='hero-title'>{title}</h1>
+          <p className='hero-subtitle'>{subtitle}</p>
+        </div>
         {actions ? <div className='hero-actions'>{actions}</div> : null}
         {meta ? <div className='hero-meta'>{meta}</div> : null}
       </div>

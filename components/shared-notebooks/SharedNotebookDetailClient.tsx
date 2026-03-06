@@ -5,7 +5,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Card } from '@/components/ui/Card';
 import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Carimbo } from '@/components/ui/Badge';
-import { EmptyState } from '@/components/ui/EmptyState';
+import { EmptyStateCard } from '@/components/ui/state/EmptyStateCard';
+import { RestrictedStateCard } from '@/components/ui/state/RestrictedStateCard';
 import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
 import { FilterRail } from '@/components/workspace/FilterRail';
 import { useToast } from '@/components/ui/Toast';
@@ -84,7 +85,7 @@ export function SharedNotebookDetailClient({ slug, notebookIdOrSlug }: Props) {
   if (!loading && !data) {
     return (
       <Card className='stack'>
-        <EmptyState title='Coletivo nao encontrado' description='Este espaco pode nao ser publico ou voce pode nao ter acesso a ele.' actions={[{ label: 'Voltar aos coletivos', href: buildUniverseHref(slug, 'coletivos') }]} />
+        <RestrictedStateCard title='Coletivo indisponivel' description='Este espaco pode ser privado, ainda nao estar publicado para seu perfil ou simplesmente nao existir neste universo.' primaryAction={{ label: 'Voltar aos coletivos', href: buildUniverseHref(slug, 'coletivos') }} secondaryAction={{ label: 'Ir para Meu Caderno', href: buildUniverseHref(slug, 'meu-caderno') }} />
       </Card>
     );
   }
@@ -204,7 +205,7 @@ export function SharedNotebookDetailClient({ slug, notebookIdOrSlug }: Props) {
               </article>
             ))}
           </div>
-          {!loading && filtered.length === 0 ? <EmptyState title='Sem itens neste recorte' description='Ajuste filtros ou adicione highlights/notas ao coletivo.' actions={[{ label: 'Voltar aos coletivos', href: buildUniverseHref(slug, 'coletivos') }]} /> : null}
+          {!loading && filtered.length === 0 ? <EmptyStateCard eyebrow='filtro sem resultado' title='Sem itens neste recorte' description='Ajuste filtros ou adicione highlights, notas e evidencias ao coletivo para formar uma base compartilhada.' primaryAction={{ label: 'Voltar aos coletivos', href: buildUniverseHref(slug, 'coletivos') }} secondaryAction={data?.canEdit ? { label: 'Abrir Meu Caderno', href: buildUniverseHref(slug, 'meu-caderno') } : undefined} /> : null}
         </Card>
       </div>
     </WorkspaceShell>

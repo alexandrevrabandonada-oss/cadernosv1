@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { Badge } from '@/components/ui/Badge';
+import { EmptyState } from '@/components/ui/EmptyState';
 
 export type HighlightStripItem = {
   id: string;
@@ -26,9 +27,7 @@ export function HighlightsStrip({ title, description, items, emptyLabel = 'Sem d
         </p>
       </header>
       {items.length === 0 ? (
-        <p className='muted' style={{ margin: 0 }}>
-          {emptyLabel}
-        </p>
+        <EmptyState title='Nada preso aqui ainda' description={emptyLabel} variant='no-data' />
       ) : (
         <div className='hot-strip cv-snap-row cv-scroll-cue' role='list' aria-label={title}>
           {items.map((item) => (
