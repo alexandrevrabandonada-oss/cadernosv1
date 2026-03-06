@@ -20,6 +20,7 @@ import { Wordmark } from '@/components/brand/Wordmark';
 import { UniverseSeal } from '@/components/brand/UniverseSeal';
 import { EditorialMediaFrame } from '@/components/brand/EditorialMediaFrame';
 import { BrandIcon } from '@/components/brand/icons/BrandIcon';
+import { getStudyWeekSummary } from '@/lib/study/service';
 
 type UniversoPageProps = {
   params: Promise<{
@@ -44,6 +45,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
   const access = await getUniverseAccessBySlug(slug);
   const universe = await getHubData(slug);
   const uiPrefs = await getUserUiSettings();
+  const studyWeek = uiPrefs.isLoggedIn ? await getStudyWeekSummary(slug) : null;
 
   const sectionLabels: Record<string, string> = {
     mapa: 'Mapa',
@@ -226,6 +228,25 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           ))}
         </div>
       </Card>
+
+      {studyWeek ? (
+        <Card className='stack surface-plate'>
+          <header className='stack' style={{ gap: '0.35rem' }}>
+            <h2 style={{ margin: 0 }}>Seu ritmo nesta semana</h2>
+            <p className='muted' style={{ margin: 0 }}>
+              Recap leve do que voce realmente estudou neste universo, sem ranking nem comparacao.
+            </p>
+          </header>
+          <div className='toolbar-row'>
+            <Carimbo>{`dias ativos:${studyWeek.activeDays}`}</Carimbo>
+            <Carimbo>{`minutos:${studyWeek.focusMinutes}`}</Carimbo>
+            <Carimbo>{`itens:${studyWeek.itemsStudied}`}</Carimbo>
+          </div>
+          <PrefetchLink className='ui-button' href={buildUniverseHref(slug, 'meu-caderno/recap')}>
+            Abrir Recap
+          </PrefetchLink>
+        </Card>
+      ) : null}
 
       <Card className='stack surface-plate' id='destaques'>
         <header className='stack' style={{ gap: '0.35rem' }}>

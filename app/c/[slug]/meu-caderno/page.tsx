@@ -23,10 +23,11 @@ export default async function MeuCadernoPage({ params, searchParams }: MeuCadern
   return (
     <div className='stack'>
       <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Meu Caderno' />
-      <MyNotebookWorkspace slug={slug} title={access.universe.title} filters={filters} />
+      <MyNotebookWorkspace slug={slug} title={access.universe.title} filters={filters} isPublished={access.published} />
       <Card className='stack'>
         <Portais slug={slug} currentPath='meu-caderno' title='Proximas portas' />
       </Card>
     </div>
   );
 }
+

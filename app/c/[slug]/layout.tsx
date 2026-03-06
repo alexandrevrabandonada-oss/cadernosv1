@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { AnalyticsBridge } from '@/components/analytics/AnalyticsBridge';
 import { QuickNav } from '@/components/QuickNav';
 import { CommandPalette } from '@/components/command/CommandPalette';
+import { StudyTrackerProvider } from '@/components/study/StudyTrackerProvider';
 import { Card } from '@/components/ui/Card';
 import { MotionModeSync } from '@/components/ui/MotionModeSync';
 import { UiPrefsProvider } from '@/components/ui/UiPrefsProvider';
@@ -32,28 +33,30 @@ export default async function UniversoLayout({ children, params }: UniversoLayou
   return (
     <UiPrefsProvider initialSettings={uiPrefs.settings} isLoggedIn={uiPrefs.isLoggedIn}>
       <WorkspaceProvider>
-        <MotionModeSync />
-        <main
-          className='split-layout'
-          data-density={uiPrefs.settings.density}
-          data-texture={uiPrefs.settings.texture}
-          data-focus={uiPrefs.settings.focus_mode && !snapshotMode ? 'on' : 'off'}
-        >
-          <AnalyticsBridge universeSlug={slug} />
-          <QuickNav slug={slug} />
-          <div className='stack'>
-            {!access.published && access.canPreview ? (
-              <Card className='stack'>
-                <UniverseVisibilityBadge published={false} preview />
-                <p className='muted' style={{ margin: 0 }}>
-                  Este universo ainda nao esta publicado. Somente editor/admin pode ver este preview.
-                </p>
-              </Card>
-            ) : null}
-            {children}
-          </div>
-        </main>
-        <CommandPalette universeSlug={slug} />
+        <StudyTrackerProvider universeSlug={slug}>
+          <MotionModeSync />
+          <main
+            className='split-layout'
+            data-density={uiPrefs.settings.density}
+            data-texture={uiPrefs.settings.texture}
+            data-focus={uiPrefs.settings.focus_mode && !snapshotMode ? 'on' : 'off'}
+          >
+            <AnalyticsBridge universeSlug={slug} />
+            <QuickNav slug={slug} />
+            <div className='stack'>
+              {!access.published && access.canPreview ? (
+                <Card className='stack'>
+                  <UniverseVisibilityBadge published={false} preview />
+                  <p className='muted' style={{ margin: 0 }}>
+                    Este universo ainda nao esta publicado. Somente editor/admin pode ver este preview.
+                  </p>
+                </Card>
+              ) : null}
+              {children}
+            </div>
+          </main>
+          <CommandPalette universeSlug={slug} />
+        </StudyTrackerProvider>
       </WorkspaceProvider>
     </UiPrefsProvider>
   );

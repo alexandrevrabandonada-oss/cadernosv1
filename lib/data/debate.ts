@@ -14,6 +14,13 @@ type UniverseContext = {
   title: string;
 };
 
+export type DocViewChunk = {
+  id: string;
+  pageStart: number | null;
+  pageEnd: number | null;
+  text: string;
+};
+
 export type DocViewData = {
   id: string;
   title: string;
@@ -23,6 +30,7 @@ export type DocViewData = {
   storagePath: string | null;
   status: 'uploaded' | 'processed' | 'link_only' | 'error';
   signedUrl: string | null;
+  chunks: DocViewChunk[];
 };
 
 export type DocThreadCitation = {
@@ -127,6 +135,34 @@ function mockThreadList(slug: string): DebateThreadItem[] {
       divergenceFlag: index % 4 === 0,
     } satisfies DebateThreadItem;
   });
+}
+
+function mockDocumentViewData(slug: string, docId: string): DocViewData | null {
+  if (docId !== `${slug}-doc-1`) return null;
+  return {
+    id: docId,
+    title: 'Documento Demo',
+    authors: 'Equipe Cadernos Vivos',
+    year: 2024,
+    sourceUrl: 'https://example.com/documento-demo',
+    storagePath: null,
+    status: 'processed',
+    signedUrl: null,
+    chunks: [
+      {
+        id: `${docId}-chunk-1`,
+        pageStart: 12,
+        pageEnd: 12,
+        text: 'Trecho para smoke de highlight real no Doc Viewer. Este paragrafo existe para selecao, nota opcional e reabertura pelo Meu Caderno sem depender de PDF binario.',
+      },
+      {
+        id: `${docId}-chunk-2`,
+        pageStart: 13,
+        pageEnd: 13,
+        text: 'Segundo bloco do documento demo com contexto adicional para reancoragem por offsets e anchor simples usando prefixo e sufixo em texto linear.',
+      },
+    ],
+  };
 }
 
 function mockThreadDetail(slug: string, threadId: string): DebateThreadDetail | null {
@@ -581,18 +617,31 @@ export async function getThreadRelated(
 }
 
 export async function getDocumentViewData(slug: string, docId: string): Promise<DocViewData | null> {
+  if (isTestSeedEnabled()) {
+    return mockDocumentViewData(slug, docId);
+  }
+
   const universe = await getUniverseContextBySlug(slug);
   if (!universe) return null;
 
   const db = getSupabaseServerClient();
   if (!db) return null;
 
-  const { data: doc } = await db
-    .from('documents')
-    .select('id, title, authors, year, source_url, storage_path, status, is_deleted')
-    .eq('id', docId)
-    .eq('universe_id', universe.id)
-    .maybeSingle();
+  const [{ data: doc }, { data: chunks }] = await Promise.all([
+    db
+      .from('documents')
+      .select('id, title, authors, year, source_url, storage_path, status, is_deleted')
+      .eq('id', docId)
+      .eq('universe_id', universe.id)
+      .maybeSingle(),
+    db
+      .from('chunks')
+      .select('id, page_start, page_end, text, created_at')
+      .eq('document_id', docId)
+      .eq('universe_id', universe.id)
+      .order('page_start', { ascending: true })
+      .order('created_at', { ascending: true }),
+  ]);
 
   if (!doc || doc.is_deleted) return null;
 
@@ -612,6 +661,12 @@ export async function getDocumentViewData(slug: string, docId: string): Promise<
     storagePath: doc.storage_path,
     status: doc.status,
     signedUrl,
+    chunks: (chunks ?? []).map((chunk) => ({
+      id: chunk.id,
+      pageStart: chunk.page_start,
+      pageEnd: chunk.page_end,
+      text: chunk.text,
+    })),
   };
 }
 
@@ -620,6 +675,11 @@ export async function getThreadCitationsForDocument(
   docId: string,
   threadId: string,
 ): Promise<DocThreadCitation[]> {
+  if (isTestSeedEnabled()) {
+    const mock = mockThreadDetail(slug, threadId);
+    return (mock?.citations ?? []).filter((citation) => citation.docId === docId);
+  }
+
   const universe = await getUniverseContextBySlug(slug);
   if (!universe) return [];
 

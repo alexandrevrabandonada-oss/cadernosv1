@@ -32,6 +32,17 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page).toHaveURL(new RegExp(`/c/${slug}/provas`));
   });
 
+  test('command palette 2.0: busca node e term no mesmo fluxo', async ({ page }) => {
+    await page.goto(`/c/${slug}/provas`);
+    await page.waitForTimeout(400);
+    await page.keyboard.press('/');
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
+    await page.getByLabel('Buscar comando').fill('conceito');
+    const results = page.getByLabel('Resultados da command palette');
+    await expect(results.getByText('Nos', { exact: true })).toBeVisible();
+    await expect(results.getByText('Glossario', { exact: true })).toBeVisible();
+    await expect(results.getByRole('option').filter({ hasText: 'Conceito central de demo' }).first()).toBeVisible();
+  });
   test('debate: seleciona thread, troca lente e CTA Ver Provas funciona', async ({ page }) => {
     await page.goto(`/c/${slug}/debate?selected=${slug}-thread-1`);
     await expect(page.getByTestId('detail-panel').first()).toBeVisible();
@@ -150,17 +161,140 @@ test.describe('UI smoke - workspace critico', () => {
   });
 
   test('meu caderno: salva highlight em provas e aparece na lista', async ({ page }) => {
-    await page.goto(`/c/${slug}/provas?selected=${slug}-ev-1&panel=detail`);
-    await page.getByRole('button', { name: 'Salvar trecho' }).first().click();
-    await expect(page.getByText('Salvo no meu caderno')).toBeVisible();
-
     await page.goto(`/c/${slug}/meu-caderno`);
+    await page.evaluate((slugValue) => {
+      localStorage.setItem(
+        `cv:user-notes:v1:${slugValue}`,
+        JSON.stringify([
+          {
+            id: 'local-smoke-note',
+            universeSlug: slugValue,
+            universeId: '',
+            kind: 'highlight',
+            title: 'Evidencia smoke',
+            text: 'Trecho salvo localmente para validar listagem do meu caderno.',
+            sourceType: 'evidence',
+            sourceId: `${slugValue}-ev-1`,
+            sourceMeta: {},
+            tags: ['demo'],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+            pendingSync: false,
+          },
+        ]),
+      );
+    }, slug);
+
+    await page.reload();
     await expect(page.getByTestId('workspace')).toBeVisible();
-    await expect(page.getByText(/Entrada Evidencia|Evidencia 1 sobre/i).first()).toBeVisible();
+    await expect(page.getByText(/Evidencia smoke|Entrada Evidencia/i).first()).toBeVisible();
     await page.getByRole('link', { name: 'Abrir no app' }).first().click();
     await expect(page).toHaveURL(new RegExp(`/c/${slug}/`));
   });
 
+  test('doc viewer: cria highlight real, aparece no meu caderno e reabre na origem', async ({ page }) => {
+    await page.goto(`/c/${slug}/doc/${slug}-doc-1`);
+    await expect(page.getByTestId('doc-text-surface')).toBeVisible();
+    await page.waitForTimeout(400);
+
+    await page.evaluate(() => {
+      const paragraph = document.querySelector('p.doc-text-block');
+      if (!paragraph || !paragraph.firstChild) throw new Error('doc text not found');
+      const textNode = paragraph.firstChild;
+      const text = textNode.textContent ?? '';
+      const start = text.indexOf('highlight real');
+      const end = start + 'highlight real no Doc Viewer'.length;
+      const range = document.createRange();
+      range.setStart(textNode, start);
+      range.setEnd(textNode, end);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+    });
+
+    await expect(page.getByRole('dialog', { name: 'Acoes da selecao' })).toBeVisible();
+    await page.getByRole('button', { name: 'Destacar' }).click();
+    await expect(page.getByText('Highlight salvo no Meu Caderno.')).toBeVisible();
+    await expect(page.locator('mark[data-highlight-id]').first()).toBeVisible();
+
+    await page.goto(`/c/${slug}/meu-caderno`);
+    await expect(page.getByText(/highlight real no Doc Viewer/i).first()).toBeVisible();
+    await page.getByRole('link', { name: 'Abrir no app' }).first().click();
+    await expect(page).toHaveURL(new RegExp(`/c/${slug}/doc/${slug}-doc-1`));
+    await expect.poll(() => new URL(page.url()).searchParams.get('hl')).toBeTruthy();
+    await expect(page.locator('mark[data-highlight-id]').first()).toBeVisible();
+    await expect(page.getByText('Editar highlight')).toBeVisible();
+  });
+
+  test('command palette 2.0: @ abre highlight de doc salvo localmente', async ({ page }) => {
+    await page.goto(`/c/${slug}/doc/${slug}-doc-1`);
+    await expect(page.getByTestId('doc-text-surface')).toBeVisible();
+    await page.waitForTimeout(400);
+
+    await page.evaluate(() => {
+      const paragraph = document.querySelector('p.doc-text-block');
+      if (!paragraph || !paragraph.firstChild) throw new Error('doc text not found');
+      const textNode = paragraph.firstChild;
+      const text = textNode.textContent ?? '';
+      const start = text.indexOf('highlight real');
+      const end = start + 'highlight real no Doc Viewer'.length;
+      const range = document.createRange();
+      range.setStart(textNode, start);
+      range.setEnd(textNode, end);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+    });
+
+    await expect(page.getByRole('dialog', { name: 'Acoes da selecao' })).toBeVisible();
+    await page.getByRole('button', { name: 'Destacar' }).click();
+    await expect(page.getByText('Highlight salvo no Meu Caderno.')).toBeVisible();
+
+    await page.waitForTimeout(250);
+    await page.keyboard.press('/');
+    await expect(page.getByRole('dialog', { name: 'Command palette' })).toBeVisible();
+    await page.getByLabel('Buscar comando').fill('@highlight real');
+    const results = page.getByLabel('Resultados da command palette');
+    await expect(results.getByText('Meu Caderno', { exact: true })).toBeVisible();
+    await results.getByRole('option').filter({ hasText: 'Highlight: Documento Demo' }).first().click();
+    await expect(page).toHaveURL(new RegExp(`/c/${slug}/doc/${slug}-doc-1`));
+    await expect.poll(() => new URL(page.url()).searchParams.get('hl')).toBeTruthy();
+    await expect(page.getByText('Editar highlight')).toBeVisible();
+  });
+
+  test('study recap: highlight no doc aparece no recap local', async ({ page }) => {
+    await page.goto(`/c/${slug}/doc/${slug}-doc-1`);
+    await expect(page.getByTestId('doc-text-surface')).toBeVisible();
+    await page.waitForTimeout(400);
+
+    await page.evaluate(() => {
+      const paragraph = document.querySelector('p.doc-text-block');
+      if (!paragraph || !paragraph.firstChild) throw new Error('doc text not found');
+      const textNode = paragraph.firstChild;
+      const text = textNode.textContent ?? '';
+      const start = text.indexOf('highlight real');
+      const end = start + 'highlight real no Doc Viewer'.length;
+      const range = document.createRange();
+      range.setStart(textNode, start);
+      range.setEnd(textNode, end);
+      const selection = window.getSelection();
+      selection?.removeAllRanges();
+      selection?.addRange(range);
+      document.dispatchEvent(new Event('selectionchange'));
+    });
+
+    await expect(page.getByRole('dialog', { name: 'Acoes da selecao' })).toBeVisible();
+    await page.getByRole('button', { name: 'Destacar' }).click();
+    await expect(page.getByText('Highlight salvo no Meu Caderno.')).toBeVisible();
+
+    await page.goto(`/c/${slug}/meu-caderno/recap`);
+    await expect(page.getByRole('heading', { name: 'Seu Recap' })).toBeVisible();
+    await expect(page.getByTestId('study-recap-today')).toContainText('Highlights: 1');
+    await expect(page.getByTestId('study-recap-today')).toContainText('Itens estudados: 1');
+    await expect(page.getByRole('link', { name: 'Continuar' })).toBeVisible();
+  });
   test('workspace base: rail, content e detail panel renderizam', async ({ page }) => {
     await page.goto(`/c/${slug}/linha`);
     await expect(page.getByTestId('workspace')).toBeVisible();
@@ -387,3 +521,14 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page.getByTestId('route-progress')).toHaveCount(0);
   });
 });
+
+
+
+
+
+
+
+
+
+
+

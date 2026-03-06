@@ -1,102 +1,68 @@
 # Estado da Nacao — Cadernos Vivos
 Data: 2026-03-05
+Prompt: VIZ-17
 Commit (se possivel): n/a
 
-## 1) O que mudou neste tijolo (VIZ-12)
-- Feedback app-grade opcional implementado com `haptics` + `sound_cues` (opt-in).
-- Export 1-tap de trecho (`clip`) implementado no pipeline de exports.
-- Botao `Exportar trecho` aplicado no reader/focus de Provas, Documento e Tutor.
-- Fluxos de copiar/compartilhar/concluir agora disparam feedback fisico/sonoro quando habilitado.
+## 1) O que entrou neste tijolo
+- Sessões de estudo por universo com persistencia local para visitante e base dedicada (`study_sessions` / `study_daily`) para usuario logado.
+- Tracker leve acoplado ao layout do universo, reagindo a Focus Mode, Doc Viewer, trilhas, tutor e salvamento de highlights/notas.
+- Recap em `/c/[slug]/meu-caderno/recap` com cards de Hoje, Semana, Ultimas sessoes, CTA de continuidade e recomendacoes deterministicas.
+- Card discreto no hub quando ha atividade recente de estudo na semana.
 
-## 2) Novos settings (haptics/sound)
-Arquivos:
-- `lib/user/uiSettings.ts`
-- `hooks/useUiPrefs.ts`
-- `components/ui/UiPrefsProvider.tsx`
-- `app/api/user/ui-settings/route.ts`
-- `components/ui/HapticsToggle.tsx`
-- `components/ui/SoundCuesToggle.tsx`
-- `components/ui/UiPreferencesMenu.tsx`
+## 2) Migrations study_sessions / study_daily
+- Nova migration: `supabase/migrations/20260306090000_study_sessions_daily.sql`.
+- `public.study_sessions` guarda metadados da sessao: `started_at`, `ended_at`, `duration_sec`, `focus_minutes`, `items`, `stats`.
+- `public.study_daily` agrega por dia para streak util e recap semanal.
+- RLS owner-only para `SELECT`, `INSERT` e `UPDATE` (`auth.uid() = user_id`).
 
-Detalhes:
-- `ui_settings` agora inclui:
-  - `haptics: boolean` (default `false`)
-  - `sound_cues: boolean` (default `false`)
-- Persistencia:
-  - visitante: `localStorage`
-  - logado: PATCH `/api/user/ui-settings` (perfil)
+## 3) Onde o tracker dispara
+- Provider global do universo: `components/study/StudyTrackerProvider.tsx`, montado em `app/c/[slug]/layout.tsx`.
+- Eventos automaticos por rota/contexto:
+  - `doc_open`
+  - `evidence_view`
+  - `thread_view`
+  - `event_view`
+  - `focus_mode`
+- Eventos instrumentados na UI:
+  - `highlight_created` / `note_created` ao salvar no Meu Caderno
+  - `trail_step_open` / `trail_step_done` em Trilhas
+  - `tutor_point_open` / `tutor_ask` no Tutor
+- Idle > 5 min ou `pagehide` fecha a sessao; visitante persiste local, logado envia patch para `/api/study`.
 
-## 3) Feedback engine
-Arquivos:
-- `lib/feedback/feedback.ts`
-- `tests/feedback.test.ts`
+## 4) Rota recap
+- Nova rota: `/c/[slug]/meu-caderno/recap`.
+- Cliente de recap: `components/study/StudyRecapClient.tsx`.
+- Visitante usa `localStorage` + agregacao local.
+- Logado tenta `/api/study?universeSlug=...` e cai para fallback local se necessario.
+- `Continuar no ponto X` usa o ultimo item tocado; se nao houver item com `href`, usa `last_section`.
 
-Implementado:
-- `canVibrate()`
-- `vibrate(type)` com padroes curtos (`tap/success/warning`)
-- `playCue(type)` via WebAudio (beep curto)
-- `feedback(type, settings)` com no-op seguro em ambiente sem suporte
+## 5) Recomendacoes e privacidade
+- Recomendacao deterministica em `lib/study/recommend.ts` sugere 2 nos e 3 evidencias publicadas a partir de `nodeSlug`, tags e secoes recentes.
+- O tracker nao guarda texto integral de perguntas/respostas nem selecao textual completa; isso continua restrito a `user_notes`.
+- Study Sessions nao entram em share pages e nao criam gamificacao competitiva.
 
-Aplicacoes:
-- `components/share/ShareButton.tsx`
-- `components/provas/CopyCitationButton.tsx`
-- `components/export/GenerateExportButton.tsx`
-- `components/trilhas/TrailPlayer.tsx`
-- `components/tutor/TutorPointLab.tsx`
-- `components/debate/ThreadDetailActions.tsx`
-- `components/share/SharePackOpsClient.tsx` (opcional admin)
+## 6) Testes e docs
+- Unit:
+  - `tests/study-aggregate.test.ts`
+  - `tests/study-recommend.test.ts`
+- E2E:
+  - `tests/e2e/ui-smoke.spec.ts` agora cobre highlight no doc chegando ao recap local.
+- Docs:
+  - `docs/STUDY.md`
 
-## 4) Export clip (kind + limites)
-Migration:
-- `supabase/migrations/20260305070000_export_clip_support.sql`
-  - adiciona `exports.source_type`, `exports.source_id`
-  - expande `exports_kind_check` para incluir `clip`
-  - indice `idx_exports_source_type_source_id`
+## 7) Como testar
+1. Abrir `/c/demo/doc/demo-doc-1`.
+2. Criar um highlight real no texto.
+3. Ir para `/c/demo/meu-caderno/recap`.
+4. Confirmar contagem em Hoje/Semana e o CTA `Continuar`.
+5. Exportar o notebook do Meu Caderno e verificar que os highlights do doc continuam no pack do proprio usuario.
 
-Backend:
-- `lib/export/clip.ts` (renderer markdown curto)
-- `lib/export/service.ts`
-  - novo `createClipExport(...)`
-  - suporte `kind='clip'` em tipo/insert/view
-  - fallback `TEST_SEED=1` para e2e
-- `app/api/admin/export/clip/route.ts`
-  - endpoint para gerar clip
-  - aceita `universeId` ou `universeSlug`
-
-UI Reader/Focus:
-- `app/c/[slug]/provas/page.tsx`
-- `app/c/[slug]/doc/[docId]/page.tsx`
-- `components/tutor/TutorPointLab.tsx`
-- `app/c/[slug]/tutor/s/[sessionId]/p/[index]/page.tsx`
-- `app/globals.css` (`.focus-only` + visibilidade em `data-focus='on'`)
-
-Limites:
-- snippet truncado (~800–1200 chars, clamp 1200)
-- PDF curto (1–2 paginas, estrutura enxuta)
-- default de visibilidade: `is_public=false`
-
-## 5) Docs atualizadas
-- `docs/PWA.md` (feedback app-grade: haptics/sound)
-- `docs/EXPORTS.md` (tipo `clip`, endpoint e fluxo)
-
-## 6) Testes / ajustes CI
-Atualizacoes:
-- `tests/e2e/ui-smoke.spec.ts`
-  - novo teste: `export clip: endpoint gera asset e link de download`
-  - robustez no fluxo de selecao de Provas (usa href direto para evitar flake)
-- `tests/e2e/helpers/visual.ts`
-  - ajuste de tolerancia visual `maxDiffPixelRatio: 0.04`
-- snapshots atualizados em `tests/e2e/screenshots/visual.spec.ts/*`
-
-Como testar manualmente:
-1. Abrir `/c/demo/provas`, selecionar evidencia e ativar `Imersao`.
-2. Em Preferencias, ligar `Haptics` e/ou `Som`.
-3. Clicar `Copiar citacao` / `Compartilhar` e validar feedback.
-4. Em foco, clicar `Exportar trecho` e baixar PDF.
-5. Repetir em `/c/demo/doc/<docId>` com citacao selecionada.
-6. Repetir no Tutor (`/c/demo/tutor/s/local/p/0`) apos resposta guiada.
-
-## 7) Verificacoes finais
+## 8) Verificacoes finais
 - `npm run verify`: ✅ PASSOU
 - `npm run test:e2e:ci`: ✅ PASSOU
 - `npm run test:ui:ci`: ✅ PASSOU
+
+## 9) Observacoes
+- Durante a execucao, continuam aparecendo warnings nao bloqueantes do Next sobre `themeColor` em metadata e `metadataBase` ausente em algumas share pages.
+- Tambem persiste o warning do Sentry recomendando migracao de `sentry.client.config.ts` para `instrumentation-client.ts`.
+- O primeiro disparo local de `npm run test:e2e:ci` bateu no timeout do executor, mas a repeticao com janela maior concluiu com `39 passed`.

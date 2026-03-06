@@ -1,9 +1,10 @@
 'use client';
 
 import Link from 'next/link';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Carimbo } from '@/components/ui/Badge';
 import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
+import { useStudyTracker } from '@/hooks/useStudyTracker';
 import { feedback } from '@/lib/feedback/feedback';
 import { useTrailProgress } from '@/hooks/useTrailProgress';
 import type { TrailView } from '@/lib/data/learning';
@@ -21,6 +22,10 @@ type TrailPlayerProps = {
 
 function askedKey(slug: string, trailId: string) {
   return `cv:trail-asked:${slug}:${trailId}`;
+}
+
+function buildStepHref(slug: string, trailId: string, stepOrder: number) {
+  return `/c/${slug}/trilhas?trail=${encodeURIComponent(trailId)}&step=${stepOrder}`;
 }
 
 export function TrailPlayer({
@@ -43,6 +48,7 @@ export function TrailPlayer({
   });
   const [error, setError] = useState('');
   const prefs = useUiPrefsContext();
+  const { trackAction } = useStudyTracker();
 
   const progress = useTrailProgress({
     universeSlug: slug,
@@ -54,12 +60,23 @@ export function TrailPlayer({
     persistStepDone: onMarkDone,
   });
 
-  const activeStep =
-    trail.steps.find((step) => step.order === activeStepOrder) ??
-    trail.steps[0] ??
-    null;
-
+  const activeStep = trail.steps.find((step) => step.order === activeStepOrder) ?? trail.steps[0] ?? null;
   const progressPct = progress.total > 0 ? Math.round((progress.completedCount / progress.total) * 100) : 0;
+
+  useEffect(() => {
+    if (!activeStep) return;
+    trackAction({
+      action: 'trail_step_open',
+      item: {
+        type: 'trail',
+        id: activeStep.id,
+        label: activeStep.title,
+        href: buildStepHref(slug, trail.id, activeStep.order),
+        nodeSlug: activeStep.guidedNodeSlug ?? null,
+      },
+      lastSection: 'trilhas',
+    });
+  }, [activeStep, slug, trackAction, trail.id]);
 
   const markAsked = (stepId: string) => {
     setAsked((current) => {
@@ -82,6 +99,17 @@ export function TrailPlayer({
     }
     setError('');
     await progress.markDone(activeStep.id);
+    trackAction({
+      action: 'trail_step_done',
+      item: {
+        type: 'trail',
+        id: activeStep.id,
+        label: activeStep.title,
+        href: buildStepHref(slug, trail.id, activeStep.order),
+        nodeSlug: activeStep.guidedNodeSlug ?? null,
+      },
+      lastSection: 'trilhas',
+    });
     feedback('success', prefs?.settings);
   }
 

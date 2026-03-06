@@ -44,6 +44,7 @@ export default async function ShareExportPage({ params }: ShareExportPageProps) 
 
   const shareUrl = `/c/${slug}/s/export/${id}`;
   const createdAtLabel = new Date(exportItem.createdAt).toLocaleString('pt-BR');
+  const downloadLabel = exportItem.format === 'pdf' ? 'Baixar PDF' : 'Baixar arquivo';
 
   return (
     <main className='stack'>
@@ -77,7 +78,7 @@ export default async function ShareExportPage({ params }: ShareExportPageProps) 
               data-track-object-type='export'
               data-track-object-id={id}
             >
-              Baixar PDF
+              {downloadLabel}
             </a>
           ) : (
             <span className='muted'>Download indisponivel</span>
@@ -102,3 +103,4 @@ export default async function ShareExportPage({ params }: ShareExportPageProps) 
     </main>
   );
 }
+

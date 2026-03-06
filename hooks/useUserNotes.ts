@@ -15,6 +15,8 @@ type FilterInput = {
   q?: string;
 };
 
+const USER_NOTES_SYNC_EVENT = 'cv:user-notes-sync';
+
 function storageKey(slug: string) {
   return `cv:user-notes:v1:${slug}`;
 }
@@ -57,6 +59,7 @@ function readLocal(slug: string) {
 function writeLocal(slug: string, notes: UserNote[]) {
   try {
     localStorage.setItem(storageKey(slug), JSON.stringify(notes.slice(0, 300)));
+    window.dispatchEvent(new CustomEvent(USER_NOTES_SYNC_EVENT, { detail: { slug } }));
   } catch {}
 }
 
@@ -79,10 +82,38 @@ export function useUserNotes({ universeSlug }: UseUserNotesInput) {
 
   useEffect(() => {
     let mounted = true;
-    const local = readLocal(universeSlug);
-    setNotes(local);
-    setLoading(false);
-    if (!isLoggedIn) return;
+    const syncFromLocal = () => {
+      const local = readLocal(universeSlug);
+      if (!mounted) return local;
+      setNotes(local);
+      setLoading(false);
+      return local;
+    };
+
+    const local = syncFromLocal();
+
+    const onSync = (event: Event) => {
+      const detail = (event as CustomEvent<{ slug?: string }>).detail;
+      if (detail?.slug && detail.slug !== universeSlug) return;
+      syncFromLocal();
+    };
+
+    const onStorage = (event: StorageEvent) => {
+      if (event.key && event.key !== storageKey(universeSlug)) return;
+      syncFromLocal();
+    };
+
+    window.addEventListener(USER_NOTES_SYNC_EVENT, onSync as EventListener);
+    window.addEventListener('storage', onStorage);
+
+    if (!isLoggedIn) {
+      return () => {
+        mounted = false;
+        window.removeEventListener(USER_NOTES_SYNC_EVENT, onSync as EventListener);
+        window.removeEventListener('storage', onStorage);
+      };
+    }
+
     const loadRemote = async () => {
       try {
         const response = await fetch(`/api/notes?universeSlug=${encodeURIComponent(universeSlug)}&limit=80`, { method: 'GET' });
@@ -116,9 +147,12 @@ export function useUserNotes({ universeSlug }: UseUserNotesInput) {
         // offline fallback
       }
     };
+
     void loadRemote();
     return () => {
       mounted = false;
+      window.removeEventListener(USER_NOTES_SYNC_EVENT, onSync as EventListener);
+      window.removeEventListener('storage', onStorage);
     };
   }, [isLoggedIn, universeSlug]);
 

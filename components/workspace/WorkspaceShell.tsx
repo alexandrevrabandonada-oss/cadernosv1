@@ -26,6 +26,7 @@ type WorkspaceShellProps = {
   detailTitle?: string;
   selectedId?: string;
   preview?: boolean;
+  headerActions?: ReactNode;
 };
 
 export function WorkspaceShell({
@@ -39,6 +40,7 @@ export function WorkspaceShell({
   detailTitle = 'Detalhes',
   selectedId = '',
   preview = false,
+  headerActions,
 }: WorkspaceShellProps) {
   const sectionIcons: Record<WorkspaceShellProps['section'], BrandIconName> = {
     provas: 'provas',
@@ -106,6 +108,7 @@ export function WorkspaceShell({
           ) : null}
         </div>
         <div className='toolbar-row'>
+          {headerActions}
           <FocusToggle compactLabel />
           <UiPreferencesMenu compact />
           {preview ? <Carimbo>Preview</Carimbo> : null}
@@ -155,7 +158,8 @@ export function WorkspaceShell({
         <header className='workspace-detail-head'>
           <strong>Filtros</strong>
           <div className='toolbar-row'>
-            <FocusToggle compactLabel />
+            {headerActions}
+          <FocusToggle compactLabel />
             <UiPreferencesMenu compact />
             <button type='button' className='ui-button' data-variant='ghost' onClick={panels.closeFilters} aria-label='Fechar filtros'>
               Fechar
@@ -169,3 +173,4 @@ export function WorkspaceShell({
     </section>
   );
 }
+

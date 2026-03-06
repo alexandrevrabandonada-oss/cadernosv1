@@ -151,3 +151,11 @@ Quando houver suspeita de vazamento, rotacionar imediatamente:
   - IP bruto
   - texto de perguntas do debate
   - payloads sensíveis de auth
+
+## Notebook exports
+
+- Exports do Meu Caderno nascem privados por padrao.
+- O toggle Tornar publico deve ser acionado manualmente pelo owner/admin e mostra aviso de privacidade.
+- Share publico so funciona quando is_public=true e o universo esta publicado.
+- O renderer limita 40 itens por export e 1200 caracteres por item para reduzir risco de vazamento e volume excessivo.
+

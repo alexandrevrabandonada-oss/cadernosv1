@@ -38,3 +38,17 @@ Campos principais:
 - Rota: `/c/[slug]/meu-caderno`
 - Filtros: tipo, fonte, tags, busca
 - Detalhe: edicao de texto/tags, deletar, `Abrir origem`
+
+## Exportar Meu Caderno
+
+- A tela /c/[slug]/meu-caderno agora oferece Exportar Meu Caderno com escopo total ou filtrado.
+- O pack de estudo gera MD/PDF com capa, indice por tags/tipo, itens com fonte, link Abrir no app e anexo de fontes.
+- Visitante pode exportar localmente; logado salva o export privado por padrao e pode publicar manualmente depois.
+
+
+## Highlights no Doc Viewer
+
+- O Doc Viewer de texto agora aceita selecao real do usuario com toolbar flutuante.
+- Cada highlight salvo no Meu Caderno guarda `source_type='doc'`, offsets, quote, pageHint e anchor simples (prefix/exact/suffix).
+- O CTA `Abrir origem` aponta para `/c/[slug]/doc/[docId]?hl=<id>` e aplica scroll + halo temporario no trecho.
+- Highlights do viewer continuam privados e nao entram em share pages.

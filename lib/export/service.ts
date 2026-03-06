@@ -9,7 +9,7 @@ import { renderClipMarkdown } from '@/lib/export/clip';
 import { buildTutorSessionSummary, upsertTutorSessionSummary } from '@/lib/tutor/summary';
 
 type ExportFormat = 'md' | 'pdf';
-type ExportKind = 'thread' | 'trail' | 'tutor_session' | 'clip';
+type ExportKind = 'thread' | 'trail' | 'tutor_session' | 'clip' | 'notebook';
 
 type StoredExport = {
   id: string;
@@ -21,6 +21,7 @@ type StoredExport = {
   title: string;
   format: ExportFormat;
   storage_path: string;
+  meta: Record<string, unknown>;
   source_type: 'evidence' | 'thread' | 'doc_cite' | null;
   source_id: string | null;
   is_public: boolean;
@@ -41,7 +42,13 @@ export type CreatedExport = {
   assets: ExportAsset[];
 };
 
-type ExportListItem = StoredExport & {
+export type UserNotebookExportListItem = StoredExport & {
+  meta: Record<string, unknown>;
+  universe_title: string;
+  universe_slug: string;
+};
+
+type ExportListItem = UserNotebookExportListItem & {
   universe_title: string;
   universe_slug: string;
 };
@@ -122,6 +129,7 @@ async function insertExportRow(input: {
   title: string;
   format: ExportFormat;
   storagePath: string;
+  meta?: Record<string, unknown>;
   isPublic: boolean;
   createdBy: string | null;
 }) {
@@ -140,6 +148,7 @@ async function insertExportRow(input: {
       title: input.title,
       format: input.format,
       storage_path: input.storagePath,
+      meta: input.meta ?? {},
       is_public: input.isPublic,
       created_by: input.createdBy,
     })
@@ -1027,7 +1036,7 @@ export async function getExportViewBySlug(slug: string, exportId: string): Promi
   const { data: row } = await db
     .from('exports')
     .select(
-      'id, universe_id, kind, thread_id, trail_id, session_id, source_type, source_id, title, format, storage_path, is_public, created_by, created_at, universes!inner(title, slug, published, published_at)',
+      'id, universe_id, kind, thread_id, trail_id, session_id, source_type, source_id, title, format, storage_path, meta, is_public, created_by, created_at, universes!inner(title, slug, published, published_at)',
     )
     .eq('id', exportId)
     .eq('universes.slug', slug)
@@ -1045,6 +1054,7 @@ export async function getExportViewBySlug(slug: string, exportId: string): Promi
     title: row.title,
     format: row.format,
     storage_path: row.storage_path,
+    meta: (row.meta ?? {}) as Record<string, unknown>,
     source_type: row.source_type ?? null,
     source_id: row.source_id ?? null,
     is_public: row.is_public,
@@ -1078,3 +1088,7 @@ export async function getUniverseIdBySlug(slug: string) {
   const { data } = await db.from('universes').select('id').eq('slug', slug).maybeSingle();
   return data?.id ?? null;
 }
+
+
+
+

@@ -9,6 +9,7 @@ import { Carimbo } from '@/components/ui/Badge';
 import { FilterRail } from '@/components/workspace/FilterRail';
 import { ListKeyboardNavigator } from '@/components/workspace/ListKeyboardNavigator';
 import { WorkspaceShell } from '@/components/workspace/WorkspaceShell';
+import { NotebookExportControls } from '@/components/notes/NotebookExportControls';
 import type { CadernoFilters } from '@/lib/filters/cadernoFilters';
 import { serializeCadernoFilters } from '@/lib/filters/cadernoFilters';
 import type { UserNote } from '@/lib/notes/types';
@@ -19,6 +20,7 @@ type MyNotebookWorkspaceProps = {
   slug: string;
   title: string;
   filters: CadernoFilters;
+  isPublished: boolean;
 };
 
 function clip(text: string, max = 240) {
@@ -52,25 +54,40 @@ function buildOriginHref(slug: string, note: UserNote) {
   if (note.sourceType === 'citation' || note.sourceType === 'doc' || note.sourceType === 'chunk') {
     const docId = typeof note.sourceMeta?.docId === 'string' ? note.sourceMeta.docId : '';
     const pageStart = typeof note.sourceMeta?.pageStart === 'number' ? note.sourceMeta.pageStart : null;
-    if (docId) return `${buildUniverseHref(slug, `doc/${docId}`)}${pageStart ? `?p=${pageStart}` : ''}`;
+    const pageHint = typeof note.sourceMeta?.pageHint === 'string' ? note.sourceMeta.pageHint : '';
+    const hl = note.id;
+    if (docId) {
+      const qs = new URLSearchParams();
+      if (pageStart) qs.set('p', String(pageStart));
+      if (pageHint && !pageStart) qs.set('p', pageHint.replace(/^p\./, ''));
+      if (hl) qs.set('hl', hl);
+      const suffix = qs.toString();
+      return `${buildUniverseHref(slug, `doc/${docId}`)}${suffix ? `?${suffix}` : ''}`;
+    }
   }
   return buildUniverseHref(slug, '');
+}
+
+function sourceContext(note: UserNote) {
+  if (note.sourceType !== 'doc') return null;
+  const docTitle = typeof note.sourceMeta?.docTitle === 'string' ? note.sourceMeta.docTitle : note.title;
+  const pageHint = typeof note.sourceMeta?.pageHint === 'string' ? note.sourceMeta.pageHint : '';
+  return [docTitle, pageHint].filter(Boolean).join(' | ');
 }
 
 function buildContextualLinks(slug: string, note: UserNote) {
   const nodeSlug = typeof note.sourceMeta?.nodeSlug === 'string' ? note.sourceMeta.nodeSlug : '';
   const tagsCsv = note.tags.length > 0 ? `tags=${encodeURIComponent(note.tags.slice(0, 4).join(','))}` : '';
-  const links = [
+  return [
     { label: 'Ver Provas', href: `${buildUniverseHref(slug, 'provas')}${nodeSlug ? `?node=${encodeURIComponent(nodeSlug)}` : tagsCsv ? `?${tagsCsv}` : ''}` },
     { label: 'Ver Linha', href: `${buildUniverseHref(slug, 'linha')}${nodeSlug ? `?node=${encodeURIComponent(nodeSlug)}` : tagsCsv ? `?${tagsCsv}` : ''}` },
     { label: 'Ver Debate', href: `${buildUniverseHref(slug, 'debate')}${nodeSlug ? `?node=${encodeURIComponent(nodeSlug)}&status=strict_ok` : '?status=strict_ok'}` },
     { label: 'Abrir Tutor', href: buildUniverseHref(slug, 'tutor') },
   ];
-  return links;
 }
 
-export function MyNotebookWorkspace({ slug, title, filters }: MyNotebookWorkspaceProps) {
-  const { loading, tagPool, updateNote, deleteNote, filterNotes } = useUserNotes({ universeSlug: slug });
+export function MyNotebookWorkspace({ slug, title, filters, isPublished }: MyNotebookWorkspaceProps) {
+  const { loading, notes, isLoggedIn, tagPool, updateNote, deleteNote, filterNotes } = useUserNotes({ universeSlug: slug });
 
   const filtered = useMemo(
     () =>
@@ -99,6 +116,23 @@ export function MyNotebookWorkspace({ slug, title, filters }: MyNotebookWorkspac
       subtitle='Highlights e notas de estudo com abertura direta para a origem no universo.'
       selectedId={selected?.id ?? ''}
       detailTitle='Detalhe da anotacao'
+      headerActions={
+        <div className='stack' style={{ gap: '0.75rem' }}>
+          <div className='toolbar-row'>
+            <Link className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'meu-caderno/recap')}>
+              Ver Recap
+            </Link>
+          </div>
+          <NotebookExportControls
+            slug={slug}
+            universeTitle={title}
+            allItems={notes}
+            filteredItems={filtered}
+            isLoggedIn={isLoggedIn}
+            isPublished={isPublished}
+          />
+        </div>
+      }
       filter={
         <FilterRail title='Recortes do caderno'>
           <form method='get' className='stack'>
@@ -157,6 +191,7 @@ export function MyNotebookWorkspace({ slug, title, filters }: MyNotebookWorkspac
               <p className='muted' style={{ margin: 0 }}>
                 {new Date(selected.createdAt).toLocaleString('pt-BR')} | {sourceLabel(selected.sourceType)}
               </p>
+              {sourceContext(selected) ? <p className='muted' style={{ margin: 0 }}>{sourceContext(selected)}</p> : null}
               <textarea
                 defaultValue={selected.text}
                 rows={8}
@@ -214,6 +249,7 @@ export function MyNotebookWorkspace({ slug, title, filters }: MyNotebookWorkspac
                 <p className='muted' style={{ margin: 0 }}>
                   {sourceLabel(item.sourceType)} | {new Date(item.createdAt).toLocaleDateString('pt-BR')}
                 </p>
+                {sourceContext(item) ? <p className='muted' style={{ margin: 0 }}>{sourceContext(item)}</p> : null}
                 <p style={{ margin: 0 }}>{clip(item.text, 220)}</p>
                 <div className='toolbar-row'>
                   <Link className='ui-button' data-variant='ghost' href={makeUrl({ selected: item.id, panel: 'detail' })}>
@@ -237,6 +273,9 @@ export function MyNotebookWorkspace({ slug, title, filters }: MyNotebookWorkspac
         <Card className='stack'>
           <SectionHeader title='Proximas portas' description='Continue o estudo em outras salas do universo.' />
           <div className='toolbar-row'>
+            <Link className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'meu-caderno/recap')}>
+              Recap
+            </Link>
             <Link className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'provas')}>
               Provas
             </Link>

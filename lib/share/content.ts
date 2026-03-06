@@ -62,7 +62,7 @@ export type ShareExportCard = {
   slug: string;
   universeTitle: string;
   title: string;
-  kind: 'thread' | 'trail' | 'tutor_session' | 'clip';
+  kind: 'thread' | 'trail' | 'tutor_session' | 'clip' | 'notebook';
   format: 'md' | 'pdf';
   createdAt: string;
   subtitle: string;
@@ -388,6 +388,12 @@ export async function getShareExport(slug: string, id: string): Promise<ShareExp
     } else if (view.item.source_type === 'doc_cite' && view.item.source_id) {
       appHref = `/c/${slug}/provas?selected=${view.item.source_id}&panel=detail`;
     }
+  } else if (view.item.kind === 'notebook') {
+    subtitle = 'Pack de estudo do Meu Caderno';
+    const itemCount = typeof view.item.meta?.itemCount === 'number' ? view.item.meta.itemCount : null;
+    const tags = Array.isArray(view.item.meta?.tags) ? view.item.meta.tags.filter((item) => typeof item === 'string').slice(0, 5) : [];
+    snippet = clip(`${itemCount ? `${itemCount} itens.` : ''} ${tags.length > 0 ? `Tags: ${tags.join(', ')}.` : 'Highlights e notas com links para abrir no app.'}`, 280);
+    appHref = `/c/${slug}/meu-caderno`;
   }
 
   let downloadUrl = view.signedUrl;
@@ -485,3 +491,5 @@ export async function getShareTerm(slug: string, id: string): Promise<ShareTermC
     questions: detail.questionPrompts.slice(0, 2),
   };
 }
+
+

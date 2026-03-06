@@ -38,3 +38,9 @@
 2. Limpar `Cache Storage`.
 3. Recarregar para reinstalar o service worker e repopular caches.
 
+
+## Persistencia local de highlights do Doc Viewer
+
+- Visitante salva highlights do documento em localStorage por universo com o mesmo namespace do Meu Caderno.
+- Logado faz merge local + remoto e sincroniza via `/api/notes` sem bloquear a leitura offline.
+- O fluxo offline-first cobre ao menos export local/consulta local do trecho salvo quando nao houver rede.

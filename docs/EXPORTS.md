@@ -58,3 +58,15 @@ Em `/admin/universes/[id]`:
 - listar exports por universo
 - tornar publico/privado
 - excluir export
+
+## Kind notebook
+
+- exports.kind agora aceita `notebook`.
+- O kind `notebook` representa o pack de estudo do Meu Caderno e usa meta com universeSlug, itemCount, tags e kinds.
+- Compartilhamento segue a mesma pagina de exports, mas continua bloqueado por default com is_public=false.
+
+## Highlights de documento no notebook
+
+- O export `notebook` inclui highlights do Doc Viewer quando o usuario exporta o proprio Meu Caderno.
+- Cada item leva quote clampado, fonte documental e link `Abrir no app` de volta ao reader no highlight salvo.
+- Esses highlights continuam privados por padrao e nao aparecem em share publico sem publicacao explicita do export.

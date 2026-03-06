@@ -7,6 +7,7 @@ import { GenerateExportButton } from '@/components/export/GenerateExportButton';
 import { SaveToNotebookButton } from '@/components/notes/SaveToNotebookButton';
 import { Carimbo } from '@/components/ui/Badge';
 import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
+import { useStudyTracker } from '@/hooks/useStudyTracker';
 import { feedback } from '@/lib/feedback/feedback';
 import { useTutorSession } from '@/hooks/useTutorSession';
 
@@ -86,7 +87,7 @@ type TutorPointLabProps = {
     pointId: string;
     text: string;
   }) => Promise<
-      | {
+    | {
         ok: true;
         threadId: string;
         answer: string;
@@ -116,6 +117,10 @@ type TutorChatMessage = {
 
 function chatStorageKey(slug: string, sessionId: string, pointId: string) {
   return `cv:tutor-chat-v1:${slug}:${sessionId}:${pointId}`;
+}
+
+function pointHref(slug: string, sessionId: string, point: Pick<TutorPoint, 'orderIndex'>) {
+  return `/c/${slug}/tutor/s/${sessionId}/p/${point.orderIndex}`;
 }
 
 export function TutorPointLab({
@@ -150,6 +155,7 @@ export function TutorPointLab({
   );
   const [error, setError] = useState<string | null>(null);
   const prefs = useUiPrefsContext();
+  const { trackAction } = useStudyTracker();
 
   const tutor = useTutorSession({
     slug,
@@ -168,12 +174,24 @@ export function TutorPointLab({
     [evidenceMap, point],
   );
   const scopedDocumentIds = useMemo(
-    () =>
-      Array.from(
-        new Set(requiredEvidences.map((item) => item.documentId).filter((id): id is string => Boolean(id))),
-      ),
+    () => Array.from(new Set(requiredEvidences.map((item) => item.documentId).filter((id): id is string => Boolean(id)))),
     [requiredEvidences],
   );
+
+  useEffect(() => {
+    if (!point) return;
+    trackAction({
+      action: 'tutor_point_open',
+      item: {
+        type: 'tutor',
+        id: point.id,
+        label: point.title,
+        href: pointHref(slug, sessionId, point),
+        nodeSlug: point.nodeSlug ?? null,
+      },
+      lastSection: 'tutor',
+    });
+  }, [point, sessionId, slug, trackAction]);
 
   useEffect(() => {
     if (!point) return;
@@ -245,6 +263,17 @@ export function TutorPointLab({
       if (!response.ok) throw new Error(data.message ?? 'Falha ao consultar o tutor.');
       setResult(data);
       tutor.markAsked(point.id, data.threadId ?? null);
+      trackAction({
+        action: 'tutor_ask',
+        item: {
+          type: 'tutor',
+          id: point.id,
+          label: point.title,
+          href: data.threadId ? `/c/${slug}/debate?selected=${data.threadId}&panel=detail` : pointHref(slug, sessionId, point),
+          nodeSlug: point.nodeSlug ?? null,
+        },
+        lastSection: 'tutor',
+      });
       feedback('success', prefs?.settings);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erro inesperado.');
@@ -287,6 +316,17 @@ export function TutorPointLab({
           divergence: response.divergence,
         };
         setChatMessages((current) => [...current, tutorMessage]);
+        trackAction({
+          action: 'tutor_ask',
+          item: {
+            type: 'tutor',
+            id: point.id,
+            label: point.title,
+            href: `/c/${slug}/debate?selected=${response.threadId}&panel=detail`,
+            nodeSlug: point.nodeSlug ?? null,
+          },
+          lastSection: 'tutor',
+        });
         feedback('success', prefs?.settings);
       } else {
         const response = await fetch('/api/ask', {
@@ -318,6 +358,17 @@ export function TutorPointLab({
         };
         setChatThreadId(data.threadId ?? chatThreadId);
         setChatMessages((current) => [...current, tutorMessage]);
+        trackAction({
+          action: 'tutor_ask',
+          item: {
+            type: 'tutor',
+            id: point.id,
+            label: point.title,
+            href: data.threadId ? `/c/${slug}/debate?selected=${data.threadId}&panel=detail` : pointHref(slug, sessionId, point),
+            nodeSlug: point.nodeSlug ?? null,
+          },
+          lastSection: 'tutor',
+        });
         feedback('success', prefs?.settings);
       }
     } catch (err) {
@@ -398,12 +449,7 @@ export function TutorPointLab({
       {point.guidedQuestions.length > 0 ? (
         <section className='stack tutor-focus-reading'>
           <strong>Pergunta guiada</strong>
-          <textarea
-            value={question}
-            onChange={(event) => setQuestion(event.target.value)}
-            rows={3}
-            style={{ width: '100%' }}
-          />
+          <textarea value={question} onChange={(event) => setQuestion(event.target.value)} rows={3} style={{ width: '100%' }} />
           <div className='toolbar-row'>
             <button className='ui-button' type='button' onClick={() => void askGuidedQuestion()} disabled={loading}>
               {loading ? 'Perguntando...' : 'Perguntar'}
@@ -582,3 +628,4 @@ export function TutorPointLab({
     </div>
   );
 }
+

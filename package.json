@@ -17,7 +17,7 @@
     "demo:seed": "node tools/seed-demo.mjs",
     "demo:import": "node tools/import-sources.mjs",
     "secrets:check": "node tools/secrets-check.mjs",
-    "verify": "npm run lint && npm run typecheck && npm run build",
+    "verify": "npm run lint && npm run build && npm run typecheck",
     "supabase:check": "node tools/check-supabase.mjs",
     "db:login": "node tools/supabase-cli.mjs login",
     "db:link": "node tools/supabase-cli.mjs link",
