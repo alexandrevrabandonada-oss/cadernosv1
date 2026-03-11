@@ -1,5 +1,6 @@
 import 'server-only';
 import { getSupabaseServiceRoleClient } from '@/lib/supabase/server';
+import { getBootstrappedMockUniverseById } from '@/lib/universe/bootstrapMock';
 
 export type CheckStatus = 'pass' | 'warn' | 'fail';
 
@@ -157,16 +158,116 @@ function statusWeight(status: CheckStatus) {
   return 1;
 }
 
+function buildMockChecklist(universeId: string): UniverseChecklist | null {
+  const universe = getBootstrappedMockUniverseById(universeId);
+  if (!universe) return null;
+
+  const totalNodes = universe.coreNodes.length;
+  const coreNodesCount = universe.coreNodes.filter((node) => isCoreNode({ kind: node.kind, tags: node.tags })).length;
+  const coverageRows: CoverageRow[] = universe.coreNodes.map((node, index) => ({
+    nodeId: node.id,
+    title: node.title,
+    kind: node.kind,
+    tags: [...node.tags],
+    core: isCoreNode({ kind: node.kind, tags: node.tags }),
+    docsLinkedCount: 0,
+    evidencesLinkedCount: 0,
+    draftEvidencesLinkedCount: 0,
+    questionsCount: index < universe.questionCount ? 1 : 0,
+    coverageScore: scoreNodeCoverage({ docs: 0, evidences: 0, questions: index < universe.questionCount ? 1 : 0 }),
+  }));
+
+  const checks: CheckItem[] = [
+    {
+      id: 'core_nodes',
+      label: 'Core nodes',
+      status: toStatus(coreNodesCount, DEFAULT_THRESHOLDS.minCoreNodes, Math.max(2, DEFAULT_THRESHOLDS.minCoreNodes - 2)),
+      value: `${coreNodesCount}`,
+      target: `>= ${DEFAULT_THRESHOLDS.minCoreNodes}`,
+      actionLink: `/admin/universes/${universeId}/bootstrap`,
+    },
+    {
+      id: 'trails',
+      label: 'Trilhas iniciais',
+      status: universe.trailCount > 0 ? 'pass' : 'warn',
+      value: `${universe.trailCount}`,
+      target: '>= 1',
+      actionLink: `/admin/universes/${universeId}/bootstrap`,
+    },
+    {
+      id: 'glossary',
+      label: 'Glossario base',
+      status: universe.glossaryCount > 0 ? 'pass' : 'warn',
+      value: `${universe.glossaryCount}`,
+      target: '>= 1',
+      actionLink: `/admin/universes/${universeId}/bootstrap`,
+    },
+  ];
+
+  const failCount = checks.filter((item) => item.status === 'fail').length;
+  const warnCount = checks.filter((item) => item.status === 'warn').length;
+  const topIssues = [...checks].sort((a, b) => statusWeight(b.status) - statusWeight(a.status)).slice(0, 3);
+
+  return {
+    overview: {
+      universeId,
+      title: universe.title,
+      slug: universe.slug,
+      publishedAt: universe.publishedAt,
+      totalNodes,
+      coreNodesCount,
+      totalDocs: 0,
+      docsByStatus: { uploaded: 0, processed: 0, link_only: 0, error: 0 },
+      totalChunks: 0,
+      totalEvidences: 0,
+      publishedEvidencesTotal: 0,
+      draftEvidencesTotal: 0,
+      totalTrails: Math.max(universe.trailCount, 1),
+      totalTutorModules: 0,
+      links: { nodeDocumentsCount: 0, nodeEvidencesCount: 0, nodeQuestionsCount: universe.questionCount },
+      quality: { avgTextQualityScore: 0, badDocsCount: 0, badDocsRatePct: 0, emptyPagesTotal: 0 },
+      collectiveReview: { draft: 0, review: 0 },
+    },
+    operational24h: {
+      askTotal24h: 0,
+      askInsufficient24h: 0,
+      askInsufficientRate: 0,
+      askLatencyAvgMs: 0,
+      exports24h: 0,
+      ingestJobs: { pending: 0, running: 0, done: 0, error: 0 },
+    },
+    coverage: { total: coverageRows.length, rows: coverageRows },
+    checks,
+    nextActions: [
+      {
+        id: 'bootstrap',
+        priority: 1,
+        status: checks[0]?.status ?? 'warn',
+        text: 'Refine o bootstrap inicial antes de publicar.',
+        link: `/admin/universes/${universeId}/bootstrap`,
+      },
+      {
+        id: 'docs',
+        priority: 2,
+        status: 'warn',
+        text: 'Importe documentos e conecte provas quando a curadoria comecar.',
+        link: `/admin/universes/${universeId}/docs`,
+      },
+    ],
+    readiness: { status: failCount > 0 ? 'fail' : warnCount > 0 ? 'warn' : 'pass', failCount, warnCount, topIssues },
+    thresholds: DEFAULT_THRESHOLDS,
+  };
+}
 export async function getUniverseChecklist(universeId: string): Promise<UniverseChecklist | null> {
   const db = getSupabaseServiceRoleClient();
-  if (!db) return null;
+  if (!db) return buildMockChecklist(universeId);
 
   const universeQuery = await db
     .from('universes')
     .select('id, slug, title, published_at')
     .eq('id', universeId)
     .maybeSingle();
-  if (!universeQuery.data) return null;
+  if (!universeQuery.data) return buildMockChecklist(universeId);
   const universe = universeQuery.data;
   const since24hIso = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
 
@@ -592,3 +693,6 @@ export async function getUniverseChecklist(universeId: string): Promise<Universe
     thresholds,
   };
 }
+
+
+

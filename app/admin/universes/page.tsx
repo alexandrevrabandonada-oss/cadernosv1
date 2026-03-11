@@ -89,6 +89,14 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
           ariaLabel='Trilha admin universes'
         />
         <SectionHeader title='Universes' description='Listagem e criacao de universos do MVP.' tag='Admin' />
+        <div className='toolbar-row'>
+          <Link className='ui-button' href='/admin/universes/new'>
+            Novo universo (wizard)
+          </Link>
+          <Link className='ui-button' href='/admin/universes/featured'>
+            Gerir featured/focus
+          </Link>
+        </div>
         {!configured ? (
           <p className='muted' style={{ margin: 0 }}>
             Configure <code>SUPABASE_SERVICE_ROLE_KEY</code> para habilitar escrita no admin.
@@ -164,6 +172,12 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
                   : '(nao publicado)'}
               </p>
               <div className='toolbar-row'>
+                {universe.is_featured ? <span className='badge'>featured</span> : null}
+                {universe.focus_override ? <span className='badge'>foco editorial</span> : null}
+                {universe.focus_note ? <span className='badge'>focus note</span> : null}
+                <span className='badge'>{`rank:${universe.featured_rank}`}</span>
+              </div>
+              <div className='toolbar-row'>
                 <Link className='ui-button' href={`/admin/universes/${universe.id}`}>
                   Editar meta
                 </Link>
@@ -201,3 +215,4 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
     </main>
   );
 }
+

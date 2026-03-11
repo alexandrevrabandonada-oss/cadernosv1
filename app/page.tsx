@@ -1,98 +1,80 @@
-import Link from 'next/link';
-import { Card } from '@/components/ui/Card';
-import { Badge } from '@/components/ui/Badge';
-import { HeroPanel } from '@/components/universe/HeroPanel';
-import { BigPortalCard } from '@/components/universe/BigPortalCard';
-import { HighlightsStrip, type HighlightStripItem } from '@/components/universe/HighlightsStrip';
-import { PrefetchLink } from '@/components/nav/PrefetchLink';
-import { MiniPreviewDebate, MiniPreviewLinha, MiniPreviewMapa, MiniPreviewProvas } from '@/components/universe/PortalPreviews';
-import { PageReadyMarker } from '@/components/nav/PageReadyMarker';
 import { Wordmark } from '@/components/brand/Wordmark';
-import { UniverseSeal } from '@/components/brand/UniverseSeal';
-import { EditorialMediaFrame } from '@/components/brand/EditorialMediaFrame';
-import { BrandIcon } from '@/components/brand/icons/BrandIcon';
+import { type BrandIconName } from '@/components/brand/icons/BrandIcon';
+import { FocusUniverseCard } from '@/components/editorial/FocusUniverseCard';
+import { EditorialSignalRail, type EditorialSignalItem } from '@/components/editorial/EditorialSignalRail';
+import { LiveHighlightCard } from '@/components/editorial/LiveHighlightCard';
+import { PageReadyMarker } from '@/components/nav/PageReadyMarker';
+import { PrefetchLink } from '@/components/nav/PrefetchLink';
+import { BigPortalCard } from '@/components/universe/BigPortalCard';
+import { HeroPanel } from '@/components/universe/HeroPanel';
+import { HighlightsStrip, type HighlightStripItem } from '@/components/universe/HighlightsStrip';
+import { MiniPreviewDebate, MiniPreviewLinha, MiniPreviewMapa, MiniPreviewProvas } from '@/components/universe/PortalPreviews';
+import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 import { EmptyState } from '@/components/ui/EmptyState';
-import { listPublishedUniverses } from '@/lib/data/universes';
 import { getCurrentSession } from '@/lib/auth/server';
-import { getHubData } from '@/lib/data/universe';
+import { getHomeEditorialState, type HomeEditorialSignal } from '@/lib/catalog/homeEditorial';
 import { buildUniverseHref } from '@/lib/universeNav';
 
 type HomePageProps = {
   searchParams: Promise<{ q?: string }>;
 };
 
-function getFeatureUniverseSlug(universes: Array<{ slug: string; hasHighlights?: boolean }>) {
-  const featured = universes.find((item) => item.hasHighlights);
-  return featured?.slug ?? universes[0]?.slug ?? null;
+function signalIcon(type: HomeEditorialSignal['type']): BrandIconName {
+  if (type === 'event') return 'linha';
+  if (type === 'thread') return 'debate';
+  if (type === 'term') return 'glossario';
+  if (type === 'node') return 'mapa';
+  if (type === 'pack') return 'share';
+  return 'provas';
+}
+
+function signalMeta(type: HomeEditorialSignal['type']) {
+  if (type === 'event') return 'marco quente';
+  if (type === 'thread') return 'pergunta aberta';
+  if (type === 'term') return 'indice vivo';
+  if (type === 'node') return 'porta central';
+  if (type === 'pack') return 'curadoria semanal';
+  return 'prova destacada';
 }
 
 export default async function HomePage({ searchParams }: HomePageProps) {
   const { q } = await searchParams;
   const query = q?.trim() ?? '';
-  const [universes, session] = await Promise.all([listPublishedUniverses({ q: query }), getCurrentSession()]);
-  const featuredSlug = getFeatureUniverseSlug(universes);
-  const featuredHub = featuredSlug ? await getHubData(featuredSlug) : null;
+  const [editorial, session] = await Promise.all([getHomeEditorialState(query), getCurrentSession()]);
 
-  const hotItems: HighlightStripItem[] = [];
-  if (featuredHub?.highlights.evidences.length) {
-    hotItems.push(
-      ...featuredHub.highlights.evidences.slice(0, 2).map((item) => ({
-        id: `ev-${item.id}`,
-        label: 'Evidencia',
-        title: item.title,
-        description: item.summary,
-        href: buildUniverseHref(featuredHub.slug, `provas?selected=${encodeURIComponent(item.id)}&panel=detail`),
-      })),
-    );
-  }
-  if (featuredHub?.highlights.events.length) {
-    hotItems.push(
-      ...featuredHub.highlights.events.slice(0, 2).map((item) => ({
-        id: `event-${item.id}`,
-        label: 'Linha',
-        title: item.title,
-        description: `${item.kind ?? 'evento'} ${item.day ? `- ${new Date(item.day).toLocaleDateString('pt-BR')}` : ''}`,
-        href: buildUniverseHref(featuredHub.slug, `linha?selected=${encodeURIComponent(item.id)}&panel=detail`),
-      })),
-    );
-  }
-  if (featuredHub?.highlights.questions.length) {
-    hotItems.push(
-      ...featuredHub.highlights.questions.slice(0, 2).map((item, index) => ({
-        id: `question-${index}`,
-        label: 'Debate',
-        title: item.question,
-        description: 'Pergunta em destaque para abrir no modo estrito com evidencias.',
-        href: buildUniverseHref(
-          featuredHub.slug,
-          `debate?q=${encodeURIComponent(item.question)}${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
-        ),
-      })),
-    );
-  }
+  const focusUniverse = editorial.focusUniverse;
+  const featuredUniverseCard = editorial.featuredUniverses[0] ?? null;
+  const secondaryUniverseCards = editorial.featuredUniverses.slice(1, 6);
+  const leadSignal = editorial.signals[0] ?? null;
+  const railSignals: EditorialSignalItem[] = editorial.signals.slice(1, 5).map((item) => ({
+    id: item.id,
+    label: item.label,
+    title: item.title,
+    href: item.href,
+    meta: item.meta,
+    icon: signalIcon(item.type),
+    tone: item.type === 'evidence' ? 'action' : 'editorial',
+  }));
 
-  const universoCards = await Promise.all(
-    universes.slice(0, 6).map(async (universe) => {
-      const hub = await getHubData(universe.slug);
-      return {
-        ...universe,
-        nodes: hub.quickStart.nodesTotal,
-        trails: hub.featuredTrails.length,
-        evidences: hub.quickStart.evidencesTotal,
-      };
-    }),
-  );
+  const hotItems: HighlightStripItem[] = editorial.signals.slice(0, 6).map((item) => ({
+    id: item.id,
+    label: item.label,
+    title: item.title,
+    description: item.description,
+    href: item.href,
+  }));
 
-  const targetSlug = featuredHub?.slug ?? universes[0]?.slug ?? 'exemplo';
+  const targetSlug = focusUniverse?.slug ?? featuredUniverseCard?.slug ?? 'exemplo';
 
   return (
     <main className='stack stack-editorial'>
       <PageReadyMarker id='home' />
       <HeroPanel
-        className='home-hero'
+        className='home-hero hero-panel-living hero-panel-live-editorial'
         eyebrow='Portal Publico'
         title='Universos de prova, memoria e disputa'
-        subtitle='Entre em salas conectadas por evidencias rastreaveis, marcos historicos e perguntas publicas em modo de leitura guiada.'
+        subtitle='Entre por um recorte em curso: evidencias rastreaveis, marcos vivos e perguntas acionaveis ja organizadas para leitura guiada.'
         meta={<Wordmark variant='hero' className='hero-wordmark-ghost' />}
         actions={
           <>
@@ -108,147 +90,217 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           </>
         }
         aside={
-          featuredHub ? (
-            <article className='feature-universe-card surface-plate hero-sidecar'>
-              <small>Universo em foco</small>
-              <h2>{featuredHub.title}</h2>
-              <p className='muted'>{featuredHub.summary}</p>
-              <div className='toolbar-row'>
-                <Badge>{`nos:${featuredHub.quickStart.nodesTotal}`}</Badge>
-                <Badge>{`provas:${featuredHub.quickStart.evidencesTotal}`}</Badge>
-                <Badge>{`docs:${featuredHub.quickStart.docsProcessed}`}</Badge>
-              </div>
-              <EditorialMediaFrame
-                title='Arquivo ativo'
-                subtitle='Leitura orientada por provas, linha e debate'
-                label='FOCO'
-                accent='editorial'
+          focusUniverse ? (
+            <div className='hero-live-column'>
+              <FocusUniverseCard
+                title={focusUniverse.title}
+                summary={focusUniverse.focus_note ?? focusUniverse.summary}
+                href={buildUniverseHref(focusUniverse.slug, '')}
+                metrics={[
+                  { label: 'nos', value: String(focusUniverse.nodes) },
+                  { label: 'trilhas', value: String(Math.max(focusUniverse.trails, 1)) },
+                  { label: 'provas', value: String(focusUniverse.evidences) },
+                ]}
+                seal={focusUniverse.is_featured ? 'showcase' : 'published'}
+                kicker='Universo em foco'
+                cta='Entrar agora'
               />
-              <Link className='ui-button' href={buildUniverseHref(featuredHub.slug, '')}>
-                Entrar no universo
-              </Link>
-            </article>
-          ) : null
+              {leadSignal ? (
+                <LiveHighlightCard
+                  label={leadSignal.label}
+                  title={leadSignal.title}
+                  description={leadSignal.description}
+                  href={leadSignal.href}
+                  meta={signalMeta(leadSignal.type)}
+                  icon={signalIcon(leadSignal.type)}
+                  tone={leadSignal.type === 'evidence' ? 'action' : 'editorial'}
+                />
+              ) : (
+                <LiveHighlightCard
+                  label='Edicao'
+                  title='Trilho editorial em preparacao'
+                  description='A curadoria desta vitrine publica esta sendo afinada. Entre no universo em foco para abrir as portas principais.'
+                  href={buildUniverseHref(focusUniverse.slug, '')}
+                  meta='vitrine viva'
+                  icon='showcase'
+                  tone='editorial'
+                />
+              )}
+              <EditorialSignalRail items={railSignals} compact />
+            </div>
+          ) : (
+            <div className='hero-live-column'>
+              <FocusUniverseCard
+                title='Vitrine em preparacao'
+                summary={
+                  session
+                    ? 'Publique um universo para ativar o catalogo vivo da Home e ocupar o foco editorial com conteudo real.'
+                    : 'A entrada publica ainda esta sendo montada. Assim que houver um universo publicado, ele aparecera aqui com foco editorial real.'
+                }
+                href={session ? '/admin/universes/featured' : '/login'}
+                metrics={[
+                  { label: 'status', value: 'edicao' },
+                  { label: 'modo', value: session ? 'admin' : 'publico' },
+                ]}
+                seal='published'
+                kicker='Universo em foco'
+                cta={session ? 'Gerir vitrine' : 'Entrar'}
+              />
+            </div>
+          )
         }
       />
 
-      <section className='big-portal-grid' aria-label='Portas de entrada'>
-        <BigPortalCard
-          href={buildUniverseHref(targetSlug, 'provas')}
-          title='Explorar Provas'
-          description='Entre por evidencias curadas, relacionados e citações rastreaveis.'
-          cta='Abrir Provas'
-          badge='Evidence-first'
-          preview={<MiniPreviewProvas />}
-        />
-        <BigPortalCard
-          href={buildUniverseHref(targetSlug, 'linha')}
-          title='Seguir a Linha'
-          description='Leia marcos cronologicos e abra provas relacionadas no mesmo fluxo.'
-          cta='Abrir Linha'
-          badge='Cronologia'
-          preview={<MiniPreviewLinha />}
-        />
-        <BigPortalCard
-          href={buildUniverseHref(targetSlug, 'debate')}
-          title='Abrir Debate'
-          description='Perguntas com citacoes, confianca e limitacoes em modo estrito.'
-          cta='Abrir Debate'
-          badge='Perguntas'
-          preview={<MiniPreviewDebate />}
-        />
+      <section className='portal-composition portal-composition-home' aria-label='Portas de entrada'>
+        <div className='portal-composition-main'>
+          <BigPortalCard
+            href={buildUniverseHref(targetSlug, 'provas')}
+            title='Explorar Provas'
+            description='Entre por evidencias curadas, relacionados e citacoes rastreaveis.'
+            cta='Abrir Provas'
+            badge='Evidence-first'
+            preview={<MiniPreviewProvas />}
+            className='is-featured'
+          />
+          <BigPortalCard
+            href={buildUniverseHref(targetSlug, 'debate')}
+            title='Abrir Debate'
+            description='Perguntas com citacoes, confianca e limitacoes em modo estrito.'
+            cta='Abrir Debate'
+            badge='Perguntas'
+            preview={<MiniPreviewDebate />}
+          />
+        </div>
+        <div className='portal-composition-side'>
+          <BigPortalCard
+            href={buildUniverseHref(targetSlug, 'linha')}
+            title='Seguir a Linha'
+            description='Leia marcos cronologicos e reabra provas relacionadas no mesmo fluxo.'
+            cta='Abrir Linha'
+            badge='Cronologia'
+            preview={<MiniPreviewLinha />}
+            className='is-compact'
+          />
+          <BigPortalCard
+            href={buildUniverseHref(targetSlug, 'mapa')}
+            title='Explorar Mapa'
+            description='Veja cobertura por no e lacunas de curadoria no universo.'
+            cta='Abrir Mapa'
+            badge='Explorer'
+            preview={<MiniPreviewMapa />}
+            className='is-compact'
+          />
+        </div>
       </section>
 
-      <section className='big-portal-grid' aria-label='Portas complementares'>
-        <BigPortalCard
-          href={buildUniverseHref(targetSlug, 'mapa')}
-          title='Explorar Mapa'
-          description='Veja cobertura por no e lacunas de curadoria no universo.'
-          cta='Abrir Mapa'
-          badge='Explorer'
-          preview={<MiniPreviewMapa />}
-        />
-      </section>
-
-      <Card className='stack surface-panel home-section-card' id='universos'>
+      <Card className='stack surface-panel home-section-card home-featured-section' id='universos'>
         <header className='stack' style={{ gap: '0.35rem' }}>
           <h2 style={{ margin: 0 }}>Universos em destaque</h2>
           <p className='muted' style={{ margin: 0 }}>
-            Cada universo abre um recorte territorial com provas, trilhas e perguntas prontas para uso publico.
+            Vitrine viva dos universos publicados, priorizando foco editorial, destaque e sinais reais.
           </p>
         </header>
-        <div className='universe-doors-grid'>
-          {universoCards.map((universe, index) => (
-            <article key={universe.id} className={['universe-door-card surface-plate', index === 0 && universe.hasHighlights ? 'is-highlighted' : ''].join(' ')}>
+        {featuredUniverseCard ? (
+          <div className='home-universe-layout'>
+            <article className='universe-door-card universe-door-card-lead surface-plate'>
               <div className='toolbar-row'>
-                {universe.hasHighlights ? <UniverseSeal kind='showcase' /> : <UniverseSeal kind='published' />}
-                <Badge>{new Date(universe.published_at ?? '').toLocaleDateString('pt-BR')}</Badge>
+                <Badge>
+                  {featuredUniverseCard.focus_override ? 'foco editorial' : featuredUniverseCard.is_featured ? 'featured' : 'publicado'}
+                </Badge>
+                <Badge>{new Date(featuredUniverseCard.published_at ?? '').toLocaleDateString('pt-BR')}</Badge>
               </div>
-              <h3>{universe.title}</h3>
-              <p className='muted'>{universe.summary}</p>
+              <h3>{featuredUniverseCard.title}</h3>
+              <p className='muted'>{featuredUniverseCard.focus_note ?? featuredUniverseCard.summary}</p>
               <div className='toolbar-row'>
-                <Badge>{`nos:${universe.nodes}`}</Badge>
-                <Badge>{`trilhas:${universe.trails}`}</Badge>
-                <Badge>{`provas:${universe.evidences}`}</Badge>
+                <Badge>{`nos:${featuredUniverseCard.nodes}`}</Badge>
+                <Badge>{`trilhas:${featuredUniverseCard.trails}`}</Badge>
+                <Badge>{`provas:${featuredUniverseCard.evidences}`}</Badge>
               </div>
-              <PrefetchLink className='ui-button' href={buildUniverseHref(universe.slug, '')} data-variant='primary' prefetchOnVisible={index === 0}>
-                Entrar no universo
-              </PrefetchLink>
+              <div className='toolbar-row'>
+                <PrefetchLink className='ui-button' href={buildUniverseHref(featuredUniverseCard.slug, '')} data-variant='primary' prefetchOnVisible>
+                  Entrar no universo
+                </PrefetchLink>
+                <PrefetchLink className='ui-button' href={buildUniverseHref(featuredUniverseCard.slug, 'tutor')} data-variant='ghost'>
+                  Abrir tutor
+                </PrefetchLink>
+              </div>
             </article>
-          ))}
-          {universoCards.length === 0 ? (
+
+            <div className='home-universe-side'>
+              {secondaryUniverseCards.map((universe) => (
+                <article key={universe.id} className='universe-door-card universe-door-card-compact surface-blade'>
+                  <div className='toolbar-row'>
+                    <Badge>{universe.is_featured ? 'featured' : 'publicado'}</Badge>
+                    <Badge>{`provas:${universe.evidences}`}</Badge>
+                  </div>
+                  <h3>{universe.title}</h3>
+                  <p className='muted'>{universe.focus_note ?? universe.summary}</p>
+                  <PrefetchLink className='ui-button' href={buildUniverseHref(universe.slug, '')} data-variant='ghost'>
+                    Entrar
+                  </PrefetchLink>
+                </article>
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className='home-empty-inline'>
             <EmptyState
-              title='Catalogo em preparacao'
-              description={session ? 'Ative uma vitrine ou abra a demo para revisar a entrada publica do produto.' : 'Nenhum universo publico esta aberto agora. Explore o fluxo guiado ou volte na proxima atualizacao.'}
+              title='Vitrine em preparacao'
+              description={
+                session
+                  ? 'Publique um universo e marque featured para ativar a vitrine viva da Home.'
+                  : 'Ainda nao ha universos publicados. Assim que a vitrine abrir, o foco editorial aparecera aqui.'
+              }
               variant='no-data'
-              actions={session ? [{ label: 'Criar/ativar vitrine', href: '/admin/universes' }, { label: 'Abrir demo em preview', href: '/c/poluicao-vr' }] : [{ label: 'Como funciona', href: '#como-funciona' }, { label: 'Abrir universo vitrine', href: '/c/poluicao-vr' }]}
+              actions={
+                session
+                  ? [
+                      { label: 'Gerir featured/focus', href: '/admin/universes/featured' },
+                      { label: 'Criar universo', href: '/admin/universes' },
+                    ]
+                  : [{ label: 'Como funciona', href: '#como-funciona' }]
+              }
             />
-          ) : null}
-        </div>
+          </div>
+        )}
       </Card>
 
-      <Card className='stack surface-blade home-section-card surface-soft'>
-        <HighlightsStrip
-          title='Fios quentes'
-          description='Sinais editoriais do que merece leitura agora: provas fortes, marcos e perguntas acionaveis.'
-          items={hotItems.slice(0, 6).map((item) => ({
-            ...item,
-            label: item.label === 'Evidencia' ? 'Evidencia' : item.label,
-          }))}
-          emptyLabel='Sem destaques recentes disponiveis. Abra um universo para explorar as portas principais.'
-        />
-      </Card>
+      <section className='home-editorial-grid'>
+        <Card className='stack surface-blade home-section-card surface-soft'>
+          <HighlightsStrip
+            title='Fios quentes'
+            description='Sinais editoriais puxados dos universos publicados: provas, marcos, perguntas e portas conceituais.'
+            items={hotItems}
+            emptyLabel='Ainda nao ha sinais publicados suficientes para compor o trilho editorial.'
+          />
+        </Card>
 
-      <Card className='stack surface-plate home-section-card' id='como-funciona'>
-        <header className='stack' style={{ gap: '0.35rem' }}>
-          <h2 style={{ margin: 0 }}>Como ler este universo</h2>
-          <p className='muted' style={{ margin: 0 }}>
-            Fluxo curto para sair da curiosidade e chegar em leitura rastreavel.
-          </p>
-        </header>
-        <div className='how-it-works-grid'>
-          <article className='surface-blade'>
-            <small>01</small>
-            <BrandIcon name='mapa' size={16} tone='editorial' />
-            <strong>Entrar no universo</strong>
-            <p className='muted'>Comece pelo hub para entender escopo, perguntas e caminhos.</p>
-          </article>
-          <article className='surface-blade'>
-            <small>02</small>
-            <BrandIcon name='provas' size={16} tone='action' />
-            <strong>Explorar com prova</strong>
-            <p className='muted'>Cruze Provas, Linha, Mapa e Debate sem perder contexto.</p>
-          </article>
-          <article className='surface-blade'>
-            <small>03</small>
-            <BrandIcon name='share' size={16} tone='editorial' />
-            <strong>Compartilhar e continuar</strong>
-            <p className='muted'>Use share pages e tutor para consolidar e redistribuir aprendizado.</p>
-          </article>
-        </div>
-      </Card>
+        <Card className='stack surface-plate home-section-card home-how-section' id='como-funciona'>
+          <header className='stack' style={{ gap: '0.35rem' }}>
+            <h2 style={{ margin: 0 }}>Como ler este universo</h2>
+            <p className='muted' style={{ margin: 0 }}>
+              Fluxo curto para sair da curiosidade e chegar em leitura rastreavel.
+            </p>
+          </header>
+          <div className='how-it-works-grid'>
+            <article className='surface-blade'>
+              <small>01</small>
+              <strong>Entrar no universo</strong>
+              <p className='muted'>Comece pelo foco editorial e use o hub para entender o recorte e as perguntas centrais.</p>
+            </article>
+            <article className='surface-blade'>
+              <small>02</small>
+              <strong>Explorar com prova</strong>
+              <p className='muted'>Cruze Provas, Linha, Mapa e Debate sem perder o contexto publico do universo.</p>
+            </article>
+            <article className='surface-blade'>
+              <small>03</small>
+              <strong>Continuar pela trilha</strong>
+              <p className='muted'>Use tutor, share pages e trilhas para transformar leitura em percurso recorrente.</p>
+            </article>
+          </div>
+        </Card>
+      </section>
     </main>
   );
 }
-
-

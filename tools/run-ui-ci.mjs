@@ -1,7 +1,6 @@
 import { spawn } from 'node:child_process';
-import { rm } from 'node:fs/promises';
-import { join } from 'node:path';
 import { resolvePreferredPort } from './find-free-port.mjs';
+import { ensurePlaywrightBuild } from './ensure-playwright-build.mjs';
 
 const requestedPort = Number(process.env.PORT ?? 3110);
 const resolved = await resolvePreferredPort(requestedPort);
@@ -14,14 +13,14 @@ const args = process.platform === 'win32'
   ? ['/d', '/s', '/c', cli]
   : ['playwright', 'test', '--config=playwright.config.ts', 'tests/e2e/visual.spec.ts', '--reporter=line', ...(updateSnapshots ? ['--update-snapshots'] : [])];
 
-await rm(join(process.cwd(), '.next', 'cache'), { recursive: true, force: true, maxRetries: 6, retryDelay: 150 });
+await ensurePlaywrightBuild();
 
 if (resolved.usedFallback) {
   console.log(`[ui-ci] Porta ${requestedPort} ocupada. Usando fallback ${port}.`);
 } else {
   console.log(`[ui-ci] Usando porta ${port}.`);
 }
-console.log('[ui-ci] Cache .next/cache limpo antes de subir o dev server de teste.');
+console.log('[ui-ci] Rodando visual sobre build pronto com next start.');
 console.log('[ui-ci] Snapshot mode forçado para estabilizar capturas.');
 if (updateSnapshots) {
   console.log('[ui-ci] Atualizando baselines visuais.');
@@ -34,7 +33,7 @@ const child = spawn(command, args, {
     ...process.env,
     CI: process.env.CI ?? '1',
     TEST_SEED: process.env.TEST_SEED ?? '1',
-    NODE_ENV: process.env.NODE_ENV ?? 'test',
+    NODE_ENV: 'development',
     PORT: String(port),
     PLAYWRIGHT_BASE_URL: baseUrl,
     PLAYWRIGHT_RETRIES: process.env.PLAYWRIGHT_RETRIES ?? '0',
@@ -62,3 +61,5 @@ child.on('exit', (code, signal) => {
   }
   process.exit(code ?? 1);
 });
+
+

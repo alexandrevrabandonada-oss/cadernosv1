@@ -433,6 +433,72 @@ export async function askUniverse(payload: AskPayload, context: AskRunContext): 
   try {
     const { data: universe } = await db.from('universes').select('id').eq('slug', universeSlug).maybeSingle();
     if (!universe) {
+      if (process.env.TEST_SEED === '1') {
+        const mockCitations = [
+          {
+            ord: 1,
+            citationId: `${universeSlug}-mock-cite-1`,
+            threadId: `${universeSlug}-mock-thread`,
+            docId: `${universeSlug}-doc-1`,
+            chunkId: `${universeSlug}-chunk-1`,
+            doc: 'Documento Demo',
+            year: 2024,
+            pages: 'p.12-13',
+            pageStart: 12,
+            pageEnd: 13,
+            quote: 'Trecho de evidencia sintetico para ambiente de teste.',
+            quoteStart: 8,
+            quoteEnd: 54,
+            highlightToken: `${universeSlug}-hl-1`,
+          },
+          {
+            ord: 2,
+            citationId: `${universeSlug}-mock-cite-2`,
+            threadId: `${universeSlug}-mock-thread`,
+            docId: `${universeSlug}-doc-2`,
+            chunkId: `${universeSlug}-chunk-2`,
+            doc: 'Documento Demo B',
+            year: 2023,
+            pages: 'p.5',
+            pageStart: 5,
+            pageEnd: 5,
+            quote: 'Outro trecho para contraste metodologico em teste.',
+            quoteStart: 0,
+            quoteEnd: 46,
+            highlightToken: `${universeSlug}-hl-2`,
+          },
+        ];
+        const confidence = computeConfidence({
+          mode: 'strict_ok',
+          docsDistinct: 2,
+          chunksUsed: 2,
+          citationsCount: 2,
+          avgDocQuality: 72,
+          methodKinds: ['review', 'observational'],
+          citationsByDoc: new Map([
+            [`${universeSlug}-doc-1`, 1],
+            [`${universeSlug}-doc-2`, 1],
+          ]),
+        });
+        return {
+          status: 200,
+          body: {
+            answer:
+              '## Achados\n- Evidencias de teste apontam sinais consistentes no recorte atual.\n## Limitacoes\n- Base de teste sintetica para validacao de fluxo.\n## Citacoes\n- As citacoes estruturadas estao no bloco `citations[]` desta resposta.',
+            mode: 'strict_ok',
+            insufficient: false,
+            insufficientReason: null,
+            confidence: { score: confidence.score, label: confidence.label },
+            limitations: confidence.limitations,
+            divergence: { flag: false, summary: null },
+            docsDistinct: 2,
+            avgDocQuality: 72,
+            suggestions: [],
+            threadId: `${universeSlug}-mock-thread`,
+            citations: mockCitations,
+          },
+        };
+      }
       await logQaAttempt({
         status: 'error',
         statusCode: 404,

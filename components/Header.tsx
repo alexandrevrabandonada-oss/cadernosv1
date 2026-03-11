@@ -1,9 +1,20 @@
+'use client';
+
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+
 import { InstallPrompt } from '@/components/pwa/InstallPrompt';
 import { Button } from '@/components/ui/Button';
 import { Wordmark } from '@/components/brand/Wordmark';
 
+function navCurrent(pathname: string, href: string) {
+  if (href === '/') return pathname === '/';
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
 export function Header() {
+  const pathname = usePathname();
+
   return (
     <header className='app-header-shell'>
       <div className='header-wrap'>
@@ -15,18 +26,18 @@ export function Header() {
         </div>
         <nav className='top-nav' aria-label='Navegacao principal'>
           <div className='top-nav-links'>
-            <Button href='/' variant='ghost'>
+            <Link href='/' className='ui-button' data-variant='ghost' aria-current={navCurrent(pathname, '/') ? 'page' : undefined}>
               Home
-            </Button>
-            <Button href='/c/exemplo' variant='ghost'>
+            </Link>
+            <Link href='/c/exemplo' className='ui-button' data-variant='ghost' aria-current={navCurrent(pathname, '/c/exemplo') ? 'page' : undefined}>
               Universo
-            </Button>
-            <Button href='/admin' variant='ghost'>
+            </Link>
+            <Link href='/admin' className='ui-button' data-variant='ghost' aria-current={navCurrent(pathname, '/admin') ? 'page' : undefined}>
               Admin
-            </Button>
-            <Button href='/status' variant='ghost'>
+            </Link>
+            <Link href='/status' className='ui-button' data-variant='ghost' aria-current={navCurrent(pathname, '/status') ? 'page' : undefined}>
               Status
-            </Button>
+            </Link>
           </div>
           <div className='top-nav-actions'>
             <InstallPrompt compact className='desktop-only' />

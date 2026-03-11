@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+
 import { PrefetchLink } from '@/components/nav/PrefetchLink';
 import { Badge } from '@/components/ui/Badge';
 
@@ -9,6 +10,7 @@ type BigPortalCardProps = {
   cta?: string;
   badge?: string;
   preview?: ReactNode;
+  className?: string;
   track?: {
     event?: string;
     cta?: string;
@@ -16,9 +18,9 @@ type BigPortalCardProps = {
   };
 };
 
-export function BigPortalCard({ href, title, description, cta = 'Entrar', badge, preview, track }: BigPortalCardProps) {
+export function BigPortalCard({ href, title, description, cta = 'Entrar', badge, preview, className, track }: BigPortalCardProps) {
   return (
-    <article className='big-portal-card surface-plate'>
+    <article className={['big-portal-card', 'surface-plate', className].filter(Boolean).join(' ')}>
       <div className='big-portal-topline'>
         <small className='big-portal-label'>porta editorial</small>
         {badge ? <Badge>{badge}</Badge> : null}

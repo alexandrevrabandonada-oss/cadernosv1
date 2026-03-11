@@ -28,7 +28,7 @@ import {
   type SharePackTemplateInput,
 } from '@/lib/share/copyTemplates';
 import { getDefaultSharePackChecklistChecks, getSharePackChecklist } from '@/lib/share/checklist';
-import { listSharePackPosts } from '@/lib/share/scheduler';
+import { ensureWeeklyPackForUniverse, listSharePackPosts } from '@/lib/share/scheduler';
 
 type SharePackPageProps = {
   params: Promise<{ id: string }>;
@@ -128,11 +128,20 @@ export default async function AdminUniverseSharePackPage({ params, searchParams 
 
   const currentWeekKey = getWeekKey();
   const selectedWeekKey = String(sp.week ?? '').trim() || currentWeekKey;
-  const [weeks, pack, preview] = await Promise.all([
-    listWeeklyPacks(id, 12),
-    getWeeklyPack(id, selectedWeekKey),
-    generateWeeklyPack(id, { weekKey: selectedWeekKey }),
-  ]);
+  const preview = await generateWeeklyPack(id, { weekKey: selectedWeekKey });
+  let [weeks, pack] = await Promise.all([listWeeklyPacks(id, 12), getWeeklyPack(id, selectedWeekKey)]);
+
+  if (process.env.TEST_SEED === '1' && !pack) {
+    await ensureWeeklyPackForUniverse({
+      universeId: id,
+      now: new Date(),
+      runKind: 'manual',
+      updatedBy: 'test-seed',
+      force: true,
+    });
+    [weeks, pack] = await Promise.all([listWeeklyPacks(id, 12), getWeeklyPack(id, selectedWeekKey)]);
+  }
+
   const posts = pack ? await listSharePackPosts(pack.id) : [];
   const renderedItems = pack?.items ?? preview?.items ?? [];
   const templateInput: SharePackTemplateInput = {

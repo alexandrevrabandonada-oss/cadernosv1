@@ -1,26 +1,28 @@
-import { Card } from '@/components/ui/Card';
-import { OrientationBar } from '@/components/universe/OrientationBar';
-import { PortalsRail } from '@/components/portals/PortalsRail';
+import { FocusUniverseCard } from '@/components/editorial/FocusUniverseCard';
+import { EditorialSignalRail, type EditorialSignalItem } from '@/components/editorial/EditorialSignalRail';
+import { LiveHighlightCard } from '@/components/editorial/LiveHighlightCard';
 import { PageReadyMarker } from '@/components/nav/PageReadyMarker';
 import { PrefetchLink } from '@/components/nav/PrefetchLink';
+import { PortalsRail } from '@/components/portals/PortalsRail';
 import { ShareButton } from '@/components/share/ShareButton';
+import { BrandIcon, type BrandIconName } from '@/components/brand/icons/BrandIcon';
+import { UniverseSeal } from '@/components/brand/UniverseSeal';
+import { Wordmark } from '@/components/brand/Wordmark';
+import { ResumeJourneyCard } from '@/components/universe/ResumeJourneyCard';
+import { OrientationBar } from '@/components/universe/OrientationBar';
+import { BigPortalCard } from '@/components/universe/BigPortalCard';
+import { HeroPanel } from '@/components/universe/HeroPanel';
+import { HighlightsStrip } from '@/components/universe/HighlightsStrip';
+import { MiniPreviewDebate, MiniPreviewMapa, MiniPreviewProvas } from '@/components/universe/PortalPreviews';
+import { UniverseMetaBar } from '@/components/universe/UniverseMetaBar';
+import { UniverseVisibilityBadge } from '@/components/universe/UniverseVisibilityBadge';
 import { Badge, Carimbo } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 import { getHubData } from '@/lib/data/universe';
 import { getUniverseAccessBySlug } from '@/lib/data/universes';
-import { buildUniverseHref } from '@/lib/universeNav';
-import { UniverseVisibilityBadge } from '@/components/universe/UniverseVisibilityBadge';
-import { getUserUiSettings } from '@/lib/user/settings';
-import { HeroPanel } from '@/components/universe/HeroPanel';
-import { UniverseMetaBar } from '@/components/universe/UniverseMetaBar';
-import { BigPortalCard } from '@/components/universe/BigPortalCard';
-import { HighlightsStrip } from '@/components/universe/HighlightsStrip';
-import { ResumeJourneyCard } from '@/components/universe/ResumeJourneyCard';
-import { MiniPreviewDebate, MiniPreviewMapa, MiniPreviewProvas } from '@/components/universe/PortalPreviews';
-import { Wordmark } from '@/components/brand/Wordmark';
-import { UniverseSeal } from '@/components/brand/UniverseSeal';
-import { EditorialMediaFrame } from '@/components/brand/EditorialMediaFrame';
-import { BrandIcon } from '@/components/brand/icons/BrandIcon';
 import { getStudyWeekSummary } from '@/lib/study/service';
+import { buildUniverseHref } from '@/lib/universeNav';
+import { getUserUiSettings } from '@/lib/user/settings';
 
 type UniversoPageProps = {
   params: Promise<{
@@ -37,6 +39,12 @@ function formatDaysAgo(isoDate: string | null | undefined) {
   if (days === 0) return 'hoje';
   if (days === 1) return 'ha 1 dia';
   return `ha ${days} dias`;
+}
+
+function signalIcon(label: string): BrandIconName {
+  if (label === 'Linha') return 'linha';
+  if (label === 'Debate') return 'debate';
+  return 'provas';
 }
 
 export default async function UniversoHubPage({ params }: UniversoPageProps) {
@@ -92,6 +100,15 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
 
   const primaryHighlight = highlightItems[0] ?? null;
   const secondaryHighlights = highlightItems.slice(1, 7);
+  const heroSignals: EditorialSignalItem[] = secondaryHighlights.slice(0, 3).map((item) => ({
+    id: item.id,
+    label: item.label,
+    title: item.title,
+    href: item.href,
+    meta: item.label === 'Linha' ? 'marco' : item.label === 'Debate' ? 'pergunta' : 'prova',
+    icon: signalIcon(item.label),
+    tone: item.label === 'Evidencia' ? 'action' : 'editorial',
+  }));
 
   return (
     <div className='stack stack-editorial'>
@@ -99,7 +116,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
       <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Hub' />
 
       <HeroPanel
-        className='hub-hero'
+        className='hub-hero hero-panel-living hero-panel-live-editorial'
         eyebrow='Entrada de Universo'
         title={universe.title}
         subtitle={universe.summary || 'Leitura viva do territorio com portas de prova, linha, mapa e debate.'}
@@ -127,7 +144,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           </>
         }
         meta={
-          <div className='stack' style={{ gap: '0.7rem' }}>
+          <div className='stack hero-meta-stack' style={{ gap: '0.7rem' }}>
             <Wordmark variant='compact' className='hero-wordmark-ghost' />
             <UniverseMetaBar
               items={[
@@ -140,113 +157,153 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           </div>
         }
         aside={
-          <article className='feature-universe-card surface-plate hero-sidecar'>
+          <div className='hero-live-column'>
+            <FocusUniverseCard
+              title={`${universe.title} em operacao`}
+              summary='Recorte vivo com trilha curta, portas principais e sinais editoriais prontos para orientar a entrada publica.'
+              href={buildUniverseHref(slug, '')}
+              metrics={[
+                { label: 'docs', value: String(universe.quickStart.docsProcessed) },
+                { label: 'nos', value: String(universe.quickStart.nodesTotal) },
+                { label: 'provas', value: String(universe.quickStart.evidencesTotal) },
+              ]}
+              seal={isShowcase ? 'showcase' : 'published'}
+              kicker='Universo em foco'
+              cta='Abrir universo'
+            />
+
+            {primaryHighlight ? (
+              <LiveHighlightCard
+                label={primaryHighlight.label}
+                title={primaryHighlight.title}
+                description={primaryHighlight.description}
+                href={primaryHighlight.href}
+                meta={primaryHighlight.label === 'Linha' ? 'marco quente' : primaryHighlight.label === 'Debate' ? 'pergunta aberta' : 'prova destacada'}
+                icon={signalIcon(primaryHighlight.label)}
+                tone={primaryHighlight.label === 'Evidencia' ? 'action' : 'editorial'}
+              />
+            ) : (
+              <LiveHighlightCard
+                label='Edicao'
+                title='Destaque editorial em preparacao'
+                description='O universo ja esta acessivel pelas portas principais. A curadoria de sinais quentes segue em atualizacao.'
+                href={buildUniverseHref(slug, 'provas')}
+                meta='em montagem'
+                icon='showcase'
+                tone='editorial'
+              />
+            )}
+
+            <EditorialSignalRail items={heroSignals} compact />
+          </div>
+        }
+      />
+
+      <section className='portal-composition portal-composition-hub' aria-label='Portas principais do universo'>
+        <div className='portal-composition-main'>
+          <BigPortalCard
+            href={buildUniverseHref(slug, 'provas')}
+            title='Provas'
+            description='Evidencias curadas com relacionados, detalhe rico e links compartilhaveis.'
+            cta='Entrar em Provas'
+            badge='Porta 1'
+            preview={<MiniPreviewProvas />}
+            className='is-featured'
+            track={{ event: 'cta_click', cta: 'porta_provas', section: 'hub_portas' }}
+          />
+          <BigPortalCard
+            href={buildUniverseHref(slug, 'debate')}
+            title='Debate'
+            description='Perguntas rastreaveis com citacoes, confianca e limitacoes.'
+            cta='Entrar no Debate'
+            badge='Porta 2'
+            preview={<MiniPreviewDebate />}
+            track={{ event: 'cta_click', cta: 'porta_debate', section: 'hub_portas' }}
+          />
+        </div>
+        <div className='portal-composition-side'>
+          <BigPortalCard
+            href={buildUniverseHref(slug, 'mapa')}
+            title='Mapa'
+            description='Veja o nucleo do universo, cobertura por no e conexoes.'
+            cta='Entrar no Mapa'
+            badge='Porta 3'
+            preview={<MiniPreviewMapa />}
+            className='is-compact'
+            track={{ event: 'cta_click', cta: 'porta_mapa', section: 'hub_portas' }}
+          />
+          <Card className='stack surface-plate hub-rhythm-card'>
+            <div className='toolbar-row'>
+              <Badge variant='warning'>Comece Aqui</Badge>
+              <BrandIcon name='trilhas' size={16} tone='editorial' />
+            </div>
+            <strong>Entrada guiada em 5 minutos</strong>
+            <p className='muted' style={{ margin: 0 }}>Abra a trilha curta para ganhar contexto, reter provas-chave e entrar no debate sem dispersar.</p>
+            <div className='toolbar-row'>
+              <PrefetchLink className='ui-button' href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}>
+                Iniciar trilha
+              </PrefetchLink>
+              <PrefetchLink className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
+                Abrir Tutor
+              </PrefetchLink>
+            </div>
+          </Card>
+        </div>
+      </section>
+
+      <section className='hub-editorial-grid'>
+        <Card className='stack surface-panel quickstart-block hub-section-card'>
+          <header className='stack' style={{ gap: '0.35rem' }}>
+            <span className='toolbar-row'>
+              <Badge variant='warning'>Perguntas de partida</Badge>
+              <BrandIcon name='debate' size={16} tone='editorial' />
+            </span>
+            <h2 style={{ margin: 0 }}>Comece em 5 minutos</h2>
+            <p className='muted' style={{ margin: 0 }}>
+              Uma trilha curta para abrir contexto, ler provas-chave e iniciar debate com foco.
+            </p>
+          </header>
+          <div className='quick-questions-grid'>
+            {universe.quickStart.questions.slice(0, 3).map((item, index) => (
+              <PrefetchLink
+                key={`${item.question}-${index}`}
+                className='quick-question-card surface-blade'
+                href={buildUniverseHref(
+                  slug,
+                  `debate?q=${encodeURIComponent(item.question)}${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
+                )}
+              >
+                <small>{item.label}</small>
+                <BrandIcon name='debate' size={14} tone='editorial' />
+                <strong>{item.question}</strong>
+              </PrefetchLink>
+            ))}
+          </div>
+        </Card>
+
+        {studyWeek ? (
+          <Card className='stack surface-plate hub-section-card hub-rhythm-card'>
+            <header className='stack' style={{ gap: '0.35rem' }}>
+              <h2 style={{ margin: 0 }}>Seu ritmo nesta semana</h2>
+              <p className='muted' style={{ margin: 0 }}>
+                Recap leve do que voce realmente estudou neste universo, sem ranking nem comparacao.
+              </p>
+            </header>
+            <div className='toolbar-row'>
+              <Carimbo>{`dias ativos:${studyWeek.activeDays}`}</Carimbo>
+              <Carimbo>{`minutos:${studyWeek.focusMinutes}`}</Carimbo>
+              <Carimbo>{`itens:${studyWeek.itemsStudied}`}</Carimbo>
+            </div>
             <div className='toolbar-row'>
               <UniverseVisibilityBadge published={Boolean(access.published)} preview={Boolean(access.canPreview)} />
               {isShowcase ? <UniverseSeal kind='showcase' /> : <UniverseSeal kind='published' />}
             </div>
-            <h2>Estado do universo</h2>
-            <p className='muted'>Nucleo editorial pronto para leitura publica com trilha inicial e portas contextuais.</p>
-            <div className='toolbar-row'>
-              <Carimbo>{`docs:${universe.quickStart.docsProcessed}`}</Carimbo>
-              <Carimbo>{`nos:${universe.quickStart.nodesTotal}`}</Carimbo>
-              <Carimbo>{`evidencias:${universe.quickStart.evidencesTotal}`}</Carimbo>
-            </div>
-            <EditorialMediaFrame
-              title='Nucleo de leitura'
-              subtitle='Portas de prova, mapa e debate'
-              label='UNIVERSO'
-              accent='editorial'
-            />
-          </article>
-        }
-      />
-
-      <section className='big-portal-grid' aria-label='Portas principais do universo'>
-        <BigPortalCard
-          href={buildUniverseHref(slug, 'provas')}
-          title='Provas'
-          description='Evidencias curadas com relacionados e links compartilhaveis.'
-          cta='Entrar em Provas'
-          badge='Porta 1'
-          preview={<MiniPreviewProvas />}
-          track={{ event: 'cta_click', cta: 'porta_provas', section: 'hub_portas' }}
-        />
-        <BigPortalCard
-          href={buildUniverseHref(slug, 'mapa')}
-          title='Mapa'
-          description='Veja o nucleo do universo, cobertura por no e conexoes.'
-          cta='Entrar no Mapa'
-          badge='Porta 2'
-          preview={<MiniPreviewMapa />}
-          track={{ event: 'cta_click', cta: 'porta_mapa', section: 'hub_portas' }}
-        />
-        <BigPortalCard
-          href={buildUniverseHref(slug, 'debate')}
-          title='Debate'
-          description='Perguntas rastreaveis com citacoes, confianca e limitacoes.'
-          cta='Entrar no Debate'
-          badge='Porta 3'
-          preview={<MiniPreviewDebate />}
-          track={{ event: 'cta_click', cta: 'porta_debate', section: 'hub_portas' }}
-        />
-      </section>
-
-      <Card className='stack surface-panel quickstart-block hub-section-card'>
-        <header className='stack' style={{ gap: '0.35rem' }}>
-          <span className='toolbar-row'>
-            <Badge variant='warning'>Comece Aqui</Badge>
-            <BrandIcon name='trilhas' size={16} tone='editorial' />
-          </span>
-          <h2 style={{ margin: 0 }}>Comece em 5 minutos</h2>
-          <p className='muted' style={{ margin: 0 }}>
-            Uma trilha curta para abrir contexto, ler provas-chave e iniciar debate com foco.
-          </p>
-        </header>
-        <div className='toolbar-row'>
-          <PrefetchLink className='ui-button' href={buildUniverseHref(slug, `trilhas?trail=${universe.quickStart.trailSlug}`)}>
-            Iniciar trilha
-          </PrefetchLink>
-          <PrefetchLink className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, 'tutor')}>
-            Abrir Tutor
-          </PrefetchLink>
-        </div>
-        <div className='quick-questions-grid'>
-          {universe.quickStart.questions.slice(0, 3).map((item, index) => (
-            <PrefetchLink
-              key={`${item.question}-${index}`}
-              className='quick-question-card surface-blade'
-              href={buildUniverseHref(
-                slug,
-                `debate?q=${encodeURIComponent(item.question)}${item.nodeSlug ? `&node=${encodeURIComponent(item.nodeSlug)}` : ''}`,
-              )}
-            >
-              <small>{item.label}</small>
-              <BrandIcon name='debate' size={14} tone='editorial' />
-              <strong>{item.question}</strong>
+            <PrefetchLink className='ui-button' href={buildUniverseHref(slug, 'meu-caderno/recap')}>
+              Abrir Recap
             </PrefetchLink>
-          ))}
-        </div>
-      </Card>
-
-      {studyWeek ? (
-        <Card className='stack surface-plate hub-section-card'>
-          <header className='stack' style={{ gap: '0.35rem' }}>
-            <h2 style={{ margin: 0 }}>Seu ritmo nesta semana</h2>
-            <p className='muted' style={{ margin: 0 }}>
-              Recap leve do que voce realmente estudou neste universo, sem ranking nem comparacao.
-            </p>
-          </header>
-          <div className='toolbar-row'>
-            <Carimbo>{`dias ativos:${studyWeek.activeDays}`}</Carimbo>
-            <Carimbo>{`minutos:${studyWeek.focusMinutes}`}</Carimbo>
-            <Carimbo>{`itens:${studyWeek.itemsStudied}`}</Carimbo>
-          </div>
-          <PrefetchLink className='ui-button' href={buildUniverseHref(slug, 'meu-caderno/recap')}>
-            Abrir Recap
-          </PrefetchLink>
-        </Card>
-      ) : null}
+          </Card>
+        ) : null}
+      </section>
 
       <Card className='stack surface-plate hub-section-card' id='destaques'>
         <header className='stack' style={{ gap: '0.35rem' }}>
@@ -292,15 +349,20 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
         </div>
       </Card>
 
-      <Card className='stack surface-panel hub-section-card surface-soft'>
-        <HighlightsStrip
-          title='Proximas portas'
-          description='Continue a investigacao com filtros e contexto preservados entre salas.'
-          items={highlightItems.slice(0, 4)}
-          emptyLabel='Use as portas principais para iniciar e construir destaques.'
-        />
-        <PortalsRail universeSlug={slug} context={{ type: 'none' }} variant='footer' title='Portais contextuais' />
-      </Card>
+      <section className='hub-bottom-grid'>
+        <Card className='stack surface-panel hub-section-card surface-soft'>
+          <HighlightsStrip
+            title='Proximas portas'
+            description='Continue a investigacao com filtros e contexto preservados entre salas.'
+            items={highlightItems.slice(0, 4)}
+            emptyLabel='Use as portas principais para iniciar e construir destaques.'
+          />
+        </Card>
+
+        <Card className='stack surface-plate hub-section-card'>
+          <PortalsRail universeSlug={slug} context={{ type: 'none' }} variant='footer' title='Portais contextuais' />
+        </Card>
+      </section>
 
       {uiPrefs.isLoggedIn && lastSection ? (
         <ResumeJourneyCard
@@ -313,5 +375,3 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
     </div>
   );
 }
-
-

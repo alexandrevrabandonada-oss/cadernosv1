@@ -161,9 +161,7 @@ export async function generateWeeklyPack(
   options: { weekKey?: string } = {},
 ): Promise<SharePackDraft | null> {
   if (!universeId) return null;
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return null;
+  if (isTestSeed()) {
     const slug = inferSlugFromUniverseId(universeId);
     const mock = mockPackBySlug(slug, options.weekKey ?? getWeekKey());
     return {
@@ -171,6 +169,9 @@ export async function generateWeeklyPack(
       universeId: universeId.startsWith('mock-') ? universeId : `mock-${slug}`,
     };
   }
+
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return null;
 
   const { data: universe } = await db
     .from('universes')
@@ -398,14 +399,14 @@ export async function generateWeeklyPack(
 }
 
 export async function getWeeklyPack(universeId: string, weekKey = getWeekKey()): Promise<SharePackRow | null> {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return null;
+  if (isTestSeed()) {
     const store = getMockSharePacksStore();
     return (
       Array.from(store.values()).find((pack) => pack.universe_id === universeId && pack.week_key === weekKey) ?? null
     );
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return null;
   const { data } = await db
     .from('share_packs')
     .select('*')
@@ -416,15 +417,15 @@ export async function getWeeklyPack(universeId: string, weekKey = getWeekKey()):
 }
 
 export async function listWeeklyPacks(universeId: string, limit = 12): Promise<SharePackRow[]> {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return [];
+  if (isTestSeed()) {
     const store = getMockSharePacksStore();
     return Array.from(store.values())
       .filter((pack) => pack.universe_id === universeId)
       .sort((a, b) => (a.week_key > b.week_key ? -1 : 1))
       .slice(0, Math.max(1, Math.min(52, limit)));
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return [];
   const { data } = await db
     .from('share_packs')
     .select('*')
@@ -436,11 +437,11 @@ export async function listWeeklyPacks(universeId: string, limit = 12): Promise<S
 }
 
 export async function getSharePackById(packId: string): Promise<SharePackRow | null> {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return null;
+  if (isTestSeed()) {
     return getMockSharePacksStore().get(packId) ?? null;
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return null;
   const { data } = await db.from('share_packs').select('*').eq('id', packId).maybeSingle();
   return (data as SharePackRow | null) ?? null;
 }
@@ -454,9 +455,7 @@ export async function upsertWeeklyPack(
   },
   options: { force?: boolean } = {},
 ) {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return { ok: false as const, message: 'Supabase indisponivel.', blocked: false, pack: null };
+  if (isTestSeed()) {
     const draft = await generateWeeklyPack(input.universeId, { weekKey: input.weekKey });
     if (!draft) return { ok: false as const, message: 'Nao foi possivel gerar o pack.', blocked: false, pack: null };
     const id = `mock-pack-${draft.universeId}-${draft.weekKey}`;
@@ -490,6 +489,9 @@ export async function upsertWeeklyPack(
       pack,
     };
   }
+
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return { ok: false as const, message: 'Supabase indisponivel.', blocked: false, pack: null };
 
   const draft = await generateWeeklyPack(input.universeId, { weekKey: input.weekKey });
   if (!draft) return { ok: false as const, message: 'Nao foi possivel gerar o pack.', blocked: false, pack: null };
@@ -530,9 +532,7 @@ export async function upsertWeeklyPack(
 }
 
 export async function setSharePackPinned(packId: string, isPinned: boolean) {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return null;
+  if (isTestSeed()) {
     const store = getMockSharePacksStore();
     const current = store.get(packId);
     if (!current) return null;
@@ -540,6 +540,8 @@ export async function setSharePackPinned(packId: string, isPinned: boolean) {
     store.set(packId, updated);
     return updated;
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return null;
   const { data } = await db
     .from('share_packs')
     .update({ is_pinned: isPinned })

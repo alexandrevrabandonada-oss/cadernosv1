@@ -8,7 +8,7 @@ import {
   waitForAppReady,
 } from './helpers/visual';
 
-const slug = 'demo';
+const slug = 'exemplo';
 
 type Screen = {
   key: string;
@@ -18,6 +18,11 @@ type Screen = {
 };
 
 const screens: Screen[] = [
+  {
+    key: 'home',
+    path: '/',
+    requireWorkspace: false,
+  },
   {
     key: 'mapa',
     path: `/c/${slug}/mapa?view=clusters`,

@@ -1,6 +1,7 @@
 import 'server-only';
 import { getSupabaseServiceRoleClient } from '@/lib/supabase/server';
 import { canWriteAdminContent, requireUser } from '@/lib/auth/requireRole';
+import { listBootstrappedMockUniverses } from '@/lib/universe/bootstrapMock';
 
 export type AdminUniverse = {
   id: string;
@@ -11,6 +12,10 @@ export type AdminUniverse = {
   ui_theme: string | null;
   published: boolean | null;
   published_at: string | null;
+  is_featured: boolean;
+  featured_rank: number;
+  focus_note: string | null;
+  focus_override: boolean;
   created_at: string;
 };
 
@@ -71,6 +76,58 @@ export function getAdminDb() {
   return getSupabaseServiceRoleClient();
 }
 
+function buildSeededAdminUniverse(input: { id?: string; slug: string }): AdminUniverse {
+  const slug = input.slug;
+  const title = slug
+    .split('-')
+    .filter(Boolean)
+    .map((chunk) => chunk[0].toUpperCase() + chunk.slice(1))
+    .join(' ');
+  return {
+    id: input.id ?? `mock-${slug}`,
+    slug,
+    title: title || 'Demo',
+    summary: `Universo mock para ${slug}.`,
+    cover_url: null,
+    ui_theme: null,
+    published: true,
+    published_at: new Date().toISOString(),
+    is_featured: slug === 'exemplo' || slug === 'matematica',
+    featured_rank: slug === 'exemplo' ? 1 : slug === 'matematica' ? 2 : 99,
+    focus_note: slug === 'exemplo' ? 'Recorte principal da vitrine publica.' : null,
+    focus_override: slug === 'exemplo',
+    created_at: new Date().toISOString(),
+  };
+}
+
+function listMockAdminUniverses() {
+  const defaults = [
+    buildSeededAdminUniverse({ slug: 'exemplo' }),
+    buildSeededAdminUniverse({ slug: 'matematica' }),
+    buildSeededAdminUniverse({ slug: 'universo-mvp' }),
+  ];
+  const extra = listBootstrappedMockUniverses().map((item) => ({
+    id: item.id,
+    slug: item.slug,
+    title: item.title,
+    summary: item.summary,
+    cover_url: null,
+    ui_theme: null,
+    published: item.published,
+    published_at: item.publishedAt,
+    is_featured: item.isFeatured,
+    featured_rank: item.featuredRank,
+    focus_note: item.focusNote,
+    focus_override: item.focusOverride,
+    created_at: item.createdAt,
+  } satisfies AdminUniverse));
+  const map = new Map<string, AdminUniverse>();
+  for (const universe of [...defaults, ...extra]) {
+    map.set(universe.slug, universe);
+  }
+  return [...map.values()].sort((a, b) => (b.created_at ?? '').localeCompare(a.created_at ?? ''));
+}
+
 export async function hasAdminWriteAccess() {
   return canWriteAdminContent();
 }
@@ -78,11 +135,16 @@ export async function hasAdminWriteAccess() {
 export async function listUniverses() {
   await requireUser();
   const db = getAdminDb();
-  if (!db) return [];
+  if (!db) {
+    if (process.env.TEST_SEED === '1') {
+      return listMockAdminUniverses();
+    }
+    return [];
+  }
 
   const { data } = await db
     .from('universes')
-    .select('id, slug, title, summary, cover_url, ui_theme, published, published_at, created_at')
+    .select('id, slug, title, summary, cover_url, ui_theme, published, published_at, is_featured, featured_rank, focus_note, focus_override, created_at')
     .order('created_at', { ascending: false });
 
   return (data ?? []) as AdminUniverse[];
@@ -93,32 +155,20 @@ export async function getUniverseById(id: string) {
   const db = getAdminDb();
   if (!db) {
     if (process.env.TEST_SEED === '1') {
-      const slug = id.startsWith('mock-') ? id.replace(/^mock-/, '') : id;
-      const title = slug
-        .split('-')
-        .filter(Boolean)
-        .map((chunk) => chunk[0].toUpperCase() + chunk.slice(1))
-        .join(' ');
-      return {
-        id: id.startsWith('mock-') ? id : `mock-${slug}`,
-        slug,
-        title: title || 'Demo',
-        summary: `Universo mock para ${slug}.`,
-        cover_url: null,
-        ui_theme: null,
-        published: true,
-        published_at: new Date().toISOString(),
-        created_at: new Date().toISOString(),
-      } as AdminUniverse;
+      return listMockAdminUniverses().find((item) => item.id === id) ?? null;
     }
     return null;
   }
 
   const { data } = await db
     .from('universes')
-    .select('id, slug, title, summary, cover_url, ui_theme, published, published_at, created_at')
+    .select('id, slug, title, summary, cover_url, ui_theme, published, published_at, is_featured, featured_rank, focus_note, focus_override, created_at')
     .eq('id', id)
     .maybeSingle();
+
+  if (!data && process.env.TEST_SEED === '1') {
+    return listMockAdminUniverses().find((item) => item.id === id) ?? null;
+  }
 
   return (data ?? null) as AdminUniverse | null;
 }

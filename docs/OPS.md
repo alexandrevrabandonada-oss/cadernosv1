@@ -164,3 +164,39 @@ npm run demo:import
   - `force=false`: bloqueia publicacao.
   - `force=true` (apenas admin): permite publicar e registra warning em log.
 - Se highlights estiverem vazios, o sistema auto-seleciona antes de publicar.
+
+
+## Catalogo vivo da Home
+
+- Rota admin: `/admin/universes/featured`
+- Campos operacionais por universo:
+  - `is_featured`
+  - `featured_rank`
+  - `focus_override`
+  - `focus_note`
+- Regra de uso:
+1. Publicar pelo menos um universo.
+2. Marcar os universos de vitrine como `featured`.
+3. Ajustar `featured_rank` para ordenar a estante publica.
+4. Usar `focus_override` apenas quando um universo precisa assumir o hero da Home.
+5. Escrever `focus_note` curta para contextualizar o recorte publico.
+- Em ambiente `TEST_SEED=1`, a rota funciona como painel de leitura seedado; sem `SUPABASE_SERVICE_ROLE_KEY`, ela nao persiste alteracoes.
+
+## Bootstrap / Clone de universo
+
+- Rotas operacionais:
+  - `/admin/universes/new`
+  - `/admin/universes/[id]/bootstrap`
+  - `POST /api/admin/universes/bootstrap`
+- Objetivo: abrir um universo novo com Hub minimo, `Comece Aqui`, checklist inicial e estrutura editorial reaproveitavel.
+- Guardrails do clone:
+1. Copia apenas estrutura editorial.
+2. Nunca copia evidences, documents, events por padrao, exports, analytics, user_notes, shared_notebooks reais ou study_sessions.
+3. `featured`/`focus` so entram se marcados no clone.
+- Operacao recomendada:
+1. Criar universo.
+2. Aplicar template ou clone.
+3. Importar docs.
+4. Revisar checklist.
+5. Fazer sprint editorial.
+6. Publicar.

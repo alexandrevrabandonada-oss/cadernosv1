@@ -339,17 +339,20 @@ export async function GET(request: NextRequest) {
   const includePrivateNotes = Boolean(session && session.userId !== 'dev-bypass');
   const parsed = parseSearchQuery(rawQuery);
   const types: SearchType[] = parsed.notesOnly ? ['note'] : parseSearchTypes(searchParams.get('types'));
+  const seededSearch = process.env.TEST_SEED === '1';
 
-  const dbResults = await fetchDbResults({
-    universeId: access.universe.id,
-    universeSlug,
-    query: parsed.text,
-    tags: parsed.tags,
-    types,
-    includeNotes: includePrivateNotes,
-    privileged,
-    userId: session?.userId && session.userId !== 'dev-bypass' ? session.userId : null,
-  });
+  const dbResults = seededSearch
+    ? null
+    : await fetchDbResults({
+        universeId: access.universe.id,
+        universeSlug,
+        query: parsed.text,
+        tags: parsed.tags,
+        types,
+        includeNotes: includePrivateNotes,
+        privileged,
+        userId: session?.userId && session.userId !== 'dev-bypass' ? session.userId : null,
+      });
 
   const sourceResults = dbResults ?? mockResults(universeSlug, includePrivateNotes);
   const filteredByType = sourceResults.filter((item) => types.includes(item.type));

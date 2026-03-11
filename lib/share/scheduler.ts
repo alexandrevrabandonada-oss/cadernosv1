@@ -123,7 +123,23 @@ export async function getDistributionSettings(universeId: string): Promise<Unive
     .select('*')
     .eq('universe_id', universeId)
     .maybeSingle();
-  if (!data) return null;
+  if (!data) {
+    if (!isTestSeed()) return null;
+    const store = getMockDistributionSettingsStore();
+    if (!store.has(universeId)) {
+      store.set(universeId, {
+        universe_id: universeId,
+        weekly_pack_enabled: true,
+        weekly_day: 1,
+        weekly_hour: 9,
+        timezone: 'America/Sao_Paulo',
+        channels: ['instagram', 'whatsapp', 'telegram'],
+        updated_by: 'test-seed',
+        updated_at: new Date().toISOString(),
+      });
+    }
+    return store.get(universeId) ?? null;
+  }
   return {
     universe_id: data.universe_id,
     weekly_pack_enabled: Boolean(data.weekly_pack_enabled),
@@ -187,9 +203,7 @@ async function ensureSharePackPosts(input: {
   channels: DistributionChannel[];
   updatedBy: string | null;
 }) {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return 0;
+  if (isTestSeed()) {
     const store = getMockSharePackPostsStore();
     let inserted = 0;
     for (const channel of input.channels) {
@@ -211,6 +225,8 @@ async function ensureSharePackPosts(input: {
     }
     return inserted;
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return 0;
   const { data: currentRows } = await db
     .from('share_pack_posts')
     .select('channel')
@@ -231,11 +247,11 @@ async function ensureSharePackPosts(input: {
 }
 
 export async function listSharePackPosts(packId: string): Promise<SharePackPostRow[]> {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return [];
+  if (isTestSeed()) {
     return Array.from(getMockSharePackPostsStore().values()).filter((row) => row.pack_id === packId);
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return [];
   const { data } = await db
     .from('share_pack_posts')
     .select('*')
@@ -257,9 +273,7 @@ export async function upsertSharePackPostStatus(input: {
   note?: string | null;
   updatedBy: string;
 }) {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return null;
+  if (isTestSeed()) {
     const key = `${input.packId}:${input.channel}`;
     const current = getMockSharePackPostsStore().get(key);
     const postedAt = input.status === 'posted' ? new Date().toISOString() : null;
@@ -278,6 +292,8 @@ export async function upsertSharePackPostStatus(input: {
     getMockSharePackPostsStore().set(key, row);
     return row;
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return null;
   const postedAt = input.status === 'posted' ? new Date().toISOString() : null;
   const { data } = await db
     .from('share_pack_posts')
@@ -306,9 +322,7 @@ async function insertSharePackRun(input: {
   ok: boolean;
   summary: Record<string, unknown>;
 }) {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return;
+  if (isTestSeed()) {
     const id = `mock-run-${input.universeId}-${input.weekKey}-${Date.now()}`;
     getMockSharePackRunsStore().set(id, {
       id,
@@ -321,6 +335,8 @@ async function insertSharePackRun(input: {
     });
     return;
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return;
   await db.from('share_pack_runs').insert({
     universe_id: input.universeId,
     week_key: input.weekKey,
@@ -480,10 +496,11 @@ export async function ensureWeeklyPacksAllUniverses(input: {
   force?: boolean;
 }) {
   const db = getSupabaseServiceRoleClient();
+  const seededUniverseIds = ['mock-exemplo'];
   let universeIds: string[] = [];
   if (!db) {
     if (!isTestSeed()) return { total: 0, processed: 0, skipped: 0, results: [] as EnsureWeeklyPackResult[] };
-    universeIds = ['mock-demo'];
+    universeIds = seededUniverseIds;
   } else {
     const { data: settingsRows } = await db
       .from('universe_distribution_settings')
@@ -491,6 +508,9 @@ export async function ensureWeeklyPacksAllUniverses(input: {
       .eq('weekly_pack_enabled', true)
       .limit(200);
     universeIds = (settingsRows ?? []).map((row) => row.universe_id);
+    if (isTestSeed() && universeIds.length === 0) {
+      universeIds = seededUniverseIds;
+    }
   }
   const results: EnsureWeeklyPackResult[] = [];
   for (const universeId of universeIds) {
@@ -512,14 +532,14 @@ export async function ensureWeeklyPacksAllUniverses(input: {
 }
 
 export async function listRecentSharePackRuns(universeId: string, limit = 10): Promise<SharePackRunRow[]> {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return [];
+  if (isTestSeed()) {
     return Array.from(getMockSharePackRunsStore().values())
       .filter((row) => row.universe_id === universeId)
       .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))
       .slice(0, Math.max(1, Math.min(50, limit)));
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return [];
   const { data } = await db
     .from('share_pack_runs')
     .select('*')
@@ -533,15 +553,15 @@ export async function listRecentSharePackRuns(universeId: string, limit = 10): P
 }
 
 export async function getLatestCronRun() {
-  const db = getSupabaseServiceRoleClient();
-  if (!db) {
-    if (!isTestSeed()) return null;
+  if (isTestSeed()) {
     return (
       Array.from(getMockSharePackRunsStore().values())
         .filter((row) => row.run_kind === 'cron')
         .sort((a, b) => (a.created_at > b.created_at ? -1 : 1))[0] ?? null
     );
   }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return null;
   const { data } = await db
     .from('share_pack_runs')
     .select('*')
@@ -559,18 +579,10 @@ export async function getLatestCronRun() {
 
 export async function listDistributionHistory(universeId: string, limitWeeks = 12) {
   const packs = await listWeeklyPacks(universeId, limitWeeks);
-  const db = getSupabaseServiceRoleClient();
   if (packs.length === 0) {
     return [];
   }
-  if (!db) {
-    if (!isTestSeed()) {
-      return packs.map((pack) => ({
-        pack,
-        posts: [] as SharePackPostRow[],
-        nextRunAt: null as string | null,
-      }));
-    }
+  if (isTestSeed()) {
     const settings = await getDistributionSettings(universeId);
     const nextRunAt = settings
       ? getNextScheduledRun(
@@ -586,6 +598,14 @@ export async function listDistributionHistory(universeId: string, limitWeeks = 1
       pack,
       posts: Array.from(getMockSharePackPostsStore().values()).filter((post) => post.pack_id === pack.id),
       nextRunAt,
+    }));
+  }
+  const db = getSupabaseServiceRoleClient();
+  if (!db) {
+    return packs.map((pack) => ({
+      pack,
+      posts: [] as SharePackPostRow[],
+      nextRunAt: null as string | null,
     }));
   }
   const packIds = packs.map((pack) => pack.id);

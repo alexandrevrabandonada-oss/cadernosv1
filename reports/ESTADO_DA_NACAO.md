@@ -1,71 +1,128 @@
 # Estado da Nacao — Cadernos Vivos
-Data: 2026-03-06
-Prompt: VIZ-20
+Data: 2026-03-11
+Prompt: PROD-17
 Commit (se possivel): n/a
 
 ## 1) O que entrou neste tijolo
-- Passe transversal de qualidade de estados para reduzir cara de produto inacabado em empty, error, restricted, partial/offline e success.
-- Novo kit reutilizavel em `components/ui/state/` para padronizar estrutura, microcopy, CTA e camadas visuais dos estados.
-- Refinos aplicados primeiro nos pontos mais sensiveis: offline, not-found, erro global, preview de universo, export privado, recap, coletivos, review e analytics.
-- Smoke E2E ampliado com estados criticos de Home, Provas, coletivo restrito, offline e export privado.
+- O programa editorial multiuniverso agora nasce com um lote real e idempotente de 3 universos operacionais.
+- Foi criado o programa principal `Programa Editorial 2026` com slug `programa-editorial-2026`.
+- Os tres universos entram automaticamente no board principal com lane inicial `bootstrap`, unpublished e prioridade definida.
+- O seed do lote reutiliza o bootstrap de PROD-15 e o board de PROD-16, sem criar workflow paralelo.
+- Foi gerado um plano operacional por universo em `reports/PLANO_INSUMOS_MULTIUNIVERSO.md`.
 
-## 2) Componentes de estado criados/refinados
-- `components/ui/state/StatePanel.tsx`
-- `components/ui/state/EmptyStateCard.tsx`
-- `components/ui/state/ErrorStateCard.tsx`
-- `components/ui/state/RestrictedStateCard.tsx`
-- `components/ui/state/SuccessInlineNotice.tsx`
-- `components/ui/state/PartialDataNotice.tsx`
-- `components/ui/EmptyState.tsx` agora delega para o novo card e melhora varias telas herdadas de uma vez.
-- `app/globals.css` ganhou estilos comuns para tons `empty`, `error`, `restricted`, `success` e `partial`, alem de heading semantico no painel base.
+## 2) Programa editorial usado
+- Titulo: `Programa Editorial 2026`
+- Slug: `programa-editorial-2026`
+- Summary: lote inicial de tres universos reais operados em paralelo com bootstrap, ingest, quality e publish.
 
-## 3) Telas impactadas
-- `/`
-  - estado vazio do catalogo ficou mais editorial e orientado a acao.
-- `/offline` e `OfflineBanner`
-  - explicam claramente o que segue disponivel em cache e o que pode falhar sem conexao.
-- `/_not-found` e erro global
-  - trocados por paineis sem placeholder seco, com CTA de retomada.
-- `/c/[slug]` preview
-  - gating de universo nao publicado virou bloco de restricao claro e elegante.
-- `/c/[slug]/exports/[exportId]`
-  - export privado e link assinado indisponivel agora usam estados especificos, sem mensagem crua.
-- `/c/[slug]/meu-caderno/recap`
-  - vazios e dados insuficientes ficaram mais explicitos em sessoes, semana e recomendacoes.
-- `/c/[slug]/coletivos` e `/c/[slug]/coletivos/[id]`
-  - vazios e falta de acesso passaram a usar estados coerentes com governanca.
-- `/c/[slug]/coletivos/[id]/review`
-  - fila vazia, item nao selecionado, auditoria vazia e sucesso pos-acao ganharam feedback contextual.
-- `/admin/universes/[id]/analytics`
-  - blocos sem massa critica agora deixam claro que sao estados parciais, nao erros.
+## 3) Os 3 universos criados
+### 1. Saude e Poluicao em Volta Redonda
+- Slug: `saude-poluicao-vr`
+- Template: `issue_investigation`
+- Prioridade: alta (`3`)
+- Lane inicial: `bootstrap`
+- Status publico: unpublished
 
-## 4) Offline, partial e success
-- Offline page e banner agora distinguem shell disponivel vs dados ao vivo indisponiveis.
-- `SuccessInlineNotice` entrou na fila editorial para feedback mais duravel apos status change/promocao.
-- `PartialDataNotice` entrou no recap e analytics para casos de historico curto ou falta de sinal suficiente.
-- `getExportViewBySlug()` recebeu fallback controlado em `TEST_SEED=1` para validar export privado no smoke.
+### 2. Memoria Industrial de Volta Redonda
+- Slug: `memoria-industrial-vr`
+- Template: `territorial_memory`
+- Prioridade: media (`2`)
+- Lane inicial: `bootstrap`
+- Status publico: unpublished
 
-## 5) Como testar
-1. Abrir Home com um recorte vazio e conferir o estado do catalogo (`/?q=zzzxxyynotfound`).
-2. Abrir `/c/demo/provas?q=zzzxxyynotfound` e validar empty state de resultados.
-3. Abrir `/c/demo/coletivos/sem-acesso` e confirmar o estado restrito.
-4. Abrir `/offline` e validar texto de disponibilidade parcial + CTA de volta.
-5. Abrir `/c/demo/exports/demo-export-private` e confirmar o bloqueio de export privado.
-6. Abrir `/c/demo/meu-caderno/recap` sem historico suficiente e revisar notices de recap parcial.
+### 3. Respira Fundo Monitoramento
+- Slug: `respira-fundo-monitoramento`
+- Template: `campaign_watch`
+- Prioridade: alta (`3`)
+- Lane inicial: `bootstrap`
+- Status publico: unpublished
 
-## 6) Docs atualizadas
-- `docs/UI.md`
-- `docs/ACCESSIBILITY.md`
-- `docs/STATES.md`
+## 4) Bootstrap completo garantido
+Para cada um dos 3 universos, o seed garante:
+- hero/hub funcionando
+- nodes core do template
+- glossario base
+- perguntas iniciais
+- trilha `Comece Aqui`
+- checklist inicial
+- `is_featured = false`
+- `focus_override = false`
+- `published_at = null`
 
-## 7) Verificacoes finais
+## 5) Arquivos principais
+- `lib/editorial/programBatch.ts`
+- `app/admin/programa-editorial/page.tsx`
+- `app/admin/programa-editorial/[slug]/page.tsx`
+- `app/api/admin/programa-editorial/route.ts`
+- `reports/PLANO_INSUMOS_MULTIUNIVERSO.md`
+- `docs/PROGRAMA_EDITORIAL.md`
+- `docs/BOOTSTRAP_UNIVERSE.md`
+- `tests/editorial-program-batch.test.ts`
+- `tests/e2e/ui-smoke.spec.ts`
+
+## 6) Plano de insumos
+### Arquivo novo
+- `reports/PLANO_INSUMOS_MULTIUNIVERSO.md`
+
+### O que o plano documenta
+Para cada universo:
+- objetivo editorial
+- template usado
+- fontes prioritarias
+- proxima lane
+- prioridade
+- metas minimas de docs, evidences e highlights
+- observacoes operacionais
+
+## 7) Admin / board
+### Comportamento novo
+- `/admin/programa-editorial` agora garante o lote 2026 de forma idempotente.
+- `/admin/programa-editorial/programa-editorial-2026` mostra os 3 universos claramente no board.
+- Os cards mostram:
+  - template label
+  - summary curta
+  - badge de prioridade
+  - lane atual e lane sugerida
+  - CTA para hub, bootstrap, review, checklist, highlights e featured/focus
+
+### API admin
+- `POST /api/admin/programa-editorial` ganhou `action='ensure_main_batch'`
+- isso garante o programa principal + lote real no ambiente de teste/admin
+
+## 8) Como testar
+1. Abrir `/admin/programa-editorial`.
+2. Abrir `/admin/programa-editorial/programa-editorial-2026`.
+3. Validar que os 3 universos aparecem em `bootstrap`.
+4. Abrir o hub de `saude-poluicao-vr` e conferir hero + portas + `Comece Aqui`.
+5. Abrir o checklist de um dos universos e confirmar que o bootstrap inicial existe.
+6. Conferir `reports/PLANO_INSUMOS_MULTIUNIVERSO.md` para o plano de fontes e proximas lanes.
+
+## 9) Testes e cobertura
+### Unit
+- `tests/editorial-program-batch.test.ts`
+  - valida os tres universos do lote
+  - valida slugs unicos
+  - valida templates corretos
+  - valida lane atual `bootstrap`
+
+### E2E
+- `tests/e2e/ui-smoke.spec.ts`
+  - garante o lote principal via API admin
+  - abre o board do programa principal
+  - verifica os 3 universos no board
+  - abre um hub novo
+  - valida hub + gating unpublished via admin session
+
+## 10) Verificacoes finais
 - `npm run verify`: ✅ Verify passou
 - `npm run test:e2e:ci`: ✅ E2E passou
 - `npm run test:ui:ci`: ✅ Visual passou
 
-## 8) Observacoes
-- O passe nao adicionou features novas nem mudou arquitetura de produto.
-- O `StatePanel` agora expoe heading semantico, o que ajudou a acessibilidade e estabilizou o smoke offline.
-- Permanecem apenas ruídos operacionais ja conhecidos:
-  - aviso de deprecacao do `next lint` para Next 16
-  - warnings nao bloqueantes do webpack cache sobre serializacao de strings grandes
+## 11) Observacoes
+- O `test:e2e:ci` continuou fechando verde com 2 flakies antigos do workspace:
+  - `coletivos: detalhe restrito mostra estado de acesso`
+  - `admin bootstrap: cria universo por template, abre hub e checklist inicial`
+- O fluxo novo do lote real 2026 passou.
+- Permanecem apenas os avisos operacionais conhecidos:
+  - deprecacao futura do `next lint` para Next 16
+  - warnings nao bloqueantes do webpack cache

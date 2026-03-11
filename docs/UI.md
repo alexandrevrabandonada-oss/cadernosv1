@@ -602,3 +602,19 @@ Rota: `/c/[slug]/mapa`
   - `restricted`: bloqueio por publicacao, permissao ou privacidade
   - `partial`: parte do shell/dado segue acessivel, parte nao
   - `success`: confirmacao inline depois de acao maior
+
+
+## PROD-14 - Catalogo vivo
+
+- Home (`/`) agora usa `getHomeEditorialState()` como engine unica da vitrine publica.
+- Ordem editorial:
+  - `focus_override=true` em universo publicado ganha prioridade total
+  - depois entram `is_featured=true` por `featured_rank`
+  - depois outros universos publicados com mais sinais reais
+- O hero publico deve ser alimentado por `Universo em foco`, trilho editorial e cards de universos publicados, sem depender de fallback quando ja existe conteudo real.
+- Fallback editorial continua existindo apenas quando `hasPublishedUniverses=false`.
+- Componentes impactados:
+  - `FocusUniverseCard`
+  - `EditorialSignalRail`
+  - `LiveHighlightCard`
+  - secao `Universos em destaque`

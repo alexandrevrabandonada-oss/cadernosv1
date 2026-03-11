@@ -1,12 +1,27 @@
 import { expect, test } from '@playwright/test';
 
-const slug = 'demo';
+const slug = 'exemplo';
 
 test.describe('UI smoke - workspace critico', () => {
+  test('home: usa universo featured seedado como foco editorial real', async ({ page }) => {
+    await page.goto('/');
+    await expect(page.getByText('Universo em foco').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Exemplo' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Entrar agora' }).first()).toBeVisible();
+  });
+
+  test('admin featured/focus: painel mostra o bloco de governanca editorial', async ({ page }) => {
+    await page.goto('/admin/universes/featured');
+    await expect(page.getByRole('heading', { name: 'Featured / Focus' })).toBeVisible();
+    await expect(page.getByText('focus_override').first()).toBeVisible();
+    await expect(page.getByText('is_featured').first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Voltar aos universos' })).toBeVisible();
+  });
+
   test('home: estado vazio orienta quando busca nao encontra universo publico', async ({ page }) => {
     await page.goto('/?q=zzzxxyynotfound');
-    await expect(page.getByText('Catalogo em preparacao').first()).toBeVisible();
-    await expect(page.getByRole('link', { name: /Como funciona|Criar\/ativar vitrine/ }).first()).toBeVisible();
+    await expect(page.getByText('Vitrine em preparacao').first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: 'Como ler este universo' })).toBeVisible();
   });
 
   test('provas: abre detalhe com selected e mostra empty state com filtro impossivel', async ({ page }) => {
@@ -47,7 +62,7 @@ test.describe('UI smoke - workspace critico', () => {
     const results = page.getByLabel('Resultados da command palette');
     await expect(results.getByText('Nos', { exact: true })).toBeVisible();
     await expect(results.getByText('Glossario', { exact: true })).toBeVisible();
-    await expect(results.getByRole('option').filter({ hasText: 'Conceito central de demo' }).first()).toBeVisible();
+    await expect(results.getByRole('option').filter({ hasText: 'Conceito central de exemplo' }).first()).toBeVisible();
   });
   test('debate: seleciona thread, troca lente e CTA Ver Provas funciona', async ({ page }) => {
     await page.goto(`/c/${slug}/debate?selected=${slug}-thread-1`);
@@ -185,7 +200,7 @@ test.describe('UI smoke - workspace critico', () => {
             sourceType: 'evidence',
             sourceId: `${slugValue}-ev-1`,
             sourceMeta: {},
-            tags: ['demo'],
+            tags: ['exemplo'],
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             pendingSync: false,
@@ -312,12 +327,12 @@ test.describe('UI smoke - workspace critico', () => {
         title: 'Nota para coletivo',
         text: 'Resumo curto para promover ao coletivo e validar export.',
         sourceMeta: {
-          nodeSlug: 'demo-n1',
+          nodeSlug: 'exemplo-n1',
           originalSourceType: 'evidence',
           originalSourceId: `${slug}-ev-1`,
           linkToApp: `/c/${slug}/provas?selected=${slug}-ev-1&panel=detail`,
         },
-        tags: ['demo', 'base'],
+        tags: ['exemplo', 'base'],
         note: 'Virou base compartilhada.',
       },
     });
@@ -453,7 +468,7 @@ test.describe('UI smoke - workspace critico', () => {
     await page.goto(`/c/${slug}/s`);
     await expect(page.getByText(/Vitrine publica/i)).toBeVisible();
     const ogImage = page.locator('meta[property="og:image"]');
-    await expect(ogImage).toHaveAttribute('content', /\/api\/og\?type=universe&u=demo/);
+    await expect(ogImage).toHaveAttribute('content', /\/api\/og\?type=universe&u=exemplo/);
   });
 
   test('og export: endpoint retorna image/png', async ({ request }) => {
@@ -504,7 +519,7 @@ test.describe('UI smoke - workspace critico', () => {
 
   test('share page node: renderiza com og:image e CTAs', async ({ page }) => {
     await page.goto(`/c/${slug}/s/node/${slug}-n1`);
-    await expect(page.getByRole('heading', { name: /Conceito central de demo/i }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Conceito central de exemplo/i }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: 'Abrir no app' })).toBeVisible();
     const ogImage = page.locator('meta[property="og:image"]');
     await expect(ogImage).toHaveAttribute('content', new RegExp(`/api/og\\?type=node&u=${slug}&id=${slug}-n1`));
@@ -512,7 +527,7 @@ test.describe('UI smoke - workspace critico', () => {
 
   test('share page term: renderiza com og:image e CTAs', async ({ page }) => {
     await page.goto(`/c/${slug}/s/term/mock-${slug}-${slug}-n1`);
-    await expect(page.getByRole('heading', { name: /Conceito central de demo/i }).first()).toBeVisible();
+    await expect(page.getByRole('heading', { name: /Conceito central de exemplo/i }).first()).toBeVisible();
     await expect(page.getByRole('link', { name: 'Abrir no app' })).toBeVisible();
     const ogImage = page.locator('meta[property="og:image"]');
     await expect(ogImage).toHaveAttribute('content', new RegExp(`/api/og\\?type=term&u=${slug}&id=mock-${slug}-${slug}-n1`));
@@ -568,7 +583,7 @@ test.describe('UI smoke - workspace critico', () => {
       headers: { 'x-cron-secret': 'test-cron-secret' },
     });
 
-    await page.goto('/admin/universes/mock-demo/share-pack');
+    await page.goto('/admin/universes/mock-exemplo/share-pack');
     const instagramCard = page.locator('article.core-node').filter({ hasText: 'instagram' }).first();
     await expect(instagramCard).toBeVisible();
     await instagramCard.getByRole('button', { name: 'Marcar postado' }).click();
@@ -671,19 +686,165 @@ test.describe('UI smoke - workspace critico', () => {
     await expect(page.getByTestId('route-progress')).toHaveCount(0);
   });
 });
+test('admin bootstrap: cria universo por template, abre hub e checklist inicial', async ({ page, request }) => {
+  const stamp = Date.now();
+  const slug = `bootstrap-template-${stamp}`;
+  await page.goto('/admin/universes/new');
+  await expect(page.getByRole('heading', { name: 'Wizard de bootstrap de universo' })).toBeVisible();
+
+  const response = await request.post('/api/admin/universes/bootstrap', {
+    data: {
+      title: 'Bootstrap Template Smoke',
+      slug,
+      summary: 'Universo criado no smoke para validar bootstrap via template.',
+      mode: 'template',
+      templateId: 'issue_investigation',
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  const payload = (await response.json()) as { universe?: { id: string; slug: string } };
+  expect(payload.universe?.id).toBeTruthy();
+
+  await page.goto(`/admin/universes/${payload.universe?.id}/bootstrap`);
+  await expect(page.getByRole('heading', { name: /Bootstrap \/ Clone:/ })).toBeVisible();
+  await page.getByRole('button', { name: 'Aplicar template' }).click();
+  await expect(page.getByText('Template aplicado com sucesso.')).toBeVisible();
+
+  await page.goto(`/c/${slug}`);
+  await expect(page.getByRole('heading', { name: 'Bootstrap Template Smoke' }).first()).toBeVisible();
+  await expect(page.getByText('Mapa').first()).toBeVisible();
+
+  await page.goto(`/c/${slug}/trilhas`);
+  await expect(page.getByText('Comece Aqui').first()).toBeVisible();
+
+  await page.goto(`/admin/universes/${payload.universe?.id}/checklist`);
+  await expect(page.getByRole('heading', { name: /Checklist do Universo:/ })).toBeVisible();
+});
+
+test('admin bootstrap: clone estrutural nao herda evidencias nem exports', async ({ page, request }) => {
+  const stamp = Date.now();
+  const slug = `bootstrap-clone-${stamp}`;
+  await page.goto('/admin/universes/new');
+  await expect(page.getByRole('heading', { name: 'Wizard de bootstrap de universo' })).toBeVisible();
+
+  const listPage = await request.get('/admin/universes');
+  expect(listPage.ok()).toBeTruthy();
+
+  const response = await request.post('/api/admin/universes/bootstrap', {
+    data: {
+      title: 'Bootstrap Clone Smoke',
+      slug,
+      summary: 'Universo clonado no smoke para validar guardrails.',
+      mode: 'clone',
+      sourceUniverseId: 'mock-exemplo',
+      cloneOptions: {
+        nodes: true,
+        glossary: true,
+        trails: true,
+        nodeQuestions: true,
+        collectiveTemplates: true,
+        homeEditorialDefaults: false,
+      },
+    },
+  });
+  expect(response.ok()).toBeTruthy();
+  const payload = (await response.json()) as { universe?: { id: string; slug: string } };
+  expect(payload.universe?.id).toBeTruthy();
+
+  await page.goto(`/admin/universes/${payload.universe?.id}/checklist`);
+  await expect(page.getByText('Evidencias').first()).toBeVisible();
+  await expect(page.getByText(/total 0 \| publicadas 0/).first()).toBeVisible();
+  await expect(page.getByText('Docs').first()).toBeVisible();
+  await expect(page.getByText(/total 0 \| processed 0/).first()).toBeVisible();
+});
+
+test('admin programa editorial: cria lote, move card e reaplica sugestao de lane', async ({ page, request }) => {
+  const stamp = Date.now();
+  const programSlug = `programa-${stamp}`;
+  const createProgram = await request.post('/api/admin/programa-editorial', {
+    data: {
+      action: 'create_program',
+      title: `Programa ${stamp}`,
+      slug: programSlug,
+      summary: 'Board smoke para operar multiplos universos.',
+    },
+  });
+  expect(createProgram.ok()).toBeTruthy();
+
+  const createBatch = await request.post('/api/admin/programa-editorial', {
+    data: {
+      action: 'create_batch',
+      programSlug,
+      universes: [
+        { title: `Lote A ${stamp}`, slug: `lote-a-${stamp}`, templateId: 'issue_investigation', priority: 3 },
+        { title: `Lote B ${stamp}`, slug: `lote-b-${stamp}`, templateId: 'campaign_watch', priority: 2 },
+      ],
+    },
+  });
+  expect(createBatch.ok()).toBeTruthy();
+
+  await page.goto(`/admin/programa-editorial/${programSlug}`);
+  await expect(page.getByRole('heading', { name: `Programa ${stamp}` })).toBeVisible();
+  await expect(page.getByText(`Lote A ${stamp}`).first()).toBeVisible();
+  await expect(page.getByText('Criar lote de 3 universos').first()).toBeVisible();
+
+  const boardResponse = await request.get(`/api/admin/programa-editorial?program=${programSlug}`);
+  expect(boardResponse.ok()).toBeTruthy();
+  const boardPayload = (await boardResponse.json()) as {
+    board: {
+      columns: Array<{
+        items: Array<{ item: { id: string; lane: string }; universe: { title: string } }>;
+      }>;
+    };
+  };
+  const firstCard = boardPayload.board.columns.flatMap((column) => column.items).find((item) => item.universe.title === `Lote A ${stamp}`);
+  expect(firstCard?.item.id).toBeTruthy();
+
+  const moveResponse = await request.post('/api/admin/programa-editorial', {
+    data: {
+      action: 'move_item',
+      itemId: firstCard?.item.id,
+      lane: 'review',
+      priority: 5,
+      note: 'Precisa passar pela fila editorial.',
+    },
+  });
+  expect(moveResponse.ok()).toBeTruthy();
+
+  await page.reload();
+  const movedCard = page.locator('article.core-node').filter({ hasText: `Lote A ${stamp}` }).first();
+  await expect(movedCard).toContainText('lane:review');
+
+  await page.getByRole('button', { name: 'Aplicar sugestoes de lane' }).click();
+  await expect(page.getByText('Lanes sugeridas aplicadas ao board.').first()).toBeVisible();
+  await expect(page.locator('article.core-node').filter({ hasText: `Lote A ${stamp}` }).first()).toContainText('lane:bootstrap');
+});
 
 
 
+test('programa editorial 2026: garante lote real com tres universos e hub unpublished', async ({ page, request }) => {
+  const seedResponse = await request.post('/api/admin/programa-editorial', {
+    data: {
+      action: 'ensure_main_batch',
+    },
+  });
+  expect(seedResponse.ok()).toBeTruthy();
 
+  await page.goto('/admin/programa-editorial/programa-editorial-2026');
+  await expect(page.getByRole('heading', { name: 'Programa Editorial 2026' })).toBeVisible();
+  await expect(page.getByText('Saude e Poluicao em Volta Redonda').first()).toBeVisible();
+  await expect(page.getByText('Memoria Industrial de Volta Redonda').first()).toBeVisible();
+  await expect(page.getByText('Respira Fundo Monitoramento').first()).toBeVisible();
+  await expect(page.getByText('lane:bootstrap').first()).toBeVisible();
 
+  const saudeCard = page.locator('article.core-node').filter({ hasText: 'Saude e Poluicao em Volta Redonda' }).first();
+  await expect(saudeCard).toContainText('Investigacao de tema');
+  await saudeCard.getByRole('link', { name: 'Abrir hub' }).click();
+  await expect(page).toHaveURL(/\/c\/saude-poluicao-vr/);
+  await expect(page.getByRole('heading', { name: 'Saude e Poluicao em Volta Redonda' }).first()).toBeVisible();
+  await expect(page.getByText('Mapa').first()).toBeVisible();
 
-
-
-
-
-
-
-
-
-
-
+  await page.goto('/admin/programa-editorial/programa-editorial-2026');
+  await saudeCard.getByRole('link', { name: 'Checklist' }).click();
+  await expect(page.getByRole('heading', { name: /Checklist do Universo:/ })).toBeVisible();
+});
