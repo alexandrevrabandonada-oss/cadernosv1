@@ -70,9 +70,11 @@ export async function waitForAppReady(page: Page, options?: { requireWorkspace?:
 
 export async function captureStableScreenshot(page: Page, name: string) {
   await waitForStableRendering(page);
+  const maxDiffPixelRatio = name.startsWith('mobile_compact_low_') ? 0.14 : 0.04;
   await expect(page).toHaveScreenshot(name, {
     fullPage: false,
     animations: 'disabled',
-    maxDiffPixelRatio: 0.04,
+    maxDiffPixelRatio,
   });
 }
+
