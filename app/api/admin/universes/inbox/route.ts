@@ -30,6 +30,7 @@ export async function POST(request: Request) {
   const contentType = request.headers.get('content-type') ?? '';
   if (contentType.includes('multipart/form-data')) {
     const formData = await request.formData();
+    const batchId = String(formData.get('batchId') ?? '').trim() || null;
     const files = formData
       .getAll('files')
       .filter((value): value is File => value instanceof File)
@@ -39,8 +40,14 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'missing_pdf_files' }, { status: 400 });
     }
 
-    const batch = await createInboxBatch({ files, userId: session.userId });
-    return NextResponse.json({ ok: true, batch });
+    try {
+      const batch = await createInboxBatch({ files, userId: session.userId, batchId });
+      return NextResponse.json({ ok: true, batch });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Falha ao analisar lote da inbox';
+      const status = message.includes('Payload') || message.includes('too large') ? 413 : 500;
+      return NextResponse.json({ error: 'inbox_batch_failed', message }, { status });
+    }
   }
 
   const payload = (await request.json().catch(() => null)) as {
@@ -57,7 +64,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'invalid_payload' }, { status: 400 });
   }
 
-  const result = await createUniverseFromInboxBatch({
+  try {
+    const result = await createUniverseFromInboxBatch({
     batchId: payload.batchId,
     userId: session.userId,
     title: payload.title ?? null,
@@ -77,4 +85,9 @@ export async function POST(request: Request) {
       batchId: result.batchId,
     },
   });
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Falha ao criar universo pela inbox';
+    return NextResponse.json({ error: 'inbox_create_failed', message }, { status: 500 });
+  }
 }
+

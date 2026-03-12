@@ -421,13 +421,14 @@ async function ensureDocsBucket() {
   return db;
 }
 
-export async function createInboxBatch(input: { files: File[]; userId?: string | null }) {
+export async function createInboxBatch(input: { files: File[]; userId?: string | null; batchId?: string | null }) {
   const files = input.files.filter((file) => file.size > 0);
   if (files.length === 0) throw new Error('Nenhum PDF recebido');
 
   if (shouldUseMockInbox()) {
-    const batchId = `mock-inbox-${randomUUID()}`;
-    const items: UniverseInboxItem[] = [];
+    const batchId = input.batchId?.trim() || `mock-inbox-${randomUUID()}`;
+    const existing = mockState.batches.find((batch) => batch.id === batchId) ?? null;
+    const items: UniverseInboxItem[] = existing ? [...existing.items] : [];
     for (const file of files) {
       const analyzed = await analyzePdfFile(file);
       items.push({
@@ -444,38 +445,71 @@ export async function createInboxBatch(input: { files: File[]; userId?: string |
         createdAt: new Date().toISOString(),
       });
     }
+
     const suggestion = buildSuggestion(items);
-    const batch: UniverseInboxBatch = {
-      id: batchId,
-      createdBy: input.userId ?? null,
-      status: 'analyzed',
-      title: suggestion.title,
-      slug: suggestion.slug,
-      summary: suggestion.summary,
-      suggestedTemplate: suggestion.templateId,
-      confidence: suggestion.confidence,
-      warning: suggestion.warnings[0] ?? null,
-      createdUniverseId: null,
-      analysis: suggestion,
-      items,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
-    mockState.batches.unshift(batch);
+    const batch: UniverseInboxBatch = existing
+      ? {
+          ...existing,
+          status: 'analyzed',
+          title: suggestion.title,
+          slug: suggestion.slug,
+          summary: suggestion.summary,
+          suggestedTemplate: suggestion.templateId,
+          confidence: suggestion.confidence,
+          warning: suggestion.warnings[0] ?? null,
+          analysis: suggestion,
+          items,
+          updatedAt: new Date().toISOString(),
+        }
+      : {
+          id: batchId,
+          createdBy: input.userId ?? null,
+          status: 'analyzed',
+          title: suggestion.title,
+          slug: suggestion.slug,
+          summary: suggestion.summary,
+          suggestedTemplate: suggestion.templateId,
+          confidence: suggestion.confidence,
+          warning: suggestion.warnings[0] ?? null,
+          createdUniverseId: null,
+          analysis: suggestion,
+          items,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+    if (existing) {
+      const index = mockState.batches.findIndex((entry) => entry.id === batch.id);
+      if (index >= 0) mockState.batches[index] = batch;
+    } else {
+      mockState.batches.unshift(batch);
+    }
     return batch;
   }
 
   const db = await ensureDocsBucket();
   if (!db) throw new Error('storage_unavailable');
 
-  const { data: batchRow, error: batchError } = await db
-    .from('universe_inbox_batches')
-    .insert({ created_by: input.userId ?? null, status: 'draft' })
-    .select('id, created_by, status, title, slug, summary, suggested_template, confidence, warning, analysis, created_universe_id, created_at, updated_at')
-    .single();
-  if (batchError || !batchRow) throw new Error(batchError?.message ?? 'Falha ao criar lote da inbox');
+  const batchId = input.batchId?.trim() || null;
+  let batchRow: StoredBatchRow | null = null;
+  if (batchId) {
+    const { data, error } = await db
+      .from('universe_inbox_batches')
+      .select('id, created_by, status, title, slug, summary, suggested_template, confidence, warning, analysis, created_universe_id, created_at, updated_at')
+      .eq('id', batchId)
+      .maybeSingle();
+    if (error || !data) throw new Error(error?.message ?? 'Lote da inbox nao encontrado');
+    batchRow = data as StoredBatchRow;
+  } else {
+    const { data, error } = await db
+      .from('universe_inbox_batches')
+      .insert({ created_by: input.userId ?? null, status: 'draft' })
+      .select('id, created_by, status, title, slug, summary, suggested_template, confidence, warning, analysis, created_universe_id, created_at, updated_at')
+      .single();
+    if (error || !data) throw new Error(error?.message ?? 'Falha ao criar lote da inbox');
+    batchRow = data as StoredBatchRow;
+  }
 
-  const items: UniverseInboxItem[] = [];
   for (const file of files) {
     const analyzed = await analyzePdfFile(file);
     const storagePath = `inbox/${batchRow.id}/${Date.now()}-${sanitizeFileName(file.name)}`;
@@ -485,25 +519,28 @@ export async function createInboxBatch(input: { files: File[]; userId?: string |
     });
     if (uploadError) throw new Error(`Falha ao subir ${file.name}`);
 
-    const { data: itemRow, error: itemError } = await db
-      .from('universe_inbox_items')
-      .insert({
-        batch_id: batchRow.id,
-        file_name: file.name,
-        file_size: file.size,
-        mime_type: file.type || PDF_MIME,
-        storage_path: storagePath,
-        extracted_title: analyzed.analysis.extractedTitle,
-        preview_excerpt: analyzed.analysis.previewExcerpt,
-        status: 'analyzed',
-        analysis: analyzed.analysis,
-      })
-      .select('id, batch_id, file_name, file_size, mime_type, storage_path, extracted_title, preview_excerpt, status, analysis, created_at')
-      .single();
-    if (itemError || !itemRow) throw new Error(itemError?.message ?? `Falha ao registrar ${file.name}`);
-    items.push(mapItemRow(itemRow as StoredItemRow));
+    const { error: itemError } = await db.from('universe_inbox_items').insert({
+      batch_id: batchRow.id,
+      file_name: file.name,
+      file_size: file.size,
+      mime_type: file.type || PDF_MIME,
+      storage_path: storagePath,
+      extracted_title: analyzed.analysis.extractedTitle,
+      preview_excerpt: analyzed.analysis.previewExcerpt,
+      status: 'analyzed',
+      analysis: analyzed.analysis,
+    });
+    if (itemError) throw new Error(itemError.message ?? `Falha ao registrar ${file.name}`);
   }
 
+  const { data: storedItems, error: itemsError } = await db
+    .from('universe_inbox_items')
+    .select('id, batch_id, file_name, file_size, mime_type, storage_path, extracted_title, preview_excerpt, status, analysis, created_at')
+    .eq('batch_id', batchRow.id)
+    .order('created_at', { ascending: true });
+  if (itemsError) throw new Error(itemsError.message ?? 'Falha ao carregar itens da inbox');
+
+  const items = (storedItems ?? []).map((item) => mapItemRow(item as StoredItemRow));
   const suggestion = buildSuggestion(items);
   const { data: updatedBatch } = await db
     .from('universe_inbox_batches')
@@ -523,7 +560,6 @@ export async function createInboxBatch(input: { files: File[]; userId?: string |
 
   return mapBatchRow((updatedBatch as StoredBatchRow) ?? ({ ...batchRow, analysis: suggestion } as StoredBatchRow), items);
 }
-
 export async function getInboxBatch(batchId: string) {
   if (shouldUseMockInbox()) {
     return mockState.batches.find((batch) => batch.id === batchId) ?? null;
@@ -732,3 +768,4 @@ export async function listRecentInboxBatches(limit = 3) {
 
   return (data ?? []).map((row) => mapBatchRow(row as StoredBatchRow, []));
 }
+

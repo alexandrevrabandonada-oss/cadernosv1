@@ -69,6 +69,8 @@ function formatBytes(size: number) {
   return `${Math.max(1, Math.round(size / 1024))} KB`;
 }
 
+const MAX_SINGLE_FILE_BYTES = 4 * 1024 * 1024;
+
 function templateLabel(templateId: string) {
   return TEMPLATE_OPTIONS.find((option) => option.value === templateId)?.label ?? templateId;
 }
@@ -136,24 +138,50 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
       return;
     }
 
+    const oversized = draftFiles.find((item) => item.file.size > MAX_SINGLE_FILE_BYTES);
+    if (oversized) {
+      setError(`O arquivo ${oversized.file.name} passou de 4 MB e pode ser recusado pela hospedagem atual. Divida o PDF ou use um arquivo menor.`);
+      setMessage('');
+      return;
+    }
+
     setError('');
-    setMessage('Lendo o lote e montando a sugestao editorial inicial...');
     setResult(null);
-    const form = new FormData();
-    for (const item of draftFiles) form.append('files', item.file);
 
     startTransition(() => {
       void (async () => {
-        const response = await fetch('/api/admin/universes/inbox', { method: 'POST', body: form });
-        const payload = await response.json().catch(() => null);
-        if (!response.ok || !payload?.batch) {
-          setError('Nao foi possivel analisar o lote agora.');
+        let nextBatch: InboxBatch | null = null;
+
+        for (let index = 0; index < draftFiles.length; index += 1) {
+          const item = draftFiles[index];
+          setMessage(`Enviando ${index + 1} de ${draftFiles.length}: ${item.file.name}`);
+          const form = new FormData();
+          form.append('files', item.file);
+          if (nextBatch?.id) form.append('batchId', nextBatch.id);
+
+          const response = await fetch('/api/admin/universes/inbox', { method: 'POST', body: form });
+          const payload = await response.json().catch(() => null);
+          if (!response.ok || !payload?.batch) {
+            const serverMessage = String(payload?.message ?? '').trim();
+            if (response.status === 413) {
+              setError(`O arquivo ${item.file.name} passou do limite aceito pela hospedagem atual. Divida o PDF ou tente um arquivo menor.`);
+            } else {
+              setError(serverMessage || `Nao foi possivel analisar ${item.file.name} agora.`);
+            }
+            setMessage('');
+            return;
+          }
+
+          nextBatch = payload.batch as InboxBatch;
+          setBatch(nextBatch);
+        }
+
+        if (!nextBatch) {
+          setError('Nao foi possivel montar o lote da inbox.');
           setMessage('');
           return;
         }
 
-        const nextBatch = payload.batch as InboxBatch;
-        setBatch(nextBatch);
         setTitle(nextBatch.analysis.title);
         setSlug(nextBatch.analysis.slug);
         setSummary(nextBatch.analysis.summary);
@@ -165,7 +193,6 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
       })();
     });
   }
-
   function removeDraftFile(fileId: string) {
     setDraftFiles((current) => current.filter((item) => item.id !== fileId));
   }
@@ -204,7 +231,7 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
         });
         const payload = await response.json().catch(() => null);
         if (!response.ok || !payload?.result) {
-          setError('Falha ao criar o universo a partir da inbox.');
+          setError(String(payload?.message ?? 'Falha ao criar o universo a partir da inbox.'));
           setMessage('');
           return;
         }
@@ -590,3 +617,5 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
     </div>
   );
 }
+
+
