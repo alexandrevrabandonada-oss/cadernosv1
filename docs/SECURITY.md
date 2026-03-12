@@ -169,3 +169,15 @@ Quando houver suspeita de vazamento, rotacionar imediatamente:
   - remove `Cookie`
   - remove request body/cookies do evento
 - Sem DSN configurado, o setup continua sem emitir dados.
+
+
+
+## Bypass emergencial de admin
+
+- Para contingencia temporaria, o app aceita a env ADMIN_BYPASS_TOKEN.
+- O acesso e ativado abrindo /api/admin/bypass?token=<TOKEN>&next=/admin.
+- O token correto grava um cookie httpOnly temporario e libera a sessao como admin.
+- Para remover o acesso temporario:
+  - apagar a env ADMIN_BYPASS_TOKEN, e/ou
+  - abrir /api/admin/bypass?clear=1.
+- Uso recomendado apenas enquanto o fluxo de email/senha ou magic link do Supabase estiver quebrado.
