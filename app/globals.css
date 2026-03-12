@@ -3217,3 +3217,264 @@ textarea {
     width: 100%;
   }
 }
+
+/* ADM-UX-02 universe inbox premium */
+.inbox-hero-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 0.9rem;
+  align-items: stretch;
+}
+
+.inbox-hero-card,
+.inbox-step-rail,
+.inbox-dropzone-panel,
+.inbox-review-card,
+.inbox-success-card,
+.inbox-suggestion-panel,
+.inbox-alert-card {
+  border-radius: 24px;
+  overflow: hidden;
+}
+
+.inbox-hero-card {
+  background:
+    radial-gradient(circle at 12% 18%, rgba(217, 178, 79, 0.18), transparent 34%),
+    radial-gradient(circle at 88% 10%, rgba(45, 155, 116, 0.18), transparent 36%),
+    linear-gradient(155deg, color-mix(in srgb, var(--surface-panel), white 14%), color-mix(in srgb, var(--surface-panel), var(--surface-plate) 26%));
+}
+
+.inbox-step-rail {
+  display: grid;
+  gap: 0.65rem;
+  align-content: center;
+}
+
+.inbox-step-chip {
+  min-height: 52px;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid color-mix(in srgb, var(--line-0), #000 14%);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--surface-blade), white 11%);
+  color: color-mix(in srgb, var(--text-1), #000 12%);
+  font-weight: 700;
+}
+
+.inbox-step-chip[data-active='true'] {
+  border-color: color-mix(in srgb, var(--accent-editorial), #000 12%);
+  background: color-mix(in srgb, var(--surface-blade), var(--accent-editorial) 14%);
+  color: var(--text-0);
+}
+
+.inbox-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.95fr);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.inbox-dropzone-surface {
+  min-height: 280px;
+  padding: 1.25rem;
+  border: 1px dashed color-mix(in srgb, var(--line-0), #000 8%);
+  border-radius: 28px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  background:
+    linear-gradient(180deg, rgba(255, 247, 234, 0.12), transparent 34%),
+    color-mix(in srgb, var(--surface-blade), white 8%);
+  transition:
+    border-color var(--dur-2) var(--ease-standard),
+    background var(--dur-2) var(--ease-standard),
+    transform var(--dur-2) var(--ease-standard),
+    box-shadow var(--dur-2) var(--ease-standard);
+}
+
+.inbox-dropzone-surface[data-state='dragging'] {
+  border-color: color-mix(in srgb, var(--accent-action), #000 14%);
+  background:
+    linear-gradient(180deg, rgba(222, 245, 237, 0.16), transparent 34%),
+    color-mix(in srgb, var(--surface-blade), var(--accent-action) 12%);
+  box-shadow: var(--halo-action);
+  transform: translateY(-1px);
+}
+
+.inbox-dropzone-surface[data-state='processing'] {
+  border-color: color-mix(in srgb, var(--accent-editorial), #000 12%);
+  background:
+    linear-gradient(180deg, rgba(255, 247, 234, 0.18), transparent 36%),
+    color-mix(in srgb, var(--surface-blade), var(--accent-editorial) 14%);
+}
+
+.inbox-dropzone-surface[data-state='files'],
+.inbox-dropzone-surface[data-state='review'] {
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--line-0), var(--accent-editorial) 28%);
+}
+
+.inbox-file-card {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.8rem;
+}
+
+.inbox-kv-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.inbox-suggestion-panel {
+  gap: 0.8rem;
+}
+
+.inbox-alert-card {
+  padding: 0.9rem;
+  background:
+    linear-gradient(180deg, rgba(255, 247, 234, 0.12), transparent 34%),
+    color-mix(in srgb, var(--surface-plate), white 14%);
+}
+
+.inbox-final-summary {
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 247, 234, 0.12), transparent 36%),
+    color-mix(in srgb, var(--surface-plate), white 12%);
+}
+
+.inbox-success-card {
+  background:
+    radial-gradient(circle at 14% 20%, rgba(45, 155, 116, 0.2), transparent 32%),
+    linear-gradient(155deg, color-mix(in srgb, var(--surface-panel), white 14%), color-mix(in srgb, var(--surface-panel), var(--accent-action) 12%));
+}
+
+@media (max-width: 1100px) {
+  .inbox-hero-grid,
+  .inbox-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .inbox-step-chip,
+  .inbox-dropzone-panel,
+  .inbox-review-card,
+  .inbox-success-card,
+  .inbox-suggestion-panel,
+  .inbox-alert-card,
+  .inbox-hero-card {
+    border-radius: 20px;
+  }
+
+  .inbox-dropzone-surface {
+    min-height: 220px;
+    padding: 1rem;
+  }
+
+  .inbox-file-card,
+  .inbox-kv-grid {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .inbox-file-card .ui-button {
+    width: 100%;
+  }
+}
+
+/* ADM-UX-03 board editorial premium */
+.board-hero-card {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(217, 178, 79, 0.18), transparent 34%),
+    radial-gradient(circle at 86% 12%, rgba(45, 155, 116, 0.16), transparent 34%),
+    linear-gradient(155deg, color-mix(in srgb, var(--surface-panel), white 14%), color-mix(in srgb, var(--surface-panel), var(--surface-plate) 24%));
+}
+
+.program-index-grid,
+.program-board-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.program-index-card,
+.board-lane-card,
+.universe-ops-card,
+.board-suggestion-box {
+  border-radius: 24px;
+}
+
+.program-index-card {
+  display: grid;
+  gap: 0.8rem;
+  padding: 1rem;
+  border: 1px solid color-mix(in srgb, var(--line-0), #000 14%);
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(255, 247, 234, 0.12), transparent 36%),
+    color-mix(in srgb, var(--surface-plate), white 12%);
+}
+
+.program-index-metrics,
+.program-hero-metrics,
+.program-health-grid,
+.program-card-metrics {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.program-index-metrics,
+.program-hero-metrics,
+.program-health-grid {
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.program-card-metrics {
+  grid-template-columns: repeat(auto-fit, minmax(104px, 1fr));
+}
+
+.board-columns-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(310px, 1fr));
+  gap: 0.9rem;
+  align-items: start;
+}
+
+.board-lane-card {
+  min-height: 100%;
+}
+
+.universe-ops-card {
+  background:
+    linear-gradient(180deg, rgba(255, 247, 234, 0.12), transparent 36%),
+    color-mix(in srgb, var(--surface-plate), white 12%);
+}
+
+.board-suggestion-box {
+  background:
+    linear-gradient(180deg, rgba(222, 245, 237, 0.12), transparent 36%),
+    color-mix(in srgb, var(--surface-plate), var(--accent-action) 9%);
+}
+
+@media (max-width: 1100px) {
+  .program-index-grid,
+  .program-board-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .program-index-card,
+  .board-lane-card,
+  .universe-ops-card,
+  .board-suggestion-box {
+    border-radius: 20px;
+  }
+
+  .board-columns-grid {
+    grid-template-columns: 1fr;
+  }
+}

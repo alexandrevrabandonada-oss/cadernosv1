@@ -48,6 +48,9 @@ export default async function AdminPage() {
           <Link className='ui-button' href='/admin/programa-editorial'>
             Programa editorial
           </Link>
+          <Link className='ui-button' href='/admin/universes/inbox'>
+            Universe Inbox
+          </Link>
           <Link className='ui-button' href='/admin/status'>
             Painel operacional
           </Link>
@@ -56,4 +59,3 @@ export default async function AdminPage() {
     </main>
   );
 }
-

@@ -478,3 +478,120 @@ export async function createEditorialBatch(input: {
 }
 
 
+
+export type ProgramBlocker = {
+  label: string;
+  tone: 'alert' | 'warning' | 'ok';
+};
+
+export type EditorialProgramHealthSummary = {
+  totalUniverses: number;
+  inReview: number;
+  readyToPublish: number;
+  done: number;
+  suggestionCount: number;
+  bottleneckLane: { lane: EditorialLane; count: number } | null;
+  stalestUniverse: { title: string; daysIdle: number } | null;
+  staleItemsCount: number;
+  recommendedNow: Array<{ itemId: string; title: string; lane: EditorialLane; suggestedLane: EditorialLane; priority: number; reason: string }>;
+};
+
+function daysSince(iso: string) {
+  const diff = Date.now() - new Date(iso).getTime();
+  return Math.max(0, Math.floor(diff / (1000 * 60 * 60 * 24)));
+}
+
+export function describeLaneSuggestion(card: EditorialProgramCard) {
+  const checklist = card.checklist;
+  if (!checklist) return 'Checklist indisponivel. Mantendo leitura conservadora do board.';
+
+  const docs = checklist.overview.totalDocs;
+  const processed = checklist.overview.docsByStatus.processed;
+  const uploaded = checklist.overview.docsByStatus.uploaded;
+  const quality = checklist.overview.quality.avgTextQualityScore;
+  const linked = checklist.overview.links.nodeDocumentsCount + checklist.overview.links.nodeEvidencesCount;
+  const publishedEvidences = checklist.overview.publishedEvidencesTotal;
+  const draftEvidences = checklist.overview.draftEvidencesTotal + checklist.overview.collectiveReview.review + checklist.overview.collectiveReview.draft;
+
+  switch (card.suggestedLane) {
+    case 'bootstrap':
+      return docs === 0 ? 'Ainda em estrutura: o universo ainda nao tem docs suficientes para sair do bootstrap.' : 'Ainda falta base minima para sair da estrutura.';
+    case 'ingest':
+      return uploaded > 0 && processed === 0 ? 'Docs importados, mas ainda sem processamento concluido.' : 'A ingest ainda precisa consolidar os arquivos recebidos.';
+    case 'quality':
+      return `Ha docs processed, mas a qualidade media ainda esta baixa (${quality}).`;
+    case 'sprint':
+      return linked === 0 ? 'Tem docs processed, mas poucos links core e pouca cobertura editorial.' : 'Falta transformar base em cobertura conectada.';
+    case 'review':
+      return `Muitos drafts e pouca revisao: ${draftEvidences} pendentes contra ${publishedEvidences} publicados.`;
+    case 'highlights':
+      return 'Ja existe base publicada, mas ainda faltam sinais editoriais e highlights para leitura publica.';
+    case 'publish':
+      return 'Ja tem published + highlights. O universo parece pronto para vitrine.';
+    case 'done':
+      return card.universe.published ? 'Universo publicado e encerrado no board operacional.' : 'Pronto e consolidado para sair da fila ativa.';
+  }
+}
+
+export function getProgramBlockers(card: EditorialProgramCard): ProgramBlocker[] {
+  const checklist = card.checklist;
+  if (!checklist) return [{ label: 'Checklist indisponivel', tone: 'warning' }];
+
+  const blockers: ProgramBlocker[] = [];
+  if (checklist.overview.totalDocs === 0) blockers.push({ label: 'Sem docs', tone: 'alert' });
+  if (checklist.overview.totalDocs > 0 && checklist.overview.docsByStatus.processed === 0) blockers.push({ label: 'Ingest parado', tone: 'warning' });
+  if (checklist.overview.quality.avgTextQualityScore > 0 && checklist.overview.quality.avgTextQualityScore < 60) blockers.push({ label: 'Quality baixa', tone: 'alert' });
+  if (checklist.overview.draftEvidencesTotal > checklist.overview.publishedEvidencesTotal) blockers.push({ label: 'Muitos drafts', tone: 'warning' });
+  if (card.suggestedLane === 'highlights') blockers.push({ label: 'Sem highlights', tone: 'warning' });
+  if (card.suggestedLane === 'publish') blockers.push({ label: 'Pronto para vitrine', tone: 'ok' });
+  if ((card.item.lane === 'publish' || card.suggestedLane === 'done') && (!card.universe.isFeatured || !card.universe.focusOverride)) {
+    blockers.push({ label: 'Publish sem featured/focus', tone: 'warning' });
+  }
+  return blockers.slice(0, 5);
+}
+
+export function summarizeProgramBoard(board: EditorialProgramBoard): EditorialProgramHealthSummary {
+  const cards = board.columns.flatMap((column) => column.items);
+  const suggestionCount = cards.filter((card) => card.item.lane !== card.suggestedLane).length;
+  const bottleneckEntry = Object.entries(board.totals)
+    .filter((entry) => entry[1] > 0)
+    .sort((a, b) => Number(b[1]) - Number(a[1]))[0];
+  const staleCards = cards
+    .map((card) => ({ card, daysIdle: daysSince(card.item.updatedAt) }))
+    .filter((entry) => entry.daysIdle >= 3)
+    .sort((a, b) => b.daysIdle - a.daysIdle);
+  const recommendedNow = [...cards]
+    .sort((a, b) => {
+      const aDelta = a.item.lane === a.suggestedLane ? 0 : 1;
+      const bDelta = b.item.lane === b.suggestedLane ? 0 : 1;
+      const aIssues = (a.checklist?.readiness.failCount ?? 0) * 3 + (a.checklist?.readiness.warnCount ?? 0);
+      const bIssues = (b.checklist?.readiness.failCount ?? 0) * 3 + (b.checklist?.readiness.warnCount ?? 0);
+      return bDelta - aDelta || b.item.priority - a.item.priority || bIssues - aIssues;
+    })
+    .slice(0, 3)
+    .map((card) => ({
+      itemId: card.item.id,
+      title: card.universe.title,
+      lane: card.item.lane,
+      suggestedLane: card.suggestedLane,
+      priority: card.item.priority,
+      reason: describeLaneSuggestion(card),
+    }));
+
+  return {
+    totalUniverses: cards.length,
+    inReview: board.totals.review,
+    readyToPublish: board.totals.publish,
+    done: board.totals.done,
+    suggestionCount,
+    bottleneckLane: bottleneckEntry ? { lane: bottleneckEntry[0] as EditorialLane, count: Number(bottleneckEntry[1]) } : null,
+    stalestUniverse: staleCards[0] ? { title: staleCards[0].card.universe.title, daysIdle: staleCards[0].daysIdle } : null,
+    staleItemsCount: staleCards.length,
+    recommendedNow,
+  };
+}
+
+
+
+
+

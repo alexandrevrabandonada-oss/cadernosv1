@@ -713,4 +713,22 @@ export function suggestSummary(items: UniverseInboxItem[]) {
   return buildSuggestion(items).summary;
 }
 
+export async function listRecentInboxBatches(limit = 3) {
+  const safeLimit = Math.max(1, Math.min(12, Math.floor(limit)));
+  if (shouldUseMockInbox()) {
+    return mockState.batches
+      .slice()
+      .sort((a, b) => (b.updatedAt ?? '').localeCompare(a.updatedAt ?? ''))
+      .slice(0, safeLimit);
+  }
 
+  const db = getSupabaseServiceRoleClient();
+  if (!db) return [];
+  const { data } = await db
+    .from('universe_inbox_batches')
+    .select('id, created_by, status, title, slug, summary, suggested_template, confidence, warning, analysis, created_universe_id, created_at, updated_at')
+    .order('updated_at', { ascending: false })
+    .limit(safeLimit);
+
+  return (data ?? []).map((row) => mapBatchRow(row as StoredBatchRow, []));
+}

@@ -5,7 +5,9 @@ import {
   autoAssessUniverseLane,
   createEditorialBatch,
   createEditorialProgram,
+  describeLaneSuggestion,
   getProgramBoard,
+  summarizeProgramBoard,
 } from '@/lib/editorial/program';
 
 describe('editorial program', () => {
@@ -75,5 +77,33 @@ describe('editorial program', () => {
     const board = await getProgramBoard(program.slug);
     expect(universes).toHaveLength(2);
     expect(board?.totals.bootstrap).toBeGreaterThanOrEqual(2);
+  });
+
+  it('summarizes board health and suggestion reasons for operational reading', async () => {
+    const program = await createEditorialProgram({
+      title: 'Programa leitura',
+      slug: 'programa-leitura',
+      userId: 'user-1',
+    });
+
+    const universe = await bootstrapUniverseWorkflow({
+      mode: 'template',
+      universe: {
+        title: 'Universo leitura',
+        slug: 'universo-leitura',
+        summary: 'Board para validar leitura operacional.',
+      },
+      templateId: 'blank_minimal',
+      userId: 'user-1',
+    });
+
+    await addUniverseToProgram({ programId: program.id, universeId: universe.id, lane: 'review', priority: 4 });
+    const board = await getProgramBoard(program.slug);
+    expect(board).toBeTruthy();
+    const summary = summarizeProgramBoard(board!);
+    expect(summary.totalUniverses).toBeGreaterThan(0);
+    expect(summary.suggestionCount).toBeGreaterThanOrEqual(1);
+    const firstCard = board!.columns.flatMap((column) => column.items)[0];
+    expect(describeLaneSuggestion(firstCard)).toMatch(/estrutura|docs|qualidade|drafts|vitrine|publicado/i);
   });
 });

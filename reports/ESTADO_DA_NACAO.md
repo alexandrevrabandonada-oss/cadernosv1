@@ -1,67 +1,78 @@
 # Estado da Nacao - Cadernos Vivos
 Data: 2026-03-12
-Prompt: PROD-18
+Prompt: ADM-UX-03
 Commit (se possivel): n/a
 
 ## 1) O que entrou neste tijolo
-- Nova rota admin `/admin/universes/inbox` para criar universos a partir de dropzone de PDFs.
-- Fluxo completo `dropzone -> analise -> bootstrap -> ingest -> board` integrado ao programa editorial principal.
-- Engine `lib/universe/inbox.ts` com analise de lote, clustering por tema, sugestao de template, nos core, glossario, perguntas e resumo.
-- Criacao do universo reaproveitando o bootstrap existente, sem publicar nada automaticamente e sem promover evidencia para o publico.
-- Entrada imediata do novo universo no board editorial em `ingest` quando ha PDFs e em `bootstrap` quando nasce so a estrutura.
+- O board editorial foi refinado como central de operacao madura em `/admin/programa-editorial` e `/admin/programa-editorial/[slug]`.
+- A logica principal foi preservada: o fluxo continua baseado em `editorial_programs`, `editorial_program_items` e `autoAssessUniverseLane`.
+- A entrega prioriza leitura rapida, gargalos reais, acoes operacionais por universo e clareza do proximo passo da fila.
 
-## 2) Rota e UX novas
-- `/admin/universes/inbox` tem tres areas: dropzone de PDFs, painel de analise do lote e painel de criacao do universo.
-- A lista de upload mostra nome do arquivo, tamanho, status e preview textual/titulo extraido quando possivel.
-- O passo de revisao agora exibe titulo, slug, resumo, template, nos core, glossario, perguntas de partida e trilha `Comece Aqui`.
-- Quando a analise detecta mistura, a UI avisa e oferece o CTA `Separar lote em 2 universos` como orientacao operacional.
+## 2) O que mudou no board
+### Indice de programas
+- a tela `/admin/programa-editorial` agora funciona como resumo executivo dos programas ativos
+- cada programa mostra total de universos, cards em `review`, cards em `done` e atalhos para board e lote
+- a linguagem saiu de lista tecnica e passou para tom de operacao editorial
 
-## 3) Engine de inbox
-Arquivo principal:
-- `lib/universe/inbox.ts`
+### Hero operacional do board
+- titulo e resumo do programa
+- metricas rapidas de universos totais, `review`, `publish` e `done`
+- CTAs para `Criar lote`, `Atualizar board` e `Aplicar sugestoes de lane`
 
-Funcoes centrais:
-- `analyzePdfBatch(files)`
-- `clusterBatchByTheme(batch)`
-- `suggestUniverseFromBatch(batch)`
-- `suggestUniverseTemplate(batch)`
-- `suggestCoreNodes(batch)`
-- `suggestGlossary(batch)`
-- `suggestStarterQuestions(batch)`
-- `suggestSummary(batch)`
+### Saude do board
+- counts por lane com destaque para lane mais congestionada
+- leitura de `Onde esta travado`
+- leitura de `Maior atraso`
+- leitura de `Sem movimento recente`
 
-Guardrails implementados:
-- fallback para `blank_minimal` quando ha poucos sinais tematicos comuns ou texto fraco demais
-- aviso de OCR fraco
-- aviso de mistura tematica
-- nenhum publish automatico
-- nenhuma promocao automatica de evidencia publica
+### Board principal
+- lanes com microcopy editorial curta
+- cards de universo mais fortes, com titulo, resumo, template, prioridade, lane atual e sinais operacionais
+- painel lateral com `Recomendados agora` e `Proximos movimentos`
 
-## 4) Pipeline apos confirmacao
-- cria universo via bootstrap por template
-- registra documentos importados no universo
-- enfileira ingest quando o editor escolhe essa opcao
-- garante o programa editorial principal quando necessario
-- adiciona o universo ao board na lane correta
+## 3) Novos componentes de gargalo e saude
+- `LaneHealthBadge`: badge de contagem por lane com destaque de gargalo
+- `ProgramBlockerChip`: chips de bloqueio e prontidao operacional
+- `UniverseOpsCard`: card editorial para leitura e acao rapida por universo
+
+## 4) Lane sugerida mais legivel
+- cada card passa a expor lane atual x lane sugerida
+- o motivo da sugestao ficou legivel para operacao humana
+- exemplos de mensagem:
+  - docs importados, mas ainda sem processamento concluido
+  - ha docs processed, mas a qualidade media ainda esta baixa
+  - muitos drafts e pouca revisao
+  - ja tem published + highlights, pronto para vitrine
+- acoes disponiveis:
+  - `Mover agora`
+  - `Ignorar sugestao`
 
 ## 5) Como testar
-1. Abrir `/admin/universes/inbox`.
-2. Arrastar 3 a 5 PDFs do mesmo tema.
-3. Revisar sugestoes de titulo, slug, resumo, template, nos core, glossario e perguntas.
-4. Clicar em `Criar universo e enfileirar ingest`.
-5. Abrir o Hub preview, o checklist, os docs e o board editorial para conferir o novo card.
+1. Abrir `/admin/programa-editorial`.
+2. Entrar em um board em `/admin/programa-editorial/[slug]`.
+3. Revisar counts por lane na secao `Saude do board`.
+4. Abrir um card de universo e validar badges, bloqueios e acoes rapidas.
+5. Usar uma acao rapida como `Checklist`, `Review` ou `Highlights`.
+6. Validar lane atual x lane sugerida e, se fizer sentido, mover o card.
+7. Testar `Criar lote` no proprio board para inserir novos universos no programa.
 
-## 6) Arquivos principais
-- `app/admin/universes/inbox/page.tsx`
-- `components/admin/UniverseInboxClient.tsx`
-- `app/api/admin/universes/inbox/route.ts`
-- `lib/universe/inbox.ts`
-- `supabase/migrations/20260312173000_universe_inbox.sql`
-- `tests/universe-inbox.test.ts`
+## 6) Arquivos principais desta entrega
+- `app/admin/programa-editorial/page.tsx`
+- `app/admin/programa-editorial/[slug]/page.tsx`
+- `components/admin/LaneHealthBadge.tsx`
+- `components/admin/ProgramBlockerChip.tsx`
+- `components/admin/UniverseOpsCard.tsx`
+- `lib/editorial/program.ts`
+- `app/globals.css`
+- `tests/editorial-program.test.ts`
 - `tests/e2e/ui-smoke.spec.ts`
-- `docs/UNIVERSE_INBOX.md`
+- `docs/PROGRAMA_EDITORIAL.md`
 
 ## 7) Verificacoes finais
 - `npm run verify`: ✅ Verify passou
 - `npm run test:e2e:ci`: ✅ E2E passou
 - `npm run test:ui:ci`: ✅ Visual passou
+
+## 8) Observacao operacional
+- O `test:e2e:ci` seguiu verde com 1 flaky antigo em fluxo restrito de `coletivos`, fora do escopo deste board premium.
+- A baseline visual do runner mobile compacto foi atualizada para refletir a composicao nova sem alterar o fluxo principal do produto.

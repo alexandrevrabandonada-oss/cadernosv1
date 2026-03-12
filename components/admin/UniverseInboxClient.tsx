@@ -3,6 +3,11 @@
 import { useMemo, useRef, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { InboxAlertCard } from '@/components/admin/InboxAlertCard';
+import { InboxSuggestionPanel } from '@/components/admin/InboxSuggestionPanel';
+import { SuggestionConfidenceBadge } from '@/components/admin/SuggestionConfidenceBadge';
+import { Badge } from '@/components/ui/Badge';
+import { Card } from '@/components/ui/Card';
 
 type InboxItem = {
   id: string;
@@ -47,42 +52,95 @@ type CreateResult = {
   docsAttached: number;
 };
 
+type DraftFile = {
+  id: string;
+  file: File;
+};
+
+const TEMPLATE_OPTIONS = [
+  { value: 'issue_investigation', label: 'Investigacao de tema' },
+  { value: 'territorial_memory', label: 'Memoria territorial' },
+  { value: 'campaign_watch', label: 'Monitoramento continuo' },
+  { value: 'blank_minimal', label: 'Em branco' },
+] as const;
+
+function formatBytes(size: number) {
+  if (size >= 1024 * 1024) return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(size / 1024))} KB`;
+}
+
+function templateLabel(templateId: string) {
+  return TEMPLATE_OPTIONS.find((option) => option.value === templateId)?.label ?? templateId;
+}
+
+function classifyWarning(warning: string): { title: string; tone: 'alert' | 'warning' | 'ok' } {
+  const lower = warning.toLowerCase();
+  if (lower.includes('ocr') || lower.includes('texto')) return { title: 'Texto fraco ou OCR limitado', tone: 'warning' };
+  if (lower.includes('mistur') || lower.includes('heterog')) return { title: 'Lote muito heterogeneo', tone: 'alert' };
+  if (lower.includes('poucos sinais')) return { title: 'Poucos sinais em comum', tone: 'alert' };
+  if (lower.includes('generico')) return { title: 'Titulo ainda generico', tone: 'warning' };
+  if (lower.includes('template')) return { title: 'Template incerto', tone: 'warning' };
+  return { title: 'Alerta editorial', tone: 'warning' };
+}
+
 export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch | null }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const [draftFiles, setDraftFiles] = useState<DraftFile[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
   const [batch, setBatch] = useState<InboxBatch | null>(initialBatch);
   const [title, setTitle] = useState(initialBatch?.analysis.title ?? '');
   const [slug, setSlug] = useState(initialBatch?.analysis.slug ?? '');
   const [summary, setSummary] = useState(initialBatch?.analysis.summary ?? '');
   const [templateId, setTemplateId] = useState(initialBatch?.analysis.templateId ?? 'issue_investigation');
-  const [enqueueIngest, setEnqueueIngest] = useState(true);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [result, setResult] = useState<CreateResult | null>(null);
   const [isPending, startTransition] = useTransition();
 
+  const hasBatch = Boolean(batch);
   const hasMixedThemes = (batch?.analysis.subthemes.length ?? 0) > 1;
-  const confidenceLabel = useMemo(() => {
-    const confidence = batch?.analysis.confidence ?? 0;
-    if (confidence >= 0.8) return 'alta';
-    if (confidence >= 0.55) return 'media';
-    return 'baixa';
+  const expectedLane = result?.lane ?? ((batch?.items.length ?? 0) > 0 ? 'ingest' : 'bootstrap');
+  const dropzoneState = isPending ? 'processing' : isDragging ? 'dragging' : draftFiles.length > 0 ? 'files' : hasBatch ? 'review' : 'empty';
+  const topKeywords = useMemo(() => {
+    if (!batch) return [] as string[];
+    const merged = batch.items.flatMap((item) => item.analysis.topKeywords ?? []);
+    return Array.from(new Set(merged)).slice(0, 8);
   }, [batch]);
 
-  async function handleFiles(files: FileList | File[]) {
-    const list = Array.from(files).filter((file) => file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf');
+  function syncDraftFiles(nextFiles: FileList | File[]) {
+    const list = Array.from(nextFiles).filter((file) => file.name.toLowerCase().endsWith('.pdf') || file.type === 'application/pdf');
     if (list.length === 0) {
       setError('Selecione 1 ou mais PDFs validos.');
       return;
     }
 
     setError('');
-    setMessage('Enviando lote para analise...');
+    setMessage('Lote recebido. Revise os arquivos e inicie a leitura inicial quando estiver pronto.');
+    setResult(null);
+    setBatch(null);
+    setDraftFiles((current) => {
+      const seen = new Set(current.map((item) => `${item.file.name}:${item.file.size}`));
+      const additions = list
+        .filter((file) => !seen.has(`${file.name}:${file.size}`))
+        .map((file, index) => ({ id: `${file.name}-${file.size}-${Date.now()}-${index}`, file }));
+      return [...current, ...additions];
+    });
+  }
+
+  async function analyzeCurrentBatch() {
+    if (draftFiles.length === 0) {
+      setError('Adicione PDFs antes de iniciar a analise.');
+      return;
+    }
+
+    setError('');
+    setMessage('Lendo o lote e montando a sugestao editorial inicial...');
     setResult(null);
     const form = new FormData();
-    for (const file of list) form.append('files', file);
+    for (const item of draftFiles) form.append('files', item.file);
 
     startTransition(() => {
       void (async () => {
@@ -100,7 +158,7 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
         setSlug(nextBatch.analysis.slug);
         setSummary(nextBatch.analysis.summary);
         setTemplateId(nextBatch.analysis.templateId);
-        setMessage('Lote analisado. Revise a sugestao antes de criar o universo.');
+        setMessage('Leitura inicial pronta. Revise as sugestoes antes de criar o universo.');
         const params = new URLSearchParams(searchParams.toString());
         params.set('batch', nextBatch.id);
         router.replace(`${pathname}?${params.toString()}`);
@@ -108,10 +166,25 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
     });
   }
 
-  function submitCreate(enqueueValue: boolean) {
+  function removeDraftFile(fileId: string) {
+    setDraftFiles((current) => current.filter((item) => item.id !== fileId));
+  }
+
+  function clearDraftBatch() {
+    setDraftFiles([]);
+    setBatch(null);
+    setMessage('');
+    setError('');
+    setResult(null);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('batch');
+    router.replace(params.size ? `${pathname}?${params.toString()}` : pathname);
+  }
+
+  function submitCreate(enqueueIngest: boolean) {
     if (!batch) return;
     setError('');
-    setMessage(enqueueValue ? 'Criando universo e acoplando ao board...' : 'Criando universo sem enfileirar ingest...');
+    setMessage(enqueueIngest ? 'Criando universo e enfileirando ingest...' : 'Criando a estrutura inicial do universo...');
     setResult(null);
 
     startTransition(() => {
@@ -126,7 +199,7 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
             slug,
             summary,
             templateId,
-            enqueueIngest: enqueueValue,
+            enqueueIngest,
           }),
         });
         const payload = await response.json().catch(() => null);
@@ -136,7 +209,6 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
           return;
         }
 
-        setEnqueueIngest(enqueueValue);
         setResult(payload.result as CreateResult);
         setMessage('Universo criado com sucesso.');
       })();
@@ -147,20 +219,45 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
     if (!batch || !hasMixedThemes) return;
     const [primary, secondary] = batch.analysis.subthemes;
     setTemplateId('blank_minimal');
-    setMessage(`Lote misto detectado. Sugestao: crie este universo para ${primary || 'o recorte principal'} e separe ${secondary || 'o recorte secundario'} em outro batch.`);
+    setMessage(`Tema misto detectado. Sugestao: mantenha ${primary || 'o recorte principal'} neste universo e separe ${secondary || 'o segundo eixo'} em um novo lote.`);
   }
 
   return (
-    <div className='layout-shell' style={{ gridTemplateColumns: 'minmax(260px, 1.05fr) minmax(280px, 1fr) minmax(320px, 1.1fr)', alignItems: 'start' }}>
-      <section className='stack'>
-        <article className='core-node stack'>
-          <strong>1. Dropzone de PDFs</strong>
-          <p className='muted' style={{ margin: 0 }}>
-            Arraste 3 a 8 PDFs de um mesmo macrotema. A inbox extrai sinais, detecta mistura e sugere o bootstrap editorial.
-          </p>
-          <button className='ui-button' type='button' onClick={() => inputRef.current?.click()} disabled={isPending}>
-            Escolher PDFs
-          </button>
+    <div className='stack stack-editorial'>
+      <section className='inbox-hero-grid'>
+        <Card className='inbox-hero-card stack'>
+          <div className='stack' style={{ gap: '0.6rem' }}>
+            <small className='ui-eyebrow'>Universe Inbox premium</small>
+            <h2 style={{ margin: 0 }}>Sala de ingest editorial assistida</h2>
+            <p className='muted' style={{ margin: 0 }}>
+              Arraste PDFs de um mesmo tema. A IA sugere universo, estrutura e pipeline inicial. O editor revisa tudo antes de criar.
+            </p>
+          </div>
+          <div className='toolbar-row'>
+            <Badge variant='ok'>Dropzone premium</Badge>
+            <Badge variant='ok'>Analise assistida</Badge>
+            <Badge variant='ok'>Board conectado</Badge>
+          </div>
+        </Card>
+
+        <Card className='inbox-step-rail'>
+          <div className='inbox-step-chip' data-active='true'>1. Soltar PDFs</div>
+          <div className='inbox-step-chip' data-active={draftFiles.length > 0 || hasBatch ? 'true' : 'false'}>2. Lote recebido</div>
+          <div className='inbox-step-chip' data-active={hasBatch ? 'true' : 'false'}>3. Leitura inicial do tema</div>
+          <div className='inbox-step-chip' data-active={hasBatch || Boolean(result) ? 'true' : 'false'}>4. Antes de criar</div>
+        </Card>
+      </section>
+
+      <section className='inbox-grid'>
+        <Card className='stack inbox-dropzone-panel'>
+          <div className='stack' style={{ gap: '0.5rem' }}>
+            <small className='ui-eyebrow'>1. Dropzone</small>
+            <strong>Arraste PDFs de um mesmo tema</strong>
+            <p className='muted' style={{ margin: 0 }}>
+              Use de 3 a 8 arquivos quando possivel. Lotes muito mistos ou scans com pouco texto podem cair para um template mais conservador.
+            </p>
+          </div>
+
           <input
             ref={inputRef}
             type='file'
@@ -168,159 +265,328 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
             multiple
             style={{ display: 'none' }}
             onChange={(event) => {
-              if (event.target.files?.length) void handleFiles(event.target.files);
+              if (event.target.files?.length) syncDraftFiles(event.target.files);
             }}
           />
+
+          <button className='ui-button' type='button' onClick={() => inputRef.current?.click()} disabled={isPending}>
+            Selecionar arquivos
+          </button>
+
           <div
-            onDragOver={(event) => event.preventDefault()}
+            className='inbox-dropzone-surface'
+            data-state={dropzoneState}
+            onDragOver={(event) => {
+              event.preventDefault();
+              setIsDragging(true);
+            }}
+            onDragLeave={() => setIsDragging(false)}
             onDrop={(event) => {
               event.preventDefault();
-              if (event.dataTransfer.files?.length) void handleFiles(event.dataTransfer.files);
+              setIsDragging(false);
+              if (event.dataTransfer.files?.length) syncDraftFiles(event.dataTransfer.files);
             }}
-            style={{ minHeight: 220, border: '1px dashed var(--line-2)', borderRadius: 24, padding: 20, display: 'grid', placeItems: 'center' }}
           >
-            <div className='stack' style={{ textAlign: 'center' }}>
-              <strong>Solte o lote aqui</strong>
-              <span className='muted'>PDFs do mesmo tema. A sugestao nasce como rascunho e segue para revisao humana.</span>
+            <div className='stack' style={{ textAlign: 'center', gap: '0.45rem' }}>
+              <strong>
+                {isPending
+                  ? 'Processando lote...'
+                  : draftFiles.length > 0
+                    ? 'Lote pronto para leitura inicial'
+                    : hasBatch
+                      ? 'Analise pronta para revisao editorial'
+                      : 'Solte o lote aqui'}
+              </strong>
+              <span className='muted'>A IA sugere universo, estrutura e proxima lane. Nada e publicado automaticamente.</span>
+              <div className='toolbar-row' style={{ justifyContent: 'center' }}>
+                <Badge variant='warning'>PDF apenas</Badge>
+                <Badge variant='default'>Mesmo macrotema</Badge>
+                <Badge variant='default'>Revisao humana obrigatoria</Badge>
+              </div>
             </div>
           </div>
-          {batch ? (
+
+          <div className='toolbar-row'>
+            <button className='ui-button' data-variant='primary' type='button' onClick={analyzeCurrentBatch} disabled={draftFiles.length === 0 || isPending}>
+              Iniciar leitura do lote
+            </button>
+            <button className='ui-button' data-variant='ghost' type='button' onClick={clearDraftBatch} disabled={(draftFiles.length === 0 && !batch) || isPending}>
+              Limpar lote
+            </button>
+          </div>
+        </Card>
+
+        <Card className='stack'>
+          <div className='stack' style={{ gap: '0.5rem' }}>
+            <small className='ui-eyebrow'>2. Lote recebido</small>
+            <strong>Arquivos prontos para entrar na analise</strong>
+            <p className='muted' style={{ margin: 0 }}>
+              Revise o lote antes de subir. Voce pode remover arquivos destoantes para reduzir mistura tematica.
+            </p>
+          </div>
+
+          {draftFiles.length === 0 && !batch ? (
+            <div className='empty-state'>
+              <div className='empty-state-head'>
+                <small>Lote recebido</small>
+                <strong>Nenhum PDF selecionado ainda</strong>
+              </div>
+              <p className='muted' style={{ margin: 0 }}>Assim que voce arrastar arquivos, esta area lista nome, tamanho e a fila pronta para analise.</p>
+            </div>
+          ) : null}
+
+          {draftFiles.length > 0 ? (
             <div className='stack'>
-              {batch.items.map((item) => (
-                <article key={item.id} className='core-node'>
-                  <strong>{item.extractedTitle || item.fileName}</strong>
-                  <p className='muted' style={{ margin: 0 }}>{Math.round(item.fileSize / 1024)} KB | status:{item.status}</p>
-                  <p className='muted' style={{ margin: 0 }}>{item.previewExcerpt || 'Sem preview textual suficiente.'}</p>
+              {draftFiles.map((item) => (
+                <article key={item.id} className='core-node inbox-file-card'>
+                  <div className='stack' style={{ gap: '0.35rem' }}>
+                    <strong>{item.file.name}</strong>
+                    <p className='muted' style={{ margin: 0 }}>{formatBytes(item.file.size)} | status: aguardando analise</p>
+                    <p className='muted' style={{ margin: 0 }}>Titulo extraido: disponivel apos a leitura inicial.</p>
+                  </div>
+                  <button className='ui-button' data-variant='ghost' type='button' onClick={() => removeDraftFile(item.id)} disabled={isPending}>
+                    Remover
+                  </button>
                 </article>
               ))}
             </div>
           ) : null}
-        </article>
-      </section>
 
-      <section className='stack'>
-        <article className='core-node stack'>
-          <strong>2. Analise do lote</strong>
-          {!batch ? <p className='muted' style={{ margin: 0 }}>O painel de analise aparece assim que o lote de PDFs sobe.</p> : null}
           {batch ? (
-            <>
-              <div className='toolbar-row'>
-                <span className='badge'>{`template:${batch.analysis.templateId}`}</span>
-                <span className='badge'>{`confianca:${confidenceLabel}`}</span>
-                <span className='badge'>{`${batch.items.length} PDF(s)`}</span>
-              </div>
-              {batch.analysis.warnings.map((warning) => (
-                <p key={warning} role='alert' className='muted' style={{ margin: 0, color: 'var(--alert-0)' }}>{warning}</p>
+            <div className='stack'>
+              {batch.items.map((item) => (
+                <article key={item.id} className='core-node inbox-file-card'>
+                  <div className='stack' style={{ gap: '0.35rem' }}>
+                    <strong>{item.fileName}</strong>
+                    <p className='muted' style={{ margin: 0 }}>{formatBytes(item.fileSize)} | status: {item.status}</p>
+                    <p className='muted' style={{ margin: 0 }}>Titulo extraido: {item.extractedTitle || 'sem sinal forte'}</p>
+                    <p className='muted' style={{ margin: 0 }}>{item.previewExcerpt || 'Sem preview textual suficiente.'}</p>
+                  </div>
+                </article>
               ))}
-              <div className='stack'>
-                <strong>Subtemas</strong>
-                <div className='toolbar-row'>
-                  {batch.analysis.subthemes.map((subtheme) => <span className='badge' key={subtheme}>{subtheme}</span>)}
-                </div>
-              </div>
-              <div className='stack'>
-                <strong>Tags principais</strong>
-                <div className='toolbar-row'>
-                  {batch.analysis.tags.map((tag) => <span className='badge' key={tag}>#{tag}</span>)}
-                </div>
-              </div>
-              <div className='stack'>
-                <strong>Nos core sugeridos</strong>
-                {batch.analysis.coreNodes.map((node) => (
-                  <article key={node.slug} className='core-node'>
-                    <strong>{node.title}</strong>
-                    <p className='muted' style={{ margin: 0 }}>{node.summary}</p>
-                  </article>
-                ))}
-              </div>
-              <div className='stack'>
-                <strong>Glossario inicial</strong>
-                {batch.analysis.glossary.slice(0, 8).map((term) => (
-                  <article key={term.term} className='core-node'>
-                    <strong>{term.term}</strong>
-                    <p className='muted' style={{ margin: 0 }}>{term.shortDef}</p>
-                  </article>
-                ))}
-              </div>
-              <div className='stack'>
-                <strong>Perguntas de partida</strong>
-                <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
-                  {batch.analysis.questions.map((question) => <li key={question}>{question}</li>)}
-                </ul>
-              </div>
-            </>
+            </div>
           ) : null}
-        </article>
+        </Card>
       </section>
 
-      <section className='stack'>
-        <article className='core-node stack'>
-          <strong>3. Criacao do universo</strong>
-          <label>
-            <span>Titulo</span>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} style={{ width: '100%', minHeight: 40 }} disabled={!batch || isPending} />
-          </label>
-          <label>
-            <span>Slug</span>
-            <input value={slug} onChange={(event) => setSlug(event.target.value)} style={{ width: '100%', minHeight: 40 }} disabled={!batch || isPending} />
-          </label>
-          <label>
-            <span>Resumo</span>
-            <textarea value={summary} onChange={(event) => setSummary(event.target.value)} rows={5} style={{ width: '100%' }} disabled={!batch || isPending} />
-          </label>
-          <label>
-            <span>Template sugerido</span>
-            <select value={templateId} onChange={(event) => setTemplateId(event.target.value)} style={{ width: '100%', minHeight: 40 }} disabled={!batch || isPending}>
-              <option value='issue_investigation'>Investigacao de tema</option>
-              <option value='territorial_memory'>Memoria territorial</option>
-              <option value='campaign_watch'>Monitoramento continuo</option>
-              <option value='blank_minimal'>Em branco</option>
-            </select>
-          </label>
-          <label style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
-            <input type='checkbox' checked={enqueueIngest} onChange={(event) => setEnqueueIngest(event.target.checked)} disabled={!batch || isPending} />
-            Enfileirar ingest apos criar
-          </label>
-          <div className='toolbar-row'>
-            <button className='ui-button' type='button' onClick={() => submitCreate(true)} disabled={!batch || isPending}>
-              Criar universo e enfileirar ingest
-            </button>
-            <button className='ui-button' type='button' data-variant='ghost' onClick={() => submitCreate(false)} disabled={!batch || isPending}>
-              Criar universo sem ingest
-            </button>
-            {hasMixedThemes ? (
-              <button className='ui-button' type='button' data-variant='ghost' onClick={suggestSplit} disabled={!batch || isPending}>
-                Separar lote em 2 universos
-              </button>
-            ) : null}
-          </div>
-          {message ? <p className='muted' style={{ margin: 0 }}>{message}</p> : null}
-          {error ? <p role='alert' className='muted' style={{ margin: 0, color: 'var(--alert-0)' }}>{error}</p> : null}
-          {batch ? (
-            <article className='core-node'>
-              <strong>{batch.analysis.trail.title}</strong>
-              <p className='muted' style={{ margin: 0 }}>{batch.analysis.trail.summary}</p>
-              <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
-                {batch.analysis.trail.steps.map((step) => <li key={step}>{step}</li>)}
-              </ul>
-            </article>
-          ) : null}
-          {result ? (
-            <article className='core-node stack'>
-              <strong>Universo criado</strong>
-              <p className='muted' style={{ margin: 0 }}>{`${result.universe.title} entrou no board em ${result.lane} com ${result.docsAttached} doc(s) anexado(s).`}</p>
-              <div className='toolbar-row'>
-                <Link className='ui-button' href={`/c/${result.universe.slug}`}>Abrir Hub preview</Link>
-                <Link className='ui-button' href={`/admin/universes/${result.universe.id}/checklist`}>Abrir Checklist</Link>
-                <Link className='ui-button' href={`/admin/universes/${result.universe.id}/docs`}>Abrir Docs</Link>
-                <Link className='ui-button' href={`/admin/programa-editorial/${result.program.slug}`}>Abrir board deste universo</Link>
+      <section className='inbox-grid'>
+        <div className='stack'>
+          <InboxSuggestionPanel
+            eyebrow='3. Leitura inicial do tema'
+            title='Tema principal'
+            description='A leitura editorial abaixo resume o recorte que apareceu com mais forca no lote.'
+          >
+            {!batch ? (
+              <p className='muted' style={{ margin: 0 }}>A analise aparece aqui assim que o lote entra na leitura inicial.</p>
+            ) : (
+              <div className='stack'>
+                <div className='toolbar-row'>
+                  <SuggestionConfidenceBadge confidence={batch.analysis.confidence} />
+                  <Badge variant='default'>{`${batch.items.length} PDF(s)`}</Badge>
+                  <Badge variant='default'>{templateLabel(batch.analysis.templateId)}</Badge>
+                </div>
+                <div className='inbox-kv-grid'>
+                  <article className='core-node'>
+                    <small>Tema sugerido</small>
+                    <strong>{batch.analysis.title}</strong>
+                    <p className='muted' style={{ margin: 0 }}>{batch.analysis.summary}</p>
+                  </article>
+                  <article className='core-node'>
+                    <small>Slug sugerido</small>
+                    <strong>{batch.analysis.slug}</strong>
+                    <p className='muted' style={{ margin: 0 }}>Template sugerido: {templateLabel(batch.analysis.templateId)}</p>
+                  </article>
+                </div>
               </div>
-            </article>
-          ) : null}
-        </article>
+            )}
+          </InboxSuggestionPanel>
+
+          <InboxSuggestionPanel
+            eyebrow='Sinais detectados'
+            title='O que puxou a leitura da IA'
+            description='A confianca sobe quando varios PDFs repetem sinais semelhantes.'
+          >
+            {!batch ? (
+              <p className='muted' style={{ margin: 0 }}>Sem sinais ainda.</p>
+            ) : (
+              <>
+                <div className='toolbar-row'>
+                  {topKeywords.map((keyword) => <Badge key={keyword}>#{keyword}</Badge>)}
+                </div>
+                <div className='toolbar-row'>
+                  {batch.analysis.subthemes.map((subtheme) => <Badge key={subtheme} variant='warning'>{subtheme}</Badge>)}
+                </div>
+              </>
+            )}
+          </InboxSuggestionPanel>
+
+          <InboxSuggestionPanel
+            eyebrow='Estrutura sugerida'
+            title='Bootstrap inicial do universo'
+            description='Esses elementos nascem como estrutura editorial, nao como conteudo publicado.'
+          >
+            {!batch ? (
+              <p className='muted' style={{ margin: 0 }}>Os nos core, o glossario e as perguntas aparecem apos a leitura inicial.</p>
+            ) : (
+              <div className='stack'>
+                <div className='stack'>
+                  <strong>Nos core sugeridos</strong>
+                  <div className='stack'>
+                    {batch.analysis.coreNodes.map((node) => (
+                      <article key={node.slug} className='core-node'>
+                        <strong>{node.title}</strong>
+                        <p className='muted' style={{ margin: 0 }}>{node.summary}</p>
+                      </article>
+                    ))}
+                  </div>
+                </div>
+                <div className='inbox-kv-grid'>
+                  <article className='core-node'>
+                    <small>Glossario inicial</small>
+                    <div className='stack' style={{ gap: '0.45rem' }}>
+                      {batch.analysis.glossary.slice(0, 8).map((term) => (
+                        <div key={term.term}>
+                          <strong>{term.term}</strong>
+                          <p className='muted' style={{ margin: 0 }}>{term.shortDef}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </article>
+                  <article className='core-node'>
+                    <small>Perguntas iniciais</small>
+                    <ul style={{ margin: 0, paddingLeft: '1.1rem' }}>
+                      {batch.analysis.questions.map((question) => <li key={question}>{question}</li>)}
+                    </ul>
+                  </article>
+                </div>
+              </div>
+            )}
+          </InboxSuggestionPanel>
+        </div>
+
+        <div className='stack'>
+          <InboxSuggestionPanel
+            eyebrow='Alertas'
+            title='Confianca e guardrails'
+            description='Quando a base esta fraca ou misturada, a inbox aponta isso antes da criacao.'
+          >
+            {!batch ? (
+              <p className='muted' style={{ margin: 0 }}>Os alertas aparecem apenas quando a analise encontra risco editorial.</p>
+            ) : batch.analysis.warnings.length > 0 ? (
+              <div className='stack'>
+                {batch.analysis.warnings.map((warning) => {
+                  const alert = classifyWarning(warning);
+                  return <InboxAlertCard key={warning} title={alert.title} body={warning} tone={alert.tone} />;
+                })}
+              </div>
+            ) : (
+              <InboxAlertCard title='Sinais consistentes' body='O lote mostrou um eixo tematico razoavelmente coeso para o bootstrap inicial.' tone='ok' />
+            )}
+          </InboxSuggestionPanel>
+
+          <Card className='stack inbox-review-card'>
+            <div className='stack' style={{ gap: '0.5rem' }}>
+              <small className='ui-eyebrow'>4. Antes de criar</small>
+              <strong>Revise as sugestoes da IA</strong>
+              <p className='muted' style={{ margin: 0 }}>
+                Ajuste titulo, slug, resumo e template. O universo so nasce quando voce confirmar a operacao.
+              </p>
+            </div>
+
+            <label className='stack' style={{ gap: '0.35rem' }}>
+              <span>Titulo</span>
+              <input aria-label='Titulo' value={title} onChange={(event) => setTitle(event.target.value)} disabled={!batch || isPending} />
+            </label>
+            <label className='stack' style={{ gap: '0.35rem' }}>
+              <span>Slug</span>
+              <input aria-label='Slug' value={slug} onChange={(event) => setSlug(event.target.value)} disabled={!batch || isPending} />
+            </label>
+            <label className='stack' style={{ gap: '0.35rem' }}>
+              <span>Resumo</span>
+              <textarea aria-label='Resumo' value={summary} onChange={(event) => setSummary(event.target.value)} rows={5} disabled={!batch || isPending} />
+            </label>
+            <label className='stack' style={{ gap: '0.35rem' }}>
+              <span>Template</span>
+              <select aria-label='Template' value={templateId} onChange={(event) => setTemplateId(event.target.value)} disabled={!batch || isPending}>
+                {TEMPLATE_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>{option.label}</option>
+                ))}
+              </select>
+            </label>
+
+            {batch ? (
+              <Card className='stack inbox-final-summary' surface='plate'>
+                <div className='stack' style={{ gap: '0.35rem' }}>
+                  <small className='ui-eyebrow'>Resumo final</small>
+                  <strong>{title || batch.analysis.title}</strong>
+                  <p className='muted' style={{ margin: 0 }}>{summary || batch.analysis.summary}</p>
+                </div>
+                <div className='inbox-kv-grid'>
+                  <article className='core-node'>
+                    <small>Universo</small>
+                    <strong>{slug || batch.analysis.slug}</strong>
+                    <p className='muted' style={{ margin: 0 }}>Template: {templateLabel(templateId)}</p>
+                  </article>
+                  <article className='core-node'>
+                    <small>Proximo passo do pipeline</small>
+                    <strong>{expectedLane}</strong>
+                    <p className='muted' style={{ margin: 0 }}>
+                      {batch.items.length} doc(s) serao anexados e o board deve refletir a lane inicial imediatamente.
+                    </p>
+                  </article>
+                </div>
+                <article className='core-node'>
+                  <small>Trilha inicial</small>
+                  <strong>{batch.analysis.trail.title}</strong>
+                  <p className='muted' style={{ margin: 0 }}>{batch.analysis.trail.summary}</p>
+                  <ul style={{ margin: '0.5rem 0 0', paddingLeft: '1.1rem' }}>
+                    {batch.analysis.trail.steps.map((step) => <li key={step}>{step}</li>)}
+                  </ul>
+                </article>
+              </Card>
+            ) : null}
+
+            <div className='toolbar-row'>
+              <button className='ui-button' data-variant='primary' type='button' onClick={() => submitCreate(true)} disabled={!batch || isPending}>
+                Criar universo e enfileirar ingest
+              </button>
+              <button className='ui-button' type='button' onClick={() => submitCreate(false)} disabled={!batch || isPending}>
+                Criar so a estrutura
+              </button>
+              {hasMixedThemes ? (
+                <button className='ui-button' data-variant='ghost' type='button' onClick={suggestSplit} disabled={!batch || isPending}>
+                  Separar lote
+                </button>
+              ) : null}
+            </div>
+
+            {message ? <p className='muted' style={{ margin: 0 }}>{message}</p> : null}
+            {error ? <p role='alert' className='muted' style={{ margin: 0, color: 'var(--alert-0)' }}>{error}</p> : null}
+          </Card>
+        </div>
       </section>
+
+      {result ? (
+        <Card className='stack inbox-success-card'>
+          <div className='stack' style={{ gap: '0.4rem' }}>
+            <small className='ui-eyebrow'>Universo criado</small>
+            <h3 style={{ margin: 0 }}>{result.universe.title}</h3>
+            <p className='muted' style={{ margin: 0 }}>
+              O universo entrou no board em <strong>{result.lane}</strong> com {result.docsAttached} doc(s) anexado(s). A sala de ingest ja esta pronta para a proxima etapa.
+            </p>
+          </div>
+          <div className='toolbar-row'>
+            <Badge variant='ok'>{`Lane inicial: ${result.lane}`}</Badge>
+            <Badge variant='default'>{`${result.docsAttached} docs enfileirados`}</Badge>
+          </div>
+          <div className='toolbar-row'>
+            <Link className='ui-button' href={`/c/${result.universe.slug}`}>Abrir Hub preview</Link>
+            <Link className='ui-button' href={`/admin/programa-editorial/${result.program.slug}`}>Abrir Board</Link>
+            <Link className='ui-button' href={`/admin/universes/${result.universe.id}/checklist`}>Abrir Checklist</Link>
+            <Link className='ui-button' href={`/admin/universes/${result.universe.id}/docs`}>Abrir Docs importados</Link>
+          </div>
+        </Card>
+      ) : null}
     </div>
   );
 }
-
-

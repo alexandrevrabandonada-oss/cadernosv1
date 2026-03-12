@@ -6,9 +6,16 @@ Reduzir o atrito para abrir um universo novo com estrutura editorial minima, Hub
 
 ## Rotas
 
+- `/admin/universes`
 - `/admin/universes/new`
 - `/admin/universes/[id]/bootstrap`
 - `POST /api/admin/universes/bootstrap`
+
+## Qual modo usar
+
+- Inbox-first: quando o ponto de partida e um lote de PDFs e faz sentido deixar a IA sugerir o bootstrap.
+- Template-first: quando o recorte ja esta claro e voce quer nascer com estrutura editorial pronta.
+- Manual avancado: quando voce ja sabe exatamente o universo que quer abrir e nao precisa de lote nem wizard protagonista.
 
 ## Templates disponiveis
 
@@ -53,23 +60,24 @@ Use clone quando ja existe um universo com estrutura editorial valida e voce que
 
 ## Fluxo recomendado
 
-1. Criar universo em `/admin/universes/new`.
-2. Aplicar template ou clone em `/admin/universes/[id]/bootstrap`.
-3. Importar docs.
-4. Rodar quality pass/checklist.
-5. Fazer sprint editorial.
-6. Publicar quando o universo estiver pronto.
+1. Escolher a porta certa em `/admin/universes`.
+2. Se for template, abrir `/admin/universes/new`.
+3. Aplicar template ou clone em `/admin/universes/[id]/bootstrap` quando necessario.
+4. Importar docs ou seguir para Inbox/board.
+5. Rodar quality pass/checklist.
+6. Fazer sprint editorial.
+7. Publicar quando o universo estiver pronto.
 
 ## TEST_SEED
 
 Em `TEST_SEED=1`, o bootstrap usa store mock em memoria para que o Hub, o admin e o checklist funcionem mesmo sem `SUPABASE_SERVICE_ROLE_KEY`.
 
-## Exemplo de lote real
+## Universe Inbox assistida
 
-O bootstrap multiuniverso de 2026 usa tres templates diferentes para provar o modelo operacional:
+Quando o material inicial ja existe em PDF, use `/admin/universes/inbox` em vez de criar tudo manualmente.
 
-- saude-poluicao-vr com issue_investigation
-- memoria-industrial-vr com 	erritorial_memory
-- espira-fundo-monitoramento com campaign_watch
-
-Todos nascem published=false, eatured=false, ocus_override=false e entram primeiro no board editorial em ootstrap.
+Fluxo recomendado:
+1. subir lote de PDFs do mesmo macrotema
+2. revisar titulo, slug, resumo e template sugeridos
+3. criar universo com ou sem ingest imediata
+4. abrir checklist/docs/board e seguir o pipeline normal

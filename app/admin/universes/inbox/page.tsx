@@ -16,7 +16,7 @@ export default async function AdminUniverseInboxPage({ searchParams }: AdminUniv
   const initialBatch = sp.batch ? await getInboxBatch(sp.batch) : null;
 
   return (
-    <main className='stack'>
+    <main className='stack stack-editorial'>
       <Card className='stack'>
         <Breadcrumb
           items={[
@@ -29,11 +29,12 @@ export default async function AdminUniverseInboxPage({ searchParams }: AdminUniv
         />
         <SectionHeader
           title='Universe Inbox'
-          description='Dropzone assistida para subir um lote de PDFs, revisar a leitura inicial e criar o universo ja plugado no board editorial.'
+          description='Dropzone editorial assistida para receber um lote de PDFs, ler o tema com apoio da IA, revisar o bootstrap inicial e criar o universo ja conectado ao pipeline.'
           tag='Inbox'
         />
         <div className='toolbar-row'>
-          <Link className='ui-button' href='/admin/universes/new'>Voltar ao wizard</Link>
+          <Link className='ui-button' href='/admin/universes'>Voltar ao cockpit</Link>
+          <Link className='ui-button' href='/admin/universes/new'>Abrir wizard</Link>
           <Link className='ui-button' href='/admin/programa-editorial'>Abrir board editorial</Link>
         </div>
       </Card>
