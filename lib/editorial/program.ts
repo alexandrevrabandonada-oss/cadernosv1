@@ -76,24 +76,24 @@ function shouldUseMockPrograms() {
   return process.env.TEST_SEED === '1' || !getSupabaseServiceRoleClient();
 }
 
-function laneLabel(lane: EditorialLane) {
+export function laneLabel(lane: EditorialLane) {
   switch (lane) {
     case 'bootstrap':
-      return 'Bootstrap';
+      return 'Estrutura';
     case 'ingest':
-      return 'Ingest';
+      return 'Ingestao';
     case 'quality':
-      return 'Quality';
+      return 'Qualidade';
     case 'sprint':
-      return 'Sprint';
+      return 'Curadoria';
     case 'review':
-      return 'Review';
+      return 'Revisao';
     case 'highlights':
-      return 'Highlights';
+      return 'Vitrine';
     case 'publish':
-      return 'Publish';
+      return 'Publicacao';
     case 'done':
-      return 'Done';
+      return 'Concluido';
   }
 }
 
@@ -490,7 +490,7 @@ export type EditorialProgramHealthSummary = {
   readyToPublish: number;
   done: number;
   suggestionCount: number;
-  bottleneckLane: { lane: EditorialLane; count: number } | null;
+  bottleneckLane: { lane: EditorialLane; label: string; count: number } | null;
   stalestUniverse: { title: string; daysIdle: number } | null;
   staleItemsCount: number;
   recommendedNow: Array<{ itemId: string; title: string; lane: EditorialLane; suggestedLane: EditorialLane; priority: number; reason: string }>;
@@ -539,13 +539,13 @@ export function getProgramBlockers(card: EditorialProgramCard): ProgramBlocker[]
 
   const blockers: ProgramBlocker[] = [];
   if (checklist.overview.totalDocs === 0) blockers.push({ label: 'Sem docs', tone: 'alert' });
-  if (checklist.overview.totalDocs > 0 && checklist.overview.docsByStatus.processed === 0) blockers.push({ label: 'Ingest parado', tone: 'warning' });
-  if (checklist.overview.quality.avgTextQualityScore > 0 && checklist.overview.quality.avgTextQualityScore < 60) blockers.push({ label: 'Quality baixa', tone: 'alert' });
+  if (checklist.overview.totalDocs > 0 && checklist.overview.docsByStatus.processed === 0) blockers.push({ label: 'Ingestao parada', tone: 'warning' });
+  if (checklist.overview.quality.avgTextQualityScore > 0 && checklist.overview.quality.avgTextQualityScore < 60) blockers.push({ label: 'Qualidade baixa', tone: 'alert' });
   if (checklist.overview.draftEvidencesTotal > checklist.overview.publishedEvidencesTotal) blockers.push({ label: 'Muitos drafts', tone: 'warning' });
   if (card.suggestedLane === 'highlights') blockers.push({ label: 'Sem highlights', tone: 'warning' });
   if (card.suggestedLane === 'publish') blockers.push({ label: 'Pronto para vitrine', tone: 'ok' });
   if ((card.item.lane === 'publish' || card.suggestedLane === 'done') && (!card.universe.isFeatured || !card.universe.focusOverride)) {
-    blockers.push({ label: 'Publish sem featured/focus', tone: 'warning' });
+    blockers.push({ label: 'Publicacao sem vitrine editorial', tone: 'warning' });
   }
   return blockers.slice(0, 5);
 }
@@ -584,12 +584,14 @@ export function summarizeProgramBoard(board: EditorialProgramBoard): EditorialPr
     readyToPublish: board.totals.publish,
     done: board.totals.done,
     suggestionCount,
-    bottleneckLane: bottleneckEntry ? { lane: bottleneckEntry[0] as EditorialLane, count: Number(bottleneckEntry[1]) } : null,
+    bottleneckLane: bottleneckEntry ? { lane: bottleneckEntry[0] as EditorialLane, label: laneLabel(bottleneckEntry[0] as EditorialLane), count: Number(bottleneckEntry[1]) } : null,
     stalestUniverse: staleCards[0] ? { title: staleCards[0].card.universe.title, daysIdle: staleCards[0].daysIdle } : null,
     staleItemsCount: staleCards.length,
     recommendedNow,
   };
 }
+
+
 
 
 

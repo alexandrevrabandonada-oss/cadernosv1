@@ -618,3 +618,28 @@ Rota: `/c/[slug]/mapa`
   - `EditorialSignalRail`
   - `LiveHighlightCard`
   - secao `Universos em destaque`
+
+## VIZ-24 - Naming e IA
+
+### Taxonomia consolidada
+- `Universo` nomeia o todo.
+- `Hub` nomeia a entrada editorial do universo.
+- `Tutor` e o nome publico unico; `Tutoria` fica como termo legado.
+- `Inbox documental` e o nome visivel preferido no admin para o fluxo de lote assistido.
+- `Vitrine editorial` e o guarda-chuva visivel para a curadoria de destaque e foco.
+
+### Grupos de navegacao
+- `Exploracao`: Hub, Mapa, Provas, Debate, Linha, Glossario.
+- `Estudo`: Trilhas, Tutor, Meu Caderno.
+- `Coletivo`: Coletivos.
+
+### Sistema de verbos
+- `Abrir` para entrar em sala ou painel.
+- `Explorar` para navegar conteudo.
+- `Comecar` para iniciar fluxo guiado.
+- `Continuar` para retomar percurso.
+- `Salvar` para Meu Caderno.
+- `Adicionar` para Coletivos.
+- `Exportar` para gerar arquivo.
+- `Publicar` para tornar publico.
+- `Voltar ao Hub` para retorno ao ponto editorial do universo.

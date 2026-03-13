@@ -117,7 +117,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
 
       <HeroPanel
         className='hub-hero hero-panel-living hero-panel-live-editorial'
-        eyebrow='Entrada de Universo'
+        eyebrow='Hub editorial'
         title={universe.title}
         subtitle={universe.summary || 'Leitura viva do territorio com portas de prova, linha, mapa e debate.'}
         actions={
@@ -129,7 +129,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               data-track-cta='comecar_aqui'
               data-track-section='hub'
             >
-              Comecar em 5 minutos
+              Comecar pela trilha
             </PrefetchLink>
             <PrefetchLink
               className='ui-button'
@@ -139,7 +139,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
               data-track-cta='explorar_provas'
               data-track-section='hub'
             >
-              Explorar Provas
+              Abrir Provas
             </PrefetchLink>
           </>
         }
@@ -160,7 +160,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
           <div className='hero-live-column'>
             <FocusUniverseCard
               title={`${universe.title} em operacao`}
-              summary='Recorte vivo com trilha curta, portas principais e sinais editoriais prontos para orientar a entrada publica.'
+              summary='Entrada editorial do universo, com trilha curta, portas principais e sinais vivos para orientar a leitura.'
               href={buildUniverseHref(slug, '')}
               metrics={[
                 { label: 'docs', value: String(universe.quickStart.docsProcessed) },
@@ -168,8 +168,8 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
                 { label: 'provas', value: String(universe.quickStart.evidencesTotal) },
               ]}
               seal={isShowcase ? 'showcase' : 'published'}
-              kicker='Universo em foco'
-              cta='Abrir universo'
+              kicker='Entrada editorial'
+              cta='Voltar ao Hub'
             />
 
             {primaryHighlight ? (
@@ -205,7 +205,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
             href={buildUniverseHref(slug, 'provas')}
             title='Provas'
             description='Evidencias curadas com relacionados, detalhe rico e links compartilhaveis.'
-            cta='Entrar em Provas'
+            cta='Abrir Provas'
             badge='Porta 1'
             preview={<MiniPreviewProvas />}
             className='is-featured'
@@ -215,7 +215,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
             href={buildUniverseHref(slug, 'debate')}
             title='Debate'
             description='Perguntas rastreaveis com citacoes, confianca e limitacoes.'
-            cta='Entrar no Debate'
+            cta='Abrir Debate'
             badge='Porta 2'
             preview={<MiniPreviewDebate />}
             track={{ event: 'cta_click', cta: 'porta_debate', section: 'hub_portas' }}
@@ -226,7 +226,7 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
             href={buildUniverseHref(slug, 'mapa')}
             title='Mapa'
             description='Veja o nucleo do universo, cobertura por no e conexoes.'
-            cta='Entrar no Mapa'
+            cta='Abrir Mapa'
             badge='Porta 3'
             preview={<MiniPreviewMapa />}
             className='is-compact'
@@ -375,3 +375,5 @@ export default async function UniversoHubPage({ params }: UniversoPageProps) {
     </div>
   );
 }
+
+

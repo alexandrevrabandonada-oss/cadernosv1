@@ -16,6 +16,7 @@ import {
   getProgramBoard,
   moveProgramItem,
   summarizeProgramBoard,
+  laneLabel,
   type EditorialLane,
 } from '@/lib/editorial/program';
 import { enforceAdminWriteLimit } from '@/lib/ratelimit/enforce';
@@ -139,9 +140,9 @@ export default async function EditorialProgramBoardPage({ params, searchParams }
         />
         <div className='program-hero-metrics'>
           <article className='core-node'><small>Universos totais</small><strong>{summary.totalUniverses}</strong></article>
-          <article className='core-node'><small>Em review</small><strong>{summary.inReview}</strong></article>
-          <article className='core-node'><small>Prontos para publish</small><strong>{summary.readyToPublish}</strong></article>
-          <article className='core-node'><small>Done</small><strong>{summary.done}</strong></article>
+          <article className='core-node'><small>Em revisao</small><strong>{summary.inReview}</strong></article>
+          <article className='core-node'><small>Prontos para publicar</small><strong>{summary.readyToPublish}</strong></article>
+          <article className='core-node'><small>Concluidos</small><strong>{summary.done}</strong></article>
         </div>
         <div className='toolbar-row'>
           <Link className='ui-button' href='#novo-lote'>Criar lote</Link>
@@ -149,13 +150,13 @@ export default async function EditorialProgramBoardPage({ params, searchParams }
           {summary.suggestionCount > 0 ? (
             <form action={applySuggestionsAction}>
               <input type='hidden' name='program_slug' value={programBoard.program.slug} />
-              <button className='ui-button' type='submit'>Aplicar sugestoes de lane</button>
+              <button className='ui-button' type='submit'>Aplicar sugestoes de etapa</button>
             </form>
           ) : null}
         </div>
         {retrySec > 0 ? <p className='muted' role='alert' style={{ margin: 0, color: 'var(--alert-0)' }}>Muitas acoes em pouco tempo. Tente novamente em {retrySec}s.</p> : null}
         {sp.batch === '1' ? <p className='muted' role='status' style={{ margin: 0 }}>Lote editorial criado e adicionado ao board.</p> : null}
-        {sp.applied === '1' ? <p className='muted' role='status' style={{ margin: 0 }}>Lanes sugeridas aplicadas ao board.</p> : null}
+        {sp.applied === '1' ? <p className='muted' role='status' style={{ margin: 0 }}>Etapas sugeridas aplicadas ao board.</p> : null}
       </Card>
 
       <Card className='stack'>
@@ -168,8 +169,8 @@ export default async function EditorialProgramBoardPage({ params, searchParams }
         <div className='program-health-grid'>
           <article className='core-node'>
             <small>Onde esta travado</small>
-            <strong>{summary.bottleneckLane ? `${summary.bottleneckLane.lane} (${summary.bottleneckLane.count})` : 'Sem gargalo forte'}</strong>
-            <p className='muted' style={{ margin: 0 }}>Lane mais congestionada da fila atual.</p>
+            <strong>{summary.bottleneckLane ? `${summary.bottleneckLane.label} (${summary.bottleneckLane.count})` : 'Sem gargalo forte'}</strong>
+            <p className='muted' style={{ margin: 0 }}>Etapa mais congestionada da fila atual.</p>
           </article>
           <article className='core-node'>
             <small>Maior atraso</small>
@@ -225,11 +226,11 @@ export default async function EditorialProgramBoardPage({ params, searchParams }
                     <UniverseOpsCard key={card.item.id} data-testid='program-universe-card' data-universe={card.universe.title} title={card.universe.title} summary={card.universe.summary || 'Sem resumo editorial.'}>
                       <div className='toolbar-row'>
                         <span className='ui-badge'>{`prio:${card.item.priority}`}</span>
-                        <span className='ui-badge'>{`lane:${card.item.lane}`}</span>
+                        <span className='ui-badge'>{`etapa:${column.label}`}</span>
                         {card.templateLabel ? <span className='ui-badge'>{card.templateLabel}</span> : null}
-                        {card.universe.published ? <span className='ui-badge' data-variant='ok'>published</span> : null}
-                        {card.universe.isFeatured ? <span className='ui-badge'>featured</span> : null}
-                        {card.universe.focusOverride ? <span className='ui-badge'>focus</span> : null}
+                        {card.universe.published ? <span className='ui-badge' data-variant='ok'>publicado</span> : null}
+                        {card.universe.isFeatured ? <span className='ui-badge'>destaque</span> : null}
+                        {card.universe.focusOverride ? <span className='ui-badge'>foco editorial</span> : null}
                       </div>
                       <div className='toolbar-row'>
                         {blockers.map((blocker) => <ProgramBlockerChip key={blocker.label} label={blocker.label} tone={blocker.tone} />)}
@@ -244,8 +245,8 @@ export default async function EditorialProgramBoardPage({ params, searchParams }
                       {!suggestionHidden ? (
                         <Card className='stack board-suggestion-box' surface='plate'>
                           <div className='toolbar-row'>
-                            <strong>{`Lane sugerida: ${card.suggestedLane}`}</strong>
-                            <span className='muted'>{`Atual: ${card.item.lane}`}</span>
+                            <strong>{`Etapa sugerida: ${laneLabel(card.suggestedLane)}`}</strong>
+                            <span className='muted'>{`Atual: ${column.label}`}</span>
                           </div>
                           <p className='muted' style={{ margin: 0 }}>{suggestionReason}</p>
                           {card.item.lane !== card.suggestedLane ? (
@@ -265,21 +266,21 @@ export default async function EditorialProgramBoardPage({ params, searchParams }
                       ) : null}
                       <div className='toolbar-row'>
                         <Link className='ui-button' href={`/c/${card.universe.slug}`}>Abrir Hub preview</Link>
-                        <Link className='ui-button' href={card.item.lane === 'ingest' ? '/admin/universes/inbox' : `/admin/universes/${card.universe.id}/docs`}>{card.item.lane === 'ingest' ? 'Abrir Inbox' : 'Abrir Docs'}</Link>
+                        <Link className='ui-button' href={card.item.lane === 'ingest' ? '/admin/universes/inbox' : `/admin/universes/${card.universe.id}/docs`}>{card.item.lane === 'ingest' ? 'Abrir inbox documental' : 'Abrir docs'}</Link>
                         <Link className='ui-button' href={`/admin/universes/${card.universe.id}/checklist`}>Abrir Checklist</Link>
-                        <Link className='ui-button' href={`/admin/universes/${card.universe.id}/review`}>Abrir Review</Link>
-                        <Link className='ui-button' href={`/admin/universes/${card.universe.id}/highlights`}>Abrir Highlights</Link>
-                        <Link className='ui-button' href='/admin/universes/featured'>Featured/Focus</Link>
-                        {card.universe.published ? <Link className='ui-button' href={`/admin/universes/${card.universe.id}/share-pack`}>Share pack</Link> : null}
+                        <Link className='ui-button' href={`/admin/universes/${card.universe.id}/review`}>Abrir revisao</Link>
+                        <Link className='ui-button' href={`/admin/universes/${card.universe.id}/highlights`}>Abrir vitrine</Link>
+                        <Link className='ui-button' href='/admin/universes/featured'>Vitrine editorial</Link>
+                        {card.universe.published ? <Link className='ui-button' href={`/admin/universes/${card.universe.id}/share-pack`}>Abrir share pack</Link> : null}
                       </div>
                       <form action={moveItemAction} className='stack'>
                         <input type='hidden' name='item_id' value={card.item.id} />
                         <input type='hidden' name='program_slug' value={programBoard.program.slug} />
                         <div className='layout-shell' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
                           <label>
-                            <span>Mover lane</span>
+                            <span>Mover etapa</span>
                             <select name='lane' defaultValue={card.item.lane} style={{ width: '100%' }}>
-                              {(['bootstrap', 'ingest', 'quality', 'sprint', 'review', 'highlights', 'publish', 'done'] as EditorialLane[]).map((lane) => <option key={lane} value={lane}>{lane}</option>)}
+                              {(['bootstrap', 'ingest', 'quality', 'sprint', 'review', 'highlights', 'publish', 'done'] as EditorialLane[]).map((lane) => <option key={lane} value={lane}>{laneLabel(lane)}</option>)}
                             </select>
                           </label>
                           <label><span>Prioridade</span><input type='number' min={0} step={1} name='priority' defaultValue={card.item.priority} style={{ width: '100%' }} /></label>
@@ -301,7 +302,7 @@ export default async function EditorialProgramBoardPage({ params, searchParams }
             {summary.recommendedNow.map((entry) => (
               <article key={entry.itemId} className='core-node'>
                 <strong>{entry.title}</strong>
-                <p className='muted' style={{ margin: 0 }}>{`lane atual ${entry.lane} -> sugerida ${entry.suggestedLane}`}</p>
+                <p className='muted' style={{ margin: 0 }}>{`etapa atual ${laneLabel(entry.lane)} -> sugerida ${laneLabel(entry.suggestedLane)}`}</p>
                 <p className='muted' style={{ margin: 0 }}>{entry.reason}</p>
               </article>
             ))}
@@ -310,12 +311,12 @@ export default async function EditorialProgramBoardPage({ params, searchParams }
           <Card className='stack'>
             <SectionHeader title='Proximos movimentos' description='Atalhos rapidos para destravar a fila editorial principal.' />
             <div className='toolbar-row'>
-              <Link className='ui-button' href='/admin/universes/inbox'>Universe Inbox</Link>
+              <Link className='ui-button' href='/admin/universes/inbox'>Inbox documental</Link>
               <Link className='ui-button' href='/admin/universes'>Criar universo</Link>
-              <Link className='ui-button' href='/admin/universes/featured'>Featured / Focus</Link>
+              <Link className='ui-button' href='/admin/universes/featured'>Vitrine editorial</Link>
             </div>
             {moveCandidates.length > 0 ? (
-              <p className='muted' style={{ margin: 0 }}>{`${moveCandidates.length} card(s) estao com lane sugerida diferente da atual.`}</p>
+              <p className='muted' style={{ margin: 0 }}>{`${moveCandidates.length} card(s) estao com etapa sugerida diferente da atual.`}</p>
             ) : (
               <p className='muted' style={{ margin: 0 }}>Sem divergencias relevantes entre a leitura automatica e a fila atual.</p>
             )}
@@ -325,6 +326,11 @@ export default async function EditorialProgramBoardPage({ params, searchParams }
     </main>
   );
 }
+
+
+
+
+
 
 
 

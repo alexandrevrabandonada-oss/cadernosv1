@@ -126,11 +126,11 @@ export default async function EditorialProgramsIndexPage({ searchParams }: PageP
                     <strong>{summary?.totalUniverses ?? 0}</strong>
                   </article>
                   <article className='core-node'>
-                    <small>Review</small>
+                    <small>Revisao</small>
                     <strong>{summary?.inReview ?? 0}</strong>
                   </article>
                   <article className='core-node'>
-                    <small>Done</small>
+                    <small>Concluido</small>
                     <strong>{summary?.done ?? 0}</strong>
                   </article>
                 </div>
@@ -162,3 +162,4 @@ export default async function EditorialProgramsIndexPage({ searchParams }: PageP
     </main>
   );
 }
+

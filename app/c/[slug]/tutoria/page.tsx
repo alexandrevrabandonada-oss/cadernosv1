@@ -18,20 +18,20 @@ export default async function TutoriaPage({ params }: TutoriaPageProps) {
 
   return (
     <div className='stack'>
-      <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Tutoria' />
+      <OrientationBar slug={slug} currentPath={currentPath} currentLabel='Tutor' />
 
       <Card className='stack'>
         <SectionHeader
           title={`Tutoria de ${data.universeTitle}`}
-          description='Dois modos de acompanhamento: leitura guiada e percurso por portas do universo.'
-          tag='Tutoria'
+          description='Sala legada de acompanhamento guiado. O nome publico consolidado continua sendo Tutor.'
+          tag='Tutor'
         />
         <div className='toolbar-row'>
           <Carimbo>{data.source === 'db' ? 'dados:db' : 'dados:mock'}</Carimbo>
           <Carimbo>{`licoes:${data.readingLessons.length}`}</Carimbo>
           <Carimbo>{`passos:${data.pathSteps.length}`}</Carimbo>
           <a className='ui-button' href={buildUniverseHref(slug, 'tutor')}>
-            Abrir Tutor Mode
+            Abrir Tutor
           </a>
         </div>
       </Card>
@@ -46,3 +46,4 @@ export default async function TutoriaPage({ params }: TutoriaPageProps) {
     </div>
   );
 }
+

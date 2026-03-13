@@ -10,7 +10,7 @@ import { AdminNotice } from '@/components/admin/AdminNotice';
 import { getAdminDb, hasAdminWriteAccess, listUniverses, slugify } from '@/lib/admin/db';
 import { requireEditorOrAdmin } from '@/lib/auth/requireRole';
 import { EDITORIAL_PROGRAM_2026 } from '@/lib/editorial/programBatch';
-import { getProgramBoard } from '@/lib/editorial/program';
+import { getProgramBoard, laneLabel, type EditorialLane } from '@/lib/editorial/program';
 import { enforceAdminWriteLimit } from '@/lib/ratelimit/enforce';
 import { listUniverseBootstrapTemplates } from '@/lib/universe/bootstrapTemplates';
 import { listRecentInboxBatches } from '@/lib/universe/inbox';
@@ -85,8 +85,9 @@ function inferTemplateLabel(note: string | null | undefined) {
 }
 
 function statusFromLane(input: { lane: string | null; published: boolean | null }) {
-  if (input.published) return 'published';
-  return input.lane || 'manual';
+  if (input.published) return 'publicado';
+  if (!input.lane) return 'manual';
+  return laneLabel(input.lane as EditorialLane).toLowerCase();
 }
 
 export default async function AdminUniversesPage({ searchParams }: AdminUniversesPageProps) {
@@ -113,9 +114,9 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
           items={[
             { href: '/', label: 'Home' },
             { href: '/admin', label: 'Admin' },
-            { label: 'Universes' },
+            { label: 'Criar universo' },
           ]}
-          ariaLabel='Trilha admin universes'
+          ariaLabel='Trilha de criacao editorial'
         />
         <SectionHeader
           title='Criar universo'
@@ -123,8 +124,8 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
           tag='Cockpit editorial'
         />
         <div className='toolbar-row'>
-          <Badge variant='ok'>Universe Inbox ativo</Badge>
-          <Badge>Bootstrap por template</Badge>
+          <Badge variant='ok'>Inbox documental ativa</Badge>
+          <Badge>Modelos editoriais prontos</Badge>
           <Badge>Board editorial conectado</Badge>
           <Badge>{`role:${session.role}`}</Badge>
         </div>
@@ -154,17 +155,17 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
         <div className='layout-shell' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))' }}>
           <article className='core-node stack'>
             <Badge variant='ok'>Principal</Badge>
-            <strong>Entrar PDFs</strong>
+            <strong>Entrar documentos</strong>
             <p className='muted' style={{ margin: 0 }}>
               Arraste um lote documental, deixe a IA sugerir o recorte e crie o universo ja conectado ao board editorial.
             </p>
             <div className='toolbar-row'>
-              <Link className='ui-button' href='/admin/universes/inbox'>Abrir Inbox</Link>
+              <Link className='ui-button' href='/admin/universes/inbox'>Abrir inbox documental</Link>
             </div>
           </article>
 
           <article className='core-node stack'>
-            <Badge>Template-first</Badge>
+            <Badge>Modelos editoriais</Badge>
             <strong>Criar por template</strong>
             <p className='muted' style={{ margin: 0 }}>
               Comece com uma estrutura editorial pronta para investigacao, memoria territorial, monitoramento ou recorte minimo.
@@ -189,7 +190,7 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
 
       <div className='layout-shell' style={{ gridTemplateColumns: 'minmax(320px, 1.1fr) minmax(320px, 1fr)' }}>
         <Card className='stack'>
-          <SectionHeader title='Inbox-first' description='A porta principal para lote documental e bootstrap assistido.' />
+          <SectionHeader title='Inbox documental' description='A porta principal para lote documental e abertura assistida de universo.' />
           {latestBatch ? (
             <article className='core-node stack'>
               <strong>Ultimo lote analisado</strong>
@@ -216,14 +217,14 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
                 Quando voce analisar um lote de PDFs, o resumo operacional aparece aqui para retomar o fluxo sem voltar ao zero.
               </p>
               <div className='toolbar-row'>
-                <Link className='ui-button' href='/admin/universes/inbox'>Abrir Inbox</Link>
+                <Link className='ui-button' href='/admin/universes/inbox'>Abrir inbox documental</Link>
               </div>
             </article>
           )}
         </Card>
 
         <Card className='stack'>
-          <SectionHeader title='Template-first' description='Modelos prontos para entrar rapido em operacao.' />
+          <SectionHeader title='Modelos editoriais' description='Modelos prontos para entrar rapido em operacao.' />
           <div className='layout-shell' style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
             {templates.map((template) => (
               <article key={template.id} className='core-node'>
@@ -239,11 +240,11 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
       </div>
 
       <Card className='stack'>
-        <SectionHeader title='Bloco operacional' description='Atalhos para o pipeline editorial principal.' />
+        <SectionHeader title='Atalhos de operacao' description='Movimentos rapidos para seguir no pipeline editorial principal.' />
         <div className='toolbar-row'>
-          <Link className='ui-button' href='/admin/universes/featured'>Gerir featured/focus</Link>
+          <Link className='ui-button' href='/admin/universes/featured'>Gerir vitrine editorial</Link>
           <Link className='ui-button' href='/admin/programa-editorial'>Programa editorial</Link>
-          <Link className='ui-button' href='/admin/universes/inbox'>Universe Inbox</Link>
+          <Link className='ui-button' href='/admin/universes/inbox'>Inbox documental</Link>
           <Link className='ui-button' href={`/admin/programa-editorial/${EDITORIAL_PROGRAM_2026.slug}`}>Board multiuniverso</Link>
         </div>
       </Card>
@@ -306,7 +307,7 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
               Comece entrando um lote documental ou abra um template pronto para tirar o primeiro universo do papel.
             </p>
             <div className='toolbar-row'>
-              <Link className='ui-button' href='/admin/universes/inbox'>Entrar PDFs</Link>
+              <Link className='ui-button' href='/admin/universes/inbox'>Entrar documentos</Link>
               <Link className='ui-button' data-variant='ghost' href='/admin/universes/new'>Criar por template</Link>
             </div>
           </article>
@@ -315,7 +316,7 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
             {universes.map((universe) => {
               const boardCard = boardByUniverseId.get(universe.id);
               const status = statusFromLane({ lane: boardCard?.item.lane ?? null, published: universe.published });
-              const templateLabel = boardCard?.templateLabel ?? inferTemplateLabel(boardCard?.item.note) ?? 'manual/nao identificado';
+              const templateLabel = boardCard?.templateLabel ?? inferTemplateLabel(boardCard?.item.note) ?? 'manual ou nao identificado';
               return (
                 <article key={universe.id} className='core-node stack'>
                   <div className='toolbar-row' style={{ justifyContent: 'space-between' }}>
@@ -334,10 +335,10 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
                   <div className='toolbar-row'>
                     <Link className='ui-button' href={`/c/${universe.slug}`}>Abrir hub</Link>
                     <Link className='ui-button' href={boardCard ? `/admin/programa-editorial/${EDITORIAL_PROGRAM_2026.slug}` : `/admin/universes/${universe.id}/checklist`}>
-                      {boardCard ? 'Abrir board/checklist' : 'Abrir checklist'}
+                      {boardCard ? 'Abrir board e checklist' : 'Abrir checklist'}
                     </Link>
                     <Link className='ui-button' href={`/admin/universes/${universe.id}/checklist`}>Checklist</Link>
-                    <Link className='ui-button' href='/admin/universes/featured'>Featured/focus</Link>
+                    <Link className='ui-button' href='/admin/universes/featured'>Vitrine editorial</Link>
                   </div>
                 </article>
               );
@@ -348,3 +349,7 @@ export default async function AdminUniversesPage({ searchParams }: AdminUniverse
     </main>
   );
 }
+
+
+
+

@@ -4,47 +4,48 @@ O programa editorial organiza varios universos em paralelo sem inventar um workf
 
 ## Leitura do board
 
-A rota `/admin/programa-editorial` virou um indice operacional:
+A rota `/admin/programa-editorial` funciona como indice operacional:
 - titulo e resumo de cada programa
 - numero de universos em operacao
-- quantos estao em `review`
-- quantos chegaram em `done`
+- quantos estao em revisao
+- quantos chegaram em concluido
 - data de atualizacao e atalhos para abrir o board ou criar lote
 
-A rota `/admin/programa-editorial/[slug]` passou a ter 4 camadas:
-1. Hero operacional com metricas de fila e CTAs principais.
-2. Barra de saude com counts por lane e leitura rapida de gargalo.
-3. Board principal com lanes mais legiveis e cards operacionais.
+A rota `/admin/programa-editorial/[slug]` tem 4 camadas:
+1. Hero operacional com metricas da fila e CTAs principais.
+2. Barra de saude com contagem por etapa e leitura rapida de gargalo.
+3. Board principal com etapas mais legiveis e cards operacionais.
 4. Painel lateral com recomendacoes imediatas e proximos movimentos.
 
-## Lanes
+## Etapas visiveis do board
 
-- `bootstrap`: ainda em estrutura, sem base suficiente para sair do zero.
-- `ingest`: docs entraram, mas ainda nao viraram base processada.
-- `quality`: existe processamento, mas a qualidade media ainda esta baixa.
-- `sprint`: a base existe, mas falta ligar docs, nos e cobertura editorial.
-- `review`: ha drafts, pendencias humanas ou revisao insuficiente.
-- `highlights`: ja existe base publicada, mas falta virar leitura forte.
-- `publish`: pronto para vitrine, faltando decisao editorial final.
-- `done`: universo consolidado e fora da fila principal.
+Mapeamento entre nome interno e linguagem visivel:
+- `bootstrap` -> `Estrutura`
+- `ingest` -> `Ingestao`
+- `quality` -> `Qualidade`
+- `sprint` -> `Curadoria`
+- `review` -> `Revisao`
+- `highlights` -> `Vitrine`
+- `publish` -> `Publicacao`
+- `done` -> `Concluido`
 
 ## Gargalos e saude
 
 O board premium introduz tres leituras novas:
-- `LaneHealthBadge`: mostra rapidamente o peso de cada lane e destaca a mais congestionada.
-- `ProgramBlockerChip`: marca sinais como `Sem docs`, `Ingest parado`, `Quality baixa`, `Muitos drafts`, `Sem highlights` e `Pronto para vitrine`.
+- `LaneHealthBadge`: mostra rapidamente o peso de cada etapa e destaca a mais congestionada.
+- `ProgramBlockerChip`: marca sinais como `Sem docs`, `Ingestao parada`, `Qualidade baixa`, `Muitos drafts`, `Sem highlights` e `Pronto para vitrine`.
 - `UniverseOpsCard`: concentra contexto editorial, badges, sinais operacionais e acoes rapidas por universo.
 
 A secao `Saude do board` responde tres perguntas:
-- Onde esta travado: qual lane concentra mais cards.
-- Maior atraso: qual universo esta ha mais tempo sem movimento.
-- Sem movimento recente: quantos cards precisam de reativacao.
+- Onde esta travado.
+- Qual universo esta com maior atraso.
+- Quantos cards estao sem movimento recente.
 
-## Lane sugerida
+## Etapa sugerida
 
 `autoAssessUniverseLane` continua sendo a base da sugestao. A UX agora deixa mais claro:
-- lane atual
-- lane sugerida
+- etapa atual
+- etapa sugerida
 - motivo da sugestao
 
 Exemplos de motivo:
@@ -61,41 +62,30 @@ Cada card pode:
 
 Cada card do board pode abrir rapidamente:
 - Hub preview
-- Inbox ou Docs, dependendo da etapa
+- Inbox documental ou Docs, dependendo da etapa
 - Checklist
-- Review
-- Highlights
-- Featured/Focus
+- Revisao
+- Vitrine
+- Vitrine editorial
 - Share pack quando o universo ja esta publicado
 
 ## Como os universos entram no board
 
-- Inbox-first: entra em `ingest` quando nasce com PDFs anexados.
-- Template-first: entra em `bootstrap` com estrutura pronta e sem lote inicial.
+- Inbox documental: entra em `ingest` quando nasce com PDFs anexados.
+- Modelo editorial: entra em `bootstrap` com estrutura pronta e sem lote inicial.
 - Manual avancado: pode nascer em estrutura e ser puxado para o programa quando fizer sentido.
 
 ## Qual modo usar
 
 - Lote documental: use `/admin/universes/inbox` quando voce ja tem 3 a 5 PDFs de um mesmo macrotema e quer que a IA sugira estrutura inicial.
-- Template: use `/admin/universes/new` quando voce quer partir de um formato editorial conhecido, mesmo sem lote documental.
+- Modelo editorial: use `/admin/universes/new` quando voce quer partir de um formato editorial conhecido, mesmo sem lote documental.
 - Manual: use o modo avancado em `/admin/universes` quando voce ja sabe exatamente o universo que quer abrir e nao precisa de assistencia inicial.
 
 ## Rotina semanal recomendada
 
 1. Abrir `/admin/programa-editorial` e identificar qual programa concentra mais trabalho.
 2. Entrar no board principal e ler a secao `Saude do board`.
-3. Atacar primeiro cards sem movimento recente ou presos em `quality` e `review`.
-4. Revisar diferenca entre lane atual e lane sugerida.
-5. Resolver highlights, featured/focus e share pack dos universos em `publish`.
-6. Fechar a semana com menos itens parados e mais universos empurrados para `done`.
-
-## Universe Inbox
-
-A rota `/admin/universes/inbox` continua sendo a porta principal para lotes documentais.
-
-Fluxo resumido:
-- dropzone de PDFs
-- leitura inicial do lote
-- revisao editorial das sugestoes
-- criacao do universo
-- entrada automatica em `ingest` ou `bootstrap` no board
+3. Atacar primeiro cards sem movimento recente ou presos em `Qualidade` e `Revisao`.
+4. Revisar a diferenca entre etapa atual e etapa sugerida.
+5. Resolver vitrine editorial e share pack dos universos em `Publicacao`.
+6. Fechar a semana com menos itens parados e mais universos empurrados para `Concluido`.

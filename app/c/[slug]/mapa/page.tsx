@@ -362,7 +362,7 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
             </p>
           ) : null}
               <SectionHeader
-                title='Explorer do grafo'
+                title='Mapa vivo do universo'
                 description={
                   showClusters
                 ? 'Camada de clusters por tema. Entre no cluster para descer ao detalhe.'
@@ -477,3 +477,4 @@ export default async function MapaPage({ params, searchParams }: MapaPageProps) 
     </div>
   );
 }
+

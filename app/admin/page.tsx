@@ -24,7 +24,7 @@ export default async function AdminPage() {
     <main className='stack'>
       <Card className='stack'>
         <Breadcrumb items={[{ href: '/', label: 'Home' }, { label: 'Admin' }]} ariaLabel='Trilha admin' />
-        <SectionHeader title='Admin' description='Painel minimo para operacoes do MVP.' tag='Restrito' />
+        <SectionHeader title='Admin' description='Ponto de entrada da operacao editorial e das rotinas restritas do produto.' tag='Restrito' />
         <div className='toolbar-row'>
           <Carimbo>{`role:${session.role}`}</Carimbo>
           <Carimbo>{session.email ?? 'sem-email'}</Carimbo>
@@ -40,16 +40,16 @@ export default async function AdminPage() {
       </Card>
 
       <Card className='stack'>
-        <SectionHeader title='Modulos' description='Navegacao para gestao de universos e nos.' />
+        <SectionHeader title='Portas administrativas' description='Escolha a sala administrativa certa para criar, operar e acompanhar universos.' />
         <div className='toolbar-row'>
           <Link className='ui-button' href='/admin/universes'>
-            Gerenciar universos
+            Criar universo
           </Link>
           <Link className='ui-button' href='/admin/programa-editorial'>
             Programa editorial
           </Link>
           <Link className='ui-button' href='/admin/universes/inbox'>
-            Universe Inbox
+            Inbox documental
           </Link>
           <Link className='ui-button' href='/admin/status'>
             Painel operacional
@@ -59,3 +59,5 @@ export default async function AdminPage() {
     </main>
   );
 }
+
+

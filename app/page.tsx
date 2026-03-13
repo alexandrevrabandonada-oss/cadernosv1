@@ -73,16 +73,16 @@ export default async function HomePage({ searchParams }: HomePageProps) {
       <HeroPanel
         className='home-hero hero-panel-living hero-panel-live-editorial'
         eyebrow='Portal Publico'
-        title='Universos de prova, memoria e disputa'
+        title='Universos de leitura, prova e disputa'
         subtitle='Entre por um recorte em curso: evidencias rastreaveis, marcos vivos e perguntas acionaveis ja organizadas para leitura guiada.'
         meta={<Wordmark variant='hero' className='hero-wordmark-ghost' />}
         actions={
           <>
             <PrefetchLink className='ui-button' href='#universos' data-variant='primary' smartPrefetch='off'>
-              Explorar universos
+              Explorar o catalogo
             </PrefetchLink>
             <PrefetchLink className='ui-button' href={buildUniverseHref(targetSlug, 'tutor')}>
-              Comecar no Tutor
+              Comecar com Tutor
             </PrefetchLink>
             <PrefetchLink className='ui-button' data-variant='ghost' href='#como-funciona' smartPrefetch='off'>
               Como ler este universo
@@ -102,8 +102,8 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                   { label: 'provas', value: String(focusUniverse.evidences) },
                 ]}
                 seal={focusUniverse.is_featured ? 'showcase' : 'published'}
-                kicker='Universo em foco'
-                cta='Entrar agora'
+                kicker='Universo em destaque'
+                cta='Abrir universo'
               />
               {leadSignal ? (
                 <LiveHighlightCard
@@ -143,7 +143,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                   { label: 'modo', value: session ? 'admin' : 'publico' },
                 ]}
                 seal='published'
-                kicker='Universo em foco'
+                kicker='Universo em destaque'
                 cta={session ? 'Gerir vitrine' : 'Entrar'}
               />
             </div>
@@ -155,7 +155,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <div className='portal-composition-main'>
           <BigPortalCard
             href={buildUniverseHref(targetSlug, 'provas')}
-            title='Explorar Provas'
+            title='Explorar provas'
             description='Entre por evidencias curadas, relacionados e citacoes rastreaveis.'
             cta='Abrir Provas'
             badge='Evidence-first'
@@ -164,7 +164,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           />
           <BigPortalCard
             href={buildUniverseHref(targetSlug, 'debate')}
-            title='Abrir Debate'
+            title='Abrir debate'
             description='Perguntas com citacoes, confianca e limitacoes em modo estrito.'
             cta='Abrir Debate'
             badge='Perguntas'
@@ -174,7 +174,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
         <div className='portal-composition-side'>
           <BigPortalCard
             href={buildUniverseHref(targetSlug, 'linha')}
-            title='Seguir a Linha'
+            title='Explorar linha' 
             description='Leia marcos cronologicos e reabra provas relacionadas no mesmo fluxo.'
             cta='Abrir Linha'
             badge='Cronologia'
@@ -183,7 +183,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
           />
           <BigPortalCard
             href={buildUniverseHref(targetSlug, 'mapa')}
-            title='Explorar Mapa'
+            title='Explorar mapa'
             description='Veja cobertura por no e lacunas de curadoria no universo.'
             cta='Abrir Mapa'
             badge='Explorer'
@@ -205,7 +205,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
             <article className='universe-door-card universe-door-card-lead surface-plate'>
               <div className='toolbar-row'>
                 <Badge>
-                  {featuredUniverseCard.focus_override ? 'foco editorial' : featuredUniverseCard.is_featured ? 'featured' : 'publicado'}
+                  {featuredUniverseCard.focus_override ? 'foco editorial' : featuredUniverseCard.is_featured ? 'destaque' : 'publicado'}
                 </Badge>
                 <Badge>{new Date(featuredUniverseCard.published_at ?? '').toLocaleDateString('pt-BR')}</Badge>
               </div>
@@ -221,7 +221,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
                   Entrar no universo
                 </PrefetchLink>
                 <PrefetchLink className='ui-button' href={buildUniverseHref(featuredUniverseCard.slug, 'tutor')} data-variant='ghost'>
-                  Abrir tutor
+                  Abrir Tutor
                 </PrefetchLink>
               </div>
             </article>
@@ -230,7 +230,7 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               {secondaryUniverseCards.map((universe) => (
                 <article key={universe.id} className='universe-door-card universe-door-card-compact surface-blade'>
                   <div className='toolbar-row'>
-                    <Badge>{universe.is_featured ? 'featured' : 'publicado'}</Badge>
+                    <Badge>{universe.is_featured ? 'destaque' : 'publicado'}</Badge>
                     <Badge>{`provas:${universe.evidences}`}</Badge>
                   </div>
                   <h3>{universe.title}</h3>
@@ -248,14 +248,14 @@ export default async function HomePage({ searchParams }: HomePageProps) {
               title='Vitrine em preparacao'
               description={
                 session
-                  ? 'Publique um universo e marque featured para ativar a vitrine viva da Home.'
+                  ? 'Publique um universo e marque destaque para ativar a vitrine viva da Home.'
                   : 'Ainda nao ha universos publicados. Assim que a vitrine abrir, o foco editorial aparecera aqui.'
               }
               variant='no-data'
               actions={
                 session
                   ? [
-                      { label: 'Gerir featured/focus', href: '/admin/universes/featured' },
+                      { label: 'Gerir destaque/focus', href: '/admin/universes/featured' },
                       { label: 'Criar universo', href: '/admin/universes' },
                     ]
                   : [{ label: 'Como funciona', href: '#como-funciona' }]
@@ -304,3 +304,5 @@ export default async function HomePage({ searchParams }: HomePageProps) {
     </main>
   );
 }
+
+

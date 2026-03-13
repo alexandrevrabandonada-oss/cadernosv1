@@ -1,78 +1,92 @@
 # Estado da Nacao - Cadernos Vivos
 Data: 2026-03-12
-Prompt: ADM-UX-03
-Commit (se possivel): n/a
+Atualizado em: 2026-03-12 23:32:00 -03:00
+Contexto consolidado: VIZ-24 - Naming + Information Architecture Pass
+Commit de referencia: 2ac35c3
 
-## 1) O que entrou neste tijolo
-- O board editorial foi refinado como central de operacao madura em `/admin/programa-editorial` e `/admin/programa-editorial/[slug]`.
-- A logica principal foi preservada: o fluxo continua baseado em `editorial_programs`, `editorial_program_items` e `autoAssessUniverseLane`.
-- A entrega prioriza leitura rapida, gargalos reais, acoes operacionais por universo e clareza do proximo passo da fila.
+## 1) Resumo executivo
+- A base de interface entrou em um passe semantico: menos labels herdadas de desenvolvimento e mais linguagem de produto editorial.
+- `Universo` foi reforcado como o todo, enquanto `Hub` foi fixado como a entrada editorial desse todo.
+- A navegacao local do universo ganhou agrupamento semantico discreto em `Exploracao`, `Estudo` e `Coletivo`.
+- `Tutor` foi consolidado como nome publico unico; `Tutoria` ficou relegado a termo legado e interno.
+- No admin, a linguagem visivel ficou menos proxima de kanban de software e mais proxima de operacao editorial.
 
-## 2) O que mudou no board
-### Indice de programas
-- a tela `/admin/programa-editorial` agora funciona como resumo executivo dos programas ativos
-- cada programa mostra total de universos, cards em `review`, cards em `done` e atalhos para board e lote
-- a linguagem saiu de lista tecnica e passou para tom de operacao editorial
+## 2) O que mudou em naming e IA
+### Produto publico
+- Home passou a falar em `Universos em destaque`, `Abrir universo` e `Comecar com Tutor` com mais consistencia.
+- Hub reforca a leitura de `Hub editorial` como porta de entrada do universo.
+- Breadcrumbs agora deixam mais clara a diferenca entre `Universo` e a sala atual.
+- CTAs foram limpos para privilegiar verbos padrao como `Abrir`, `Explorar`, `Comecar`, `Voltar ao Hub`, `Salvar`, `Adicionar`, `Exportar` e `Publicar`.
 
-### Hero operacional do board
-- titulo e resumo do programa
-- metricas rapidas de universos totais, `review`, `publish` e `done`
-- CTAs para `Criar lote`, `Atualizar board` e `Aplicar sugestoes de lane`
+### Navegacao local
+- As salas principais continuam planas, mas agora respondem a uma taxonomia explicita:
+  - `Exploracao`: Hub, Mapa, Provas, Debate, Linha, Glossario
+  - `Estudo`: Trilhas, Tutor, Meu Caderno
+  - `Coletivo`: Coletivos
+- Essa leitura entrou em [UniverseLocalNav.tsx](C:/Projetos/Cadernos%20Vivos%20V1/components/universe/UniverseLocalNav.tsx) e [lib/universeNav.ts](C:/Projetos/Cadernos%20Vivos%20V1/lib/universeNav.ts).
 
-### Saude do board
-- counts por lane com destaque para lane mais congestionada
-- leitura de `Onde esta travado`
-- leitura de `Maior atraso`
-- leitura de `Sem movimento recente`
+### Rail contextual
+- A rail lateral ficou mais humana e menos tecnica.
+- Labels como `Explorar o mapa`, `Acervo de provas`, `Levar ao coletivo` e `Comecar pela trilha` substituem rotulos mais mecanicos.
+- O caderno ganhou fluxo mais claro e sem colisao de CTA com `Retomar` no recap.
 
-### Board principal
-- lanes com microcopy editorial curta
-- cards de universo mais fortes, com titulo, resumo, template, prioridade, lane atual e sinais operacionais
-- painel lateral com `Recomendados agora` e `Proximos movimentos`
+## 3) Decisao sobre Tutor e Tutoria
+- `Tutor` e o nome publico unico do produto.
+- A rota legada `/tutoria` continua existindo, mas a orientacao visual e a copy agora apontam para `Tutor`.
+- A decisao evita duas entradas quase iguais na navegacao e reduz atrito cognitivo para usuario final.
 
-## 3) Novos componentes de gargalo e saude
-- `LaneHealthBadge`: badge de contagem por lane com destaque de gargalo
-- `ProgramBlockerChip`: chips de bloqueio e prontidao operacional
-- `UniverseOpsCard`: card editorial para leitura e acao rapida por universo
+## 4) Admin e operacao editorial
+### Labels refinados
+- `Universe Inbox` virou `Inbox documental` na linguagem visivel principal do admin.
+- `Featured / Focus` passou a orbitar `Vitrine editorial` como guarda-chuva semantico.
+- O board editorial passou a exibir etapas visiveis em portugues:
+  - `Estrutura`
+  - `Ingestao`
+  - `Qualidade`
+  - `Curadoria`
+  - `Revisao`
+  - `Vitrine`
+  - `Publicacao`
+  - `Concluido`
 
-## 4) Lane sugerida mais legivel
-- cada card passa a expor lane atual x lane sugerida
-- o motivo da sugestao ficou legivel para operacao humana
-- exemplos de mensagem:
-  - docs importados, mas ainda sem processamento concluido
-  - ha docs processed, mas a qualidade media ainda esta baixa
-  - muitos drafts e pouca revisao
-  - ja tem published + highlights, pronto para vitrine
-- acoes disponiveis:
-  - `Mover agora`
-  - `Ignorar sugestao`
+### Resultado
+- O cockpit `/admin/universes` comunica melhor as tres portas de criacao.
+- O board `/admin/programa-editorial/[slug]` deixa mais legivel a diferenca entre etapa atual e etapa sugerida.
+- O Inbox ficou semanticamente alinhado ao resto do produto, sem perder a leitura operacional.
 
-## 5) Como testar
-1. Abrir `/admin/programa-editorial`.
-2. Entrar em um board em `/admin/programa-editorial/[slug]`.
-3. Revisar counts por lane na secao `Saude do board`.
-4. Abrir um card de universo e validar badges, bloqueios e acoes rapidas.
-5. Usar uma acao rapida como `Checklist`, `Review` ou `Highlights`.
-6. Validar lane atual x lane sugerida e, se fizer sentido, mover o card.
-7. Testar `Criar lote` no proprio board para inserir novos universos no programa.
+## 5) Docs atualizadas
+- [UI.md](C:/Projetos/Cadernos%20Vivos%20V1/docs/UI.md)
+- [PROGRAMA_EDITORIAL.md](C:/Projetos/Cadernos%20Vivos%20V1/docs/PROGRAMA_EDITORIAL.md)
+- [CATALOGO.md](C:/Projetos/Cadernos%20Vivos%20V1/docs/CATALOGO.md)
+- [IA_NAMING.md](C:/Projetos/Cadernos%20Vivos%20V1/docs/IA_NAMING.md)
 
-## 6) Arquivos principais desta entrega
-- `app/admin/programa-editorial/page.tsx`
-- `app/admin/programa-editorial/[slug]/page.tsx`
-- `components/admin/LaneHealthBadge.tsx`
-- `components/admin/ProgramBlockerChip.tsx`
-- `components/admin/UniverseOpsCard.tsx`
-- `lib/editorial/program.ts`
-- `app/globals.css`
-- `tests/editorial-program.test.ts`
-- `tests/e2e/ui-smoke.spec.ts`
-- `docs/PROGRAMA_EDITORIAL.md`
+## 6) Como testar
+1. Abrir Hub, Mapa e Meu Caderno e revisar os novos nomes nas tabs, breadcrumbs, rail contextual e CTAs.
+2. Validar na navegacao local os grupos semanticos `Exploracao`, `Estudo` e `Coletivo`.
+3. Abrir `/admin/universes`, `/admin/universes/inbox` e `/admin/programa-editorial` para revisar a linguagem nova do admin.
+4. Confirmar que `Tutor` aparece como nome publico e `Tutoria` nao concorre mais como entrada principal.
+5. Checar no board a leitura `etapa atual` x `etapa sugerida` e os novos nomes das lanes.
 
-## 7) Verificacoes finais
-- `npm run verify`: ✅ Verify passou
-- `npm run test:e2e:ci`: ✅ E2E passou
-- `npm run test:ui:ci`: ✅ Visual passou
+## 7) Arquivos centrais desta entrega
+- [UniverseLocalNav.tsx](C:/Projetos/Cadernos%20Vivos%20V1/components/universe/UniverseLocalNav.tsx)
+- [OrientationBar.tsx](C:/Projetos/Cadernos%20Vivos%20V1/components/universe/OrientationBar.tsx)
+- [ContextRail.tsx](C:/Projetos/Cadernos%20Vivos%20V1/components/workspace/ContextRail.tsx)
+- [SectionActionBar.tsx](C:/Projetos/Cadernos%20Vivos%20V1/components/workspace/SectionActionBar.tsx)
+- [universeNav.ts](C:/Projetos/Cadernos%20Vivos%20V1/lib/universeNav.ts)
+- [page.tsx](C:/Projetos/Cadernos%20Vivos%20V1/app/page.tsx)
+- [page.tsx](C:/Projetos/Cadernos%20Vivos%20V1/app/c/%5Bslug%5D/page.tsx)
+- [page.tsx](C:/Projetos/Cadernos%20Vivos%20V1/app/admin/universes/page.tsx)
+- [page.tsx](C:/Projetos/Cadernos%20Vivos%20V1/app/admin/universes/inbox/page.tsx)
+- [page.tsx](C:/Projetos/Cadernos%20Vivos%20V1/app/admin/programa-editorial/%5Bslug%5D/page.tsx)
+- [program.ts](C:/Projetos/Cadernos%20Vivos%20V1/lib/editorial/program.ts)
+- [workspace.css](C:/Projetos/Cadernos%20Vivos%20V1/styles/workspace.css)
 
-## 8) Observacao operacional
-- O `test:e2e:ci` seguiu verde com 1 flaky antigo em fluxo restrito de `coletivos`, fora do escopo deste board premium.
-- A baseline visual do runner mobile compacto foi atualizada para refletir a composicao nova sem alterar o fluxo principal do produto.
+## 8) Verificacao final
+- ✅ `npm run verify` passou
+- ✅ `npm run test:e2e:ci` passou
+- ✅ `npm run test:ui:ci` passou
+
+## 9) Observacoes operacionais
+- O E2E terminou verde com 1 flaky antigo fora do escopo semantico desta entrega: bootstrap/checklist do admin.
+- Os snapshots visuais foram regenerados para refletir a nova linguagem e a reorganizacao semantica da interface.
+- A base agora esta mais pronta para refinamentos editoriais finos sem voltar a vazar termos de implementacao para a experiencia publica.

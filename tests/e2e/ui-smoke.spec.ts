@@ -3,8 +3,8 @@ import { expect, test } from '@playwright/test';
 test('admin universes cockpit: mostra 3 portas principais e modo avancado', async ({ page }) => {
   await page.goto('/admin/universes');
   await expect(page.getByRole('heading', { name: 'Criar universo' })).toBeVisible();
-  await expect(page.getByText('Universe Inbox ativo').first()).toBeVisible();
-  await expect(page.getByText('Entrar PDFs').first()).toBeVisible();
+  await expect(page.getByText('Inbox documental ativa').first()).toBeVisible();
+  await expect(page.getByText('Entrar documentos').first()).toBeVisible();
   await expect(page.getByText('Criar por template').first()).toBeVisible();
   await expect(page.getByText('Modo avancado/manual').first()).toBeVisible();
 
@@ -28,9 +28,9 @@ const slug = 'exemplo';
 test.describe('UI smoke - workspace critico', () => {
   test('home: usa universo featured seedado como foco editorial real', async ({ page }) => {
     await page.goto('/');
-    await expect(page.getByText('Universo em foco').first()).toBeVisible();
+    await expect(page.getByText('Universo em destaque').first()).toBeVisible();
     await expect(page.getByRole('heading', { name: 'Exemplo' }).first()).toBeVisible();
-    await expect(page.getByRole('link', { name: 'Entrar agora' }).first()).toBeVisible();
+    await expect(page.getByRole('link', { name: 'Abrir universo' }).first()).toBeVisible();
   });
 
   test('admin featured/focus: painel mostra o bloco de governanca editorial', async ({ page }) => {
@@ -837,11 +837,11 @@ test('admin programa editorial: cria lote, move card e reaplica sugestao de lane
 
   await page.reload();
   const movedCard = page.getByTestId('program-universe-card').filter({ hasText: `Lote A ${stamp}` }).first();
-  await expect(movedCard).toContainText('lane:review');
+  await expect(movedCard).toContainText('etapa:Revisao');
   await expect(page.getByText('Onde esta travado').first()).toBeVisible();
 
-  await page.getByRole('button', { name: 'Aplicar sugestoes de lane' }).click();
-  await expect(page.getByTestId('program-universe-card').filter({ hasText: `Lote A ${stamp}` }).first()).toContainText('lane:bootstrap');
+  await page.getByRole('button', { name: 'Aplicar sugestoes de etapa' }).click();
+  await expect(page.getByTestId('program-universe-card').filter({ hasText: `Lote A ${stamp}` }).first()).toContainText('etapa:Estrutura');
 });
 
 
@@ -863,8 +863,8 @@ test('programa editorial 2026: garante lote real com tres universos e hub unpubl
   await expect(page.getByText('bootstrap:').first()).toBeVisible();
 
   const saudeCard = page.getByTestId('program-universe-card').filter({ hasText: 'Saude e Poluicao em Volta Redonda' }).first();
-  await expect(saudeCard).toContainText('lane:bootstrap');
-  await saudeCard.getByRole('link', { name: 'Abrir hub' }).click();
+  await expect(saudeCard).toContainText('etapa:Estrutura');
+  await saudeCard.getByRole('link', { name: 'Abrir Hub' }).click();
   await expect(page).toHaveURL(/\/c\/saude-poluicao-vr/);
   await expect(page.getByRole('heading', { name: 'Saude e Poluicao em Volta Redonda' }).first()).toBeVisible();
   await expect(page.getByText('Mapa').first()).toBeVisible();
@@ -881,8 +881,8 @@ test('admin universe inbox: analisa lote PDF, cria universo e entra no board em 
   const fakePdf = Buffer.from('%PDF-1.4\n1 0 obj<</Type/Catalog/Pages 2 0 R>>endobj\n2 0 obj<</Type/Pages/Count 1/Kids[3 0 R]>>endobj\n3 0 obj<</Type/Page/Parent 2 0 R/MediaBox[0 0 300 144]/Contents 4 0 R>>endobj\n4 0 obj<</Length 55>>stream\nBT /F1 12 Tf 40 90 Td (Saude poluicao monitoramento industrial) Tj ET\nendstream endobj\nxref\n0 5\n0000000000 65535 f \ntrailer<</Size 5/Root 1 0 R>>\nstartxref\n0\n%%EOF');
 
   await page.goto('/admin/universes/inbox');
-  await expect(page.getByRole('heading', { name: 'Universe Inbox' })).toBeVisible();
-  await expect(page.getByText('Sala de ingest editorial assistida').first()).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Inbox documental' })).toBeVisible();
+  await expect(page.getByText('Sala de leitura documental assistida').first()).toBeVisible();
   await page.locator('input[type=file]').setInputFiles([
     { name: 'saude-poluicao.pdf', mimeType: 'application/pdf', buffer: fakePdf },
     { name: 'monitoramento-industrial.pdf', mimeType: 'application/pdf', buffer: fakePdf },
@@ -908,12 +908,13 @@ test('admin universe inbox: analisa lote PDF, cria universo e entra no board em 
   await page.getByRole('link', { name: 'Abrir Board', exact: true }).click();
   await expect(page).toHaveURL(/\/admin\/programa-editorial\//);
   await expect(page.getByText(universeTitle).first()).toBeVisible();
-  await expect(page.getByTestId('program-universe-card').filter({ hasText: universeTitle }).first()).toContainText('lane:ingest');
+  await expect(page.getByTestId('program-universe-card').filter({ hasText: universeTitle }).first()).toContainText('etapa:Ingestao');
   await page.goto(`/c/${universeSlug}`);
   await expect(page.getByRole('heading', { name: universeTitle }).first()).toBeVisible();
   await page.goto(`/c/${universeSlug}/trilhas`);
   await expect(page.getByText('Comece Aqui').first()).toBeVisible();
 });
+
 
 
 

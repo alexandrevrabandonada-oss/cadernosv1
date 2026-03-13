@@ -254,10 +254,10 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
       <section className='inbox-hero-grid'>
         <Card className='inbox-hero-card stack'>
           <div className='stack' style={{ gap: '0.6rem' }}>
-            <small className='ui-eyebrow'>Universe Inbox premium</small>
-            <h2 style={{ margin: 0 }}>Sala de ingest editorial assistida</h2>
+            <small className='ui-eyebrow'>Inbox documental premium</small>
+            <h2 style={{ margin: 0 }}>Sala de leitura documental assistida</h2>
             <p className='muted' style={{ margin: 0 }}>
-              Arraste PDFs de um mesmo tema. A IA sugere universo, estrutura e pipeline inicial. O editor revisa tudo antes de criar.
+              Arraste PDFs de um mesmo tema. A IA sugere universo, estrutura inicial e proximo passo editorial. O editor revisa tudo antes de criar.
             </p>
           </div>
           <div className='toolbar-row'>
@@ -268,9 +268,9 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
         </Card>
 
         <Card className='inbox-step-rail'>
-          <div className='inbox-step-chip' data-active='true'>1. Soltar PDFs</div>
+          <div className='inbox-step-chip' data-active='true'>1. Entrar PDFs</div>
           <div className='inbox-step-chip' data-active={draftFiles.length > 0 || hasBatch ? 'true' : 'false'}>2. Lote recebido</div>
-          <div className='inbox-step-chip' data-active={hasBatch ? 'true' : 'false'}>3. Leitura inicial do tema</div>
+          <div className='inbox-step-chip' data-active={hasBatch ? 'true' : 'false'}>3. Leitura inicial</div>
           <div className='inbox-step-chip' data-active={hasBatch || Boolean(result) ? 'true' : 'false'}>4. Antes de criar</div>
         </Card>
       </section>
@@ -399,7 +399,7 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
       <section className='inbox-grid'>
         <div className='stack'>
           <InboxSuggestionPanel
-            eyebrow='3. Leitura inicial do tema'
+            eyebrow='3. Leitura inicial'
             title='Tema principal'
             description='A leitura editorial abaixo resume o recorte que apareceu com mais forca no lote.'
           >
@@ -617,5 +617,6 @@ export function UniverseInboxClient({ initialBatch }: { initialBatch: InboxBatch
     </div>
   );
 }
+
 
 

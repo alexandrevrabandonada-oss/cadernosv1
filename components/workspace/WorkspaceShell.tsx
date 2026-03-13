@@ -1,16 +1,15 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useEffect, useState, type ReactNode } from 'react';
 import { PageReadyMarker } from '@/components/nav/PageReadyMarker';
 import { Carimbo } from '@/components/ui/Badge';
-import { FocusToggle } from '@/components/ui/FocusToggle';
-import { useUiPrefsContext } from '@/components/ui/UiPrefsProvider';
-import { UiPreferencesMenu } from '@/components/ui/UiPreferencesMenu';
+import { PreferencesDrawer } from '@/components/ui/PreferencesDrawer';
 import { EmptyState } from '@/components/ui/EmptyState';
 import { BrandIcon, type BrandIconName } from '@/components/brand/icons/BrandIcon';
 import { DockNav } from '@/components/workspace/DockNav';
 import { DetailPanel } from '@/components/workspace/DetailPanel';
+import { SectionActionBar } from '@/components/workspace/SectionActionBar';
 import { useWorkspaceContext } from '@/components/workspace/WorkspaceContext';
 import { useWorkspacePanels } from '@/components/workspace/useWorkspacePanels';
 import { buildUniverseHref } from '@/lib/universeNav';
@@ -53,7 +52,6 @@ export function WorkspaceShell({
   };
   const panels = useWorkspacePanels();
   const workspace = useWorkspaceContext();
-  const uiPrefs = useUiPrefsContext();
   const hasDetail = Boolean(selectedId);
   const detailOpen = panels.detailOpen && hasDetail;
   const sectionLabel = title ?? section.toUpperCase();
@@ -86,11 +84,6 @@ export function WorkspaceShell({
     return () => document.removeEventListener('keydown', onKeyDown);
   }, [panels.filtersOpen, workspace]);
 
-  useEffect(() => {
-    const normalized = section === 'caderno' ? 'provas' : section;
-    uiPrefs?.setLastSection(normalized);
-  }, [section, uiPrefs]);
-
   return (
     <section className='workspace-shell stack' data-testid='workspace' data-room={section}>
       <PageReadyMarker id={`workspace:${section}`} />
@@ -101,28 +94,23 @@ export function WorkspaceShell({
             <BrandIcon name={sectionIcons[section]} size={18} tone='editorial' />
             {sectionLabel}
           </h2>
-          {subtitle ? (
-            <p className='muted' style={{ margin: 0 }}>
-              {subtitle}
-            </p>
-          ) : null}
+          {subtitle ? <p className='muted' style={{ margin: 0 }}>{subtitle}</p> : null}
         </div>
-        <div className='toolbar-row workspace-head-actions' aria-label='Acoes do workspace'>
+        <SectionActionBar ariaLabel='Acoes do workspace'>
           {headerActions}
-          <FocusToggle compactLabel />
-          <UiPreferencesMenu compact />
           {preview ? <Carimbo>Preview</Carimbo> : null}
           <button type='button' className='ui-button mobile-only' style={{ minHeight: 46, height: 46 }} onClick={panels.openFilters} aria-label='Abrir filtros'>
             Filtros
           </button>
+          <PreferencesDrawer compact />
           <Link className='ui-button' data-variant='ghost' href={buildUniverseHref(slug, '')}>
             Voltar ao Hub
           </Link>
-        </div>
+        </SectionActionBar>
       </header>
 
-      <div className='workspace-grid'>
-        <aside className='workspace-filter desktop-only surface-blade' aria-label='Filtros' data-testid='filter-rail'>
+      <div className={section === 'mapa' ? 'workspace-grid workspace-grid-map' : 'workspace-grid'}>
+        <aside className='workspace-filter desktop-only surface-blade' aria-label='Filtros' data-testid='filter-rail' id={section === 'mapa' ? 'filtros-mapa' : undefined}>
           {filter}
         </aside>
 
@@ -135,36 +123,22 @@ export function WorkspaceShell({
           mobileOpen={detailOpen}
           onCloseMobile={panels.closeDetail}
           showSkeleton={detailLoading && hasDetail}
-          headerActions={<FocusToggle compactLabel />}
-          empty={
-            <EmptyState
-              title='Selecione um item'
-              description='Escolha um card ou linha no conteudo central para abrir o detalhe.'
-            />
-          }
+          empty={<EmptyState title='Selecione um item' description='Escolha um item no conteudo principal para abrir o detalhe contextual.' />}
         >
           {hasDetail ? detail : null}
         </DetailPanel>
       </div>
 
       <div className={`workspace-drawer-overlay cv-panel-exit ${panels.filtersOpen ? 'is-open' : ''}`} onClick={panels.closeFilters} aria-hidden='true' />
-      <aside
-        className={`workspace-drawer surface-blade cv-panel-enter ${panels.filtersOpen ? 'is-open' : ''}`}
-        role='dialog'
-        aria-modal='true'
-        aria-label='Filtros'
-        data-testid='filter-rail'
-      >
+      <aside className={`workspace-drawer surface-blade cv-panel-enter ${panels.filtersOpen ? 'is-open' : ''}`} role='dialog' aria-modal='true' aria-label='Filtros' data-testid='filter-rail'>
         <header className='workspace-detail-head'>
           <strong>Filtros</strong>
-          <div className='toolbar-row workspace-detail-actions' aria-label='Acoes do painel de filtros'>
-            {headerActions}
-            <FocusToggle compactLabel />
-            <UiPreferencesMenu compact />
+          <SectionActionBar ariaLabel='Acoes do painel de filtros'>
+            <PreferencesDrawer compact />
             <button type='button' className='ui-button' style={{ minHeight: 46, height: 46 }} data-variant='ghost' onClick={panels.closeFilters} aria-label='Fechar filtros'>
               Fechar
             </button>
-          </div>
+          </SectionActionBar>
         </header>
         <div className='workspace-drawer-body'>{filter}</div>
       </aside>

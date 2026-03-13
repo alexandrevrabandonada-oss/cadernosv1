@@ -22,20 +22,20 @@ export default async function AdminUniverseInboxPage({ searchParams }: AdminUniv
           items={[
             { href: '/', label: 'Home' },
             { href: '/admin', label: 'Admin' },
-            { href: '/admin/universes', label: 'Universes' },
-            { label: 'Universe Inbox' },
+            { href: '/admin/universes', label: 'Criar universo' },
+            { label: 'Inbox documental' },
           ]}
           ariaLabel='Trilha inbox de universo'
         />
         <SectionHeader
-          title='Universe Inbox'
-          description='Dropzone editorial assistida para receber um lote de PDFs, ler o tema com apoio da IA, revisar o bootstrap inicial e criar o universo ja conectado ao pipeline.'
-          tag='Inbox'
+          title='Inbox documental'
+          description='Sala assistida para receber um lote de PDFs, ler o tema com apoio da IA, revisar a estrutura inicial e criar o universo ja conectado ao pipeline.'
+          tag='Lote documental'
         />
         <div className='toolbar-row'>
           <Link className='ui-button' href='/admin/universes'>Voltar ao cockpit</Link>
-          <Link className='ui-button' href='/admin/universes/new'>Abrir wizard</Link>
-          <Link className='ui-button' href='/admin/programa-editorial'>Abrir board editorial</Link>
+          <Link className='ui-button' href='/admin/universes/new'>Criar por modelo</Link>
+          <Link className='ui-button' href='/admin/programa-editorial'>Abrir operacao editorial</Link>
         </div>
       </Card>
 
@@ -43,3 +43,4 @@ export default async function AdminUniverseInboxPage({ searchParams }: AdminUniv
     </main>
   );
 }
+

@@ -2,16 +2,22 @@
 
 ## Objetivo
 
-A Home publica (`/`) deve funcionar como vitrine viva de universos realmente publicados, com foco editorial simples e sem depender de mock quando ja existe conteudo real.
+A Home publica (`/`) funciona como vitrine viva de universos realmente publicados, com foco editorial simples e sem depender de mock quando ja existe conteudo real.
 
 ## Campos editoriais por universo
 
 Migration: `supabase/migrations/20260311100000_universes_featured_focus.sql`
 
-- `is_featured`: coloca o universo na vitrine prioritaria.
-- `featured_rank`: ordena os universos featured na Home.
-- `focus_note`: frase curta opcional para o hero/foco.
-- `focus_override`: força o universo a assumir o `Universo em foco` quando estiver publicado.
+Campos tecnicos mantidos no banco:
+- `is_featured`
+- `featured_rank`
+- `focus_note`
+- `focus_override`
+
+Linguagem visivel preferida no produto:
+- `destaque` para universos featured
+- `foco editorial` para o universo que assume o hero
+- `vitrine editorial` para a operacao de curadoria da Home
 
 ## Ordem editorial da Home
 
@@ -40,10 +46,10 @@ Os sinais priorizam diversidade entre:
 Rota: `/admin/universes/featured`
 
 Permite:
-- marcar/desmarcar `featured`
-- ajustar `featured_rank`
-- definir `focus_override`
-- editar `focus_note`
+- marcar ou desmarcar destaque
+- ajustar ordem da vitrine
+- definir foco editorial
+- editar nota curta de contexto
 
 A rota e restrita a editor/admin. Em `TEST_SEED=1` sem service role, funciona como painel de leitura seedado para validar a ordem editorial sem persistencia.
 
@@ -57,10 +63,10 @@ Quando `hasPublishedUniverses=false`:
 ## Como operar
 
 1. Publicar um universo.
-2. Marcar `featured` nos universos que devem aparecer primeiro.
-3. Ajustar `featured_rank` para ordenar a estante publica.
-4. Usar `focus_override` apenas quando um universo precisa assumir o hero da Home.
-5. Escrever `focus_note` curta e objetiva quando o recorte publico exigir contexto extra.
+2. Marcar destaque nos universos que devem aparecer primeiro.
+3. Ajustar a ordem da vitrine.
+4. Usar foco editorial apenas quando um universo precisa assumir o hero da Home.
+5. Escrever uma nota curta e objetiva quando o recorte publico exigir contexto extra.
 
 ## Bootstrap e catalogo
 

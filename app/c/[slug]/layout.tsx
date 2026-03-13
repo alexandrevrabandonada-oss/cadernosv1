@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { AnalyticsBridge } from '@/components/analytics/AnalyticsBridge';
-import { QuickNav } from '@/components/QuickNav';
+import { ContextRail } from '@/components/workspace/ContextRail';
 import { CommandPalette } from '@/components/command/CommandPalette';
 import { StudyTrackerProvider } from '@/components/study/StudyTrackerProvider';
 import { Card } from '@/components/ui/Card';
@@ -37,14 +37,16 @@ export default async function UniversoLayout({ children, params }: UniversoLayou
         <StudyTrackerProvider universeSlug={slug}>
           <MotionModeSync />
           <main
-            className='split-layout'
+            className='universe-app-shell'
             data-density={uiPrefs.settings.density}
             data-texture={uiPrefs.settings.texture}
             data-focus={uiPrefs.settings.focus_mode && !snapshotMode ? 'on' : 'off'}
           >
             <AnalyticsBridge universeSlug={slug} />
-            <QuickNav slug={slug} />
-            <div className='stack'>
+            <aside className='universe-context-column desktop-only'>
+              <ContextRail slug={slug} />
+            </aside>
+            <div className='stack universe-main-column'>
               {!access.published && access.canPreview ? (
                 <Card className='stack'>
                   <UniverseVisibilityBadge published={false} preview />
